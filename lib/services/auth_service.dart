@@ -1,0 +1,261 @@
+/// Authentication Service
+/// Handles all Supabase authentication operations
+library;
+import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../core/config/supabase_config.dart';
+import '../core/security/secure_local_storage.dart';
+import '../core/logging/logger.dart';
+
+/// Auth service for Supabase authentication
+class AuthService {
+  static final AuthService _instance = AuthService._internal();
+  factory AuthService() => _instance;
+  AuthService._internal();
+
+  final Logger _logger = Loggers.auth;
+  SupabaseClient? _client;
+  bool _initialized = false;
+
+  /// Initialize Supabase
+  Future<void> initialize() async {
+    if (_initialized) return;
+
+    _logger.info('Initializing Supabase', context: {
+      'activeUrl': SupabaseConfig.activeUrl,
+      'releaseMode': kReleaseMode,
+    });
+
+    // P0 SECURITY: Release builds must use live Supabase config
+    assert(
+      !kReleaseMode || (SupabaseConfig.liveUrl.isNotEmpty && SupabaseConfig.liveAnonKey.isNotEmpty),
+      'FATAL: Release builds must have live Supabase configuration. '
+      'Set liveUrl and liveAnonKey in SupabaseConfig or use dart-define.'
+    );
+
+    // CRITICAL: Use activeUrl/activeAnonKey (environment-aware, not hardcoded test values)
+    await Supabase.initialize(
+      url: SupabaseConfig.activeUrl,
+      anonKey: SupabaseConfig.activeAnonKey,
+      authOptions: const FlutterAuthClientOptions(
+        authFlowType: AuthFlowType.pkce,
+        localStorage: SecureLocalStorage(),
+      ),
+      realtimeClientOptions: const RealtimeClientOptions(
+        logLevel: RealtimeLogLevel.info,
+      ),
+    );
+
+    _client = Supabase.instance.client;
+    _initialized = true;
+    
+    _logger.info('Supabase initialized successfully', context: {
+      'url': SupabaseConfig.activeUrl,
+    });
+  }
+
+  /// Get Supabase client
+  SupabaseClient get client {
+    if (_client == null) {
+      throw StateError('AuthService not initialized. Call initialize() first.');
+    }
+    return _client!;
+  }
+
+  /// Check if user is authenticated
+  bool get isAuthenticated => client.auth.currentUser != null;
+
+  /// Get current user
+  User? get currentUser => client.auth.currentUser;
+
+  /// Get current session
+  Session? get currentSession => client.auth.currentSession;
+
+  /// Listen to auth state changes
+  Stream<AuthState> get authStateChanges => client.auth.onAuthStateChange;
+
+  /// Sign up with email and password
+  Future<AuthResponse> signUpWithEmail({
+    required String email,
+    required String password,
+    String? name,
+  }) async {
+    final response = await client.auth.signUp(
+      email: email,
+      password: password,
+      data: name != null ? {'name': name} : null,
+    );
+
+    // Create profile after signup
+    if (response.user != null) {
+      await _createUserProfile(response.user!, name);
+    }
+
+    return response;
+  }
+
+  /// Sign in with email and password
+  Future<AuthResponse> signInWithEmail({
+    required String email,
+    required String password,
+  }) async {
+    final response = await client.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
+    
+    // Ensure profile exists (in case it was created before trigger)
+    if (response.user != null) {
+      await _ensureProfileExists(response.user!);
+    }
+    
+    return response;
+  }
+  
+  /// Ensure profile exists (idempotent)
+  Future<void> _ensureProfileExists(User user) async {
+    try {
+      await client.from('profiles').upsert({
+        'id': user.id,
+        'email': user.email,
+        'name': user.userMetadata?['name'] ?? user.email?.split('@').first ?? 'User',
+        'updated_at': DateTime.now().toIso8601String(),
+      }, onConflict: 'id');
+    } catch (e) {
+      if (kDebugMode) debugPrint('Profile ensure failed (non-critical): $e');
+    }
+  }
+
+  /// Sign in with Google
+  Future<bool> signInWithGoogle() async {
+    final response = await client.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: SupabaseConfig.redirectUrl,
+    );
+    return response;
+  }
+
+  /// Sign in with Apple
+  Future<bool> signInWithApple() async {
+    final response = await client.auth.signInWithOAuth(
+      OAuthProvider.apple,
+      redirectTo: SupabaseConfig.redirectUrl,
+    );
+    return response;
+  }
+
+  /// Sign out
+  Future<void> signOut() async {
+    await client.auth.signOut();
+  }
+
+  /// Send password reset email
+  Future<void> sendPasswordReset(String email) async {
+    await client.auth.resetPasswordForEmail(email);
+  }
+
+  /// Update user password
+  Future<UserResponse> updatePassword(String newPassword) async {
+    return await client.auth.updateUser(
+      UserAttributes(password: newPassword),
+    );
+  }
+
+  /// Update user profile
+  Future<UserResponse> updateProfile({
+    String? name,
+    String? avatarUrl,
+  }) async {
+    final data = <String, dynamic>{};
+    if (name != null) data['name'] = name;
+    if (avatarUrl != null) data['avatar_url'] = avatarUrl;
+
+    return await client.auth.updateUser(
+      UserAttributes(data: data),
+    );
+  }
+
+  /// Delete user account
+  Future<void> deleteAccount() async {
+    // Note: This requires a server-side function for security
+    // For now, we just sign out
+    await signOut();
+  }
+
+  /// Create user profile in database
+  Future<void> _createUserProfile(User user, String? name) async {
+    try {
+      await client.from('profiles').upsert({
+        'id': user.id,
+        'name': name ?? user.email?.split('@').first ?? 'User',
+        'email': user.email,
+        'subscription_tier': 'free',
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      if (kDebugMode) debugPrint('Error creating profile: $e');
+    }
+  }
+
+  /// Get user's subscription tier
+  /// Returns: 'free', 'pro', or 'pro_plus'
+  Future<String> getSubscriptionTier() async {
+    if (!isAuthenticated) return 'free';
+    
+    // Admin users get pro_plus tier (full access)
+    if (SupabaseConfig.isAdmin(currentUser?.email)) {
+      return 'pro_plus';
+    }
+
+    try {
+      final response = await client
+          .from('profiles')
+          .select('subscription_tier')
+          .eq('id', currentUser!.id)
+          .single();
+      return response['subscription_tier'] ?? 'free';
+    } catch (e) {
+      return 'free';
+    }
+  }
+
+  /// Check if user has paid subscription (Pro or Pro Plus)
+  Future<bool> isPaid() async {
+    // Admin users always have Pro access
+    if (SupabaseConfig.isAdmin(currentUser?.email)) {
+      return true;
+    }
+    
+    final tier = await getSubscriptionTier();
+    return tier == 'pro' || tier == 'pro_plus';
+  }
+
+  /// Check if user has Pro subscription (Pro or Pro Plus)
+  Future<bool> isPro() async {
+    // Admin users always have Pro access
+    if (SupabaseConfig.isAdmin(currentUser?.email)) {
+      return true;
+    }
+    
+    final tier = await getSubscriptionTier();
+    return tier == 'pro' || tier == 'pro_plus';
+  }
+
+  /// Check if user has Pro Plus subscription (highest tier)
+  Future<bool> isProPlus() async {
+    if (SupabaseConfig.isAdmin(currentUser?.email)) {
+      return true;
+    }
+    
+    final tier = await getSubscriptionTier();
+    return tier == 'pro_plus';
+  }
+  
+  /// Check if user is an admin with full access
+  bool get isAdmin => SupabaseConfig.isAdmin(currentUser?.email);
+}
+
+/// Global auth service instance
+final authService = AuthService();
