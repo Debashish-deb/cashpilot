@@ -1,3 +1,4 @@
+import 'package:cashpilot/core/theme/app_colors.dart' show AppColors;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -57,11 +58,80 @@ class _ContactPickerScreenState extends ConsumerState<ContactPickerScreen> {
           : Column(
               children: [
                 _buildSearchBar(),
+                if (_searchQuery.isEmpty) _buildAIRecommendedSection(),
                 Expanded(
                   child: _buildContactList(),
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _buildAIRecommendedSection() {
+    final suggestedAsync = ref.watch(aiSuggestedFamilyProvider);
+
+    return suggestedAsync.when(
+      data: (contacts) {
+        if (contacts.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Text(
+                'AI Recommendations',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: AppColors.accent,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+            ),
+            SizedBox(
+              height: 100,
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                scrollDirection: Axis.horizontal,
+                itemCount: contacts.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final contact = contacts[index];
+                  return SizedBox(
+                    width: 100,
+                    child: Column(
+                      children: [
+                        InkWell(
+                          onTap: () => context.pop(contact),
+                          child: CircleAvatar(
+                            radius: 28,
+                            backgroundColor: AppColors.accent.withValues(alpha: 0.1),
+                            child: Text(
+                              contact.displayName.isNotEmpty ? contact.displayName[0] : '?',
+                              style: const TextStyle(color: AppColors.accent),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          contact.displayName.split(' ').first,
+                          style: const TextStyle(fontSize: 10),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Divider(),
+            ),
+          ],
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 

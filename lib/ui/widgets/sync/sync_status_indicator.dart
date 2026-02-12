@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cashpilot/data/drift/app_database.dart' show AppDatabase;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -69,45 +70,7 @@ class SyncStatusIndicator extends ConsumerWidget {
   }
 }
 
-/// Offline Mode Banner - Full-width banner for offline state
-class OfflineModeBanner extends ConsumerWidget {
-  const OfflineModeBanner({super.key});
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final connectivity = ref.watch(connectivityStreamProvider);
-    
-    return connectivity.when(
-      data: (status) {
-        if (status != ConnectivityResult.none) return const SizedBox.shrink();
-        
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          color: Colors.amber.shade100,
-          child: Row(
-            children: [
-              Icon(Icons.wifi_off_rounded, color: Colors.amber.shade900, size: 16),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Working offline',
-                  style: TextStyle(
-                    color: Colors.amber.shade900,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-      loading: () => const SizedBox.shrink(), // Don't show while loading
-      error: (_, __) => const SizedBox.shrink(),
-    );
-  }
-}
 
 /// Sync Conflict Badge - Shows conflict count
 class SyncConflictBadge extends ConsumerWidget {
@@ -170,68 +133,139 @@ class SyncConflictBadge extends ConsumerWidget {
   }
 }
 
-/// Sync Progress Indicator - Shows sync in progress
-class SyncProgressIndicator extends StatefulWidget {
-  final bool isSyncing;
 
-  const SyncProgressIndicator({
-    super.key,
-    required this.isSyncing,
-  });
+
+/// Realtime & Sync Status Indicator (Combined)
+class RealtimeStatusIndicator extends ConsumerStatefulWidget {
+  const RealtimeStatusIndicator({super.key});
 
   @override
-  State<SyncProgressIndicator> createState() => _SyncProgressIndicatorState();
+  ConsumerState<RealtimeStatusIndicator> createState() => _RealtimeStatusIndicatorState();
 }
 
-class _SyncProgressIndicatorState extends State<SyncProgressIndicator>
+class _RealtimeStatusIndicatorState extends ConsumerState<RealtimeStatusIndicator>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
+  late AnimationController _syncAnimationController;
+  bool _showSuccessIcon = false;
+  Timer? _successTimer;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    _syncAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),
-    )..repeat();
+    );
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _syncAnimationController.dispose();
+    _successTimer?.cancel();
     super.dispose();
+  }
+
+  void _handleSyncStatus(SyncStatus status) {
+    if (status == SyncStatus.syncing) {
+      if (!_syncAnimationController.isAnimating) {
+        _syncAnimationController.repeat();
+      }
+      _showSuccessIcon = false;
+    } else if (status == SyncStatus.success) {
+      if (_syncAnimationController.isAnimating) {
+        _syncAnimationController.stop();
+        setState(() {
+          _showSuccessIcon = true;
+        });
+        _successTimer?.cancel();
+        _successTimer = Timer(const Duration(seconds: 3), () {
+          if (mounted) {
+            setState(() {
+              _showSuccessIcon = false;
+            });
+          }
+        });
+      }
+    } else {
+      _syncAnimationController.stop();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.isSyncing) return const SizedBox.shrink();
+    final status = ref.watch(realtimeStatusProvider);
+    final syncStatus = ref.watch(syncStatusProvider).status;
+    
+    // Listen to sync status changes to trigger animations
+    ref.listen(syncStatusProvider, (previous, next) {
+      _handleSyncStatus(next.status);
+    });
+
+    Color color;
+    String label;
+    bool isError = false;
+
+    switch (status) {
+      case RealtimeConnectionStatus.connected:
+        color = const Color(0xFF10B981); // Emerald 500
+        label = 'Realtime';
+        break;
+      case RealtimeConnectionStatus.connecting:
+        color = Colors.amber;
+        label = 'Connecting';
+        break;
+      case RealtimeConnectionStatus.error:
+        color = Colors.red;
+        label = 'Offline';
+        isError = true;
+        break;
+      case RealtimeConnectionStatus.disconnected:
+        // If simply disconnected, show nothing unless we are syncing
+        if (syncStatus != SyncStatus.syncing && !_showSuccessIcon) {
+          return const SizedBox.shrink();
+        }
+        color = Colors.blueGrey;
+        label = 'Local Only';
+        break;
+    }
+
+    final isSyncing = syncStatus == SyncStatus.syncing;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      margin: const EdgeInsets.only(right: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
       decoration: BoxDecoration(
-        color: Colors.blue.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(color: color.withValues(alpha: 0.15), width: 0.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          RotationTransition(
-            turns: _controller,
-            child: const Icon(
-              Icons.sync,
-              size: 14,
-              color: Colors.blue,
+          if (isSyncing)
+            RotationTransition(
+              turns: _syncAnimationController,
+              child: Icon(Icons.sync, size: 8, color: color),
+            )
+          else if (_showSuccessIcon && !isError)
+            Icon(Icons.check_circle_rounded, size: 8, color: color)
+          else
+            Container(
+              width: 3.5,
+              height: 3.5,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+              ),
             ),
-          ),
-          const SizedBox(width: 6),
-          const Text(
-            'Syncing',
+          const SizedBox(width: 5),
+          Text(
+            label,
             style: TextStyle(
-              fontSize: 12,
-              color: Colors.blue,
-              fontWeight: FontWeight.w600,
+              fontSize: 8,
+              color: color,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
             ),
           ),
         ],
@@ -240,46 +274,30 @@ class _SyncProgressIndicatorState extends State<SyncProgressIndicator>
   }
 }
 
-/// Realtime Status Indicator
-/// Shows a small dot indicating realtime connection status
-class RealtimeStatusIndicator extends ConsumerWidget {
-  const RealtimeStatusIndicator({super.key});
+/// Security Badge - Simplified icon-only pill
+class SecurityStatusBadge extends StatelessWidget {
+  const SecurityStatusBadge({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final status = ref.watch(realtimeStatusProvider);
-    
-    // Only show if connected or creating a connection (to avoid noise)
-    // or if error
-    if (status == RealtimeConnectionStatus.disconnected) return const SizedBox.shrink();
-
-    Color color;
-    switch (status) {
-      case RealtimeConnectionStatus.connected:
-        color = Colors.green;
-        break;
-      case RealtimeConnectionStatus.connecting:
-        color = Colors.amber;
-        break;
-      case RealtimeConnectionStatus.error:
-        color = Colors.red;
-        break;
-      case RealtimeConnectionStatus.disconnected:
-        color = Colors.grey;
-        break;
-    }
-
+  Widget build(BuildContext context) {
     return Container(
-      width: 8,
-      height: 8,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
+      margin: const EdgeInsets.only(right: 6),
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: color,
+        color: Colors.blueGrey.withValues(alpha: 0.05),
         shape: BoxShape.circle,
+        border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.1), width: 0.5),
+      ),
+      child: const Icon(
+        Icons.lock_outline_rounded,
+        size: 8,
+        color: Colors.blueGrey,
       ),
     );
   }
 }
+
+
 
 /// Sync Status Widget - Combines all sync indicators
 class SyncStatusWidget extends ConsumerWidget {
@@ -287,20 +305,18 @@ class SyncStatusWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final syncResult = ref.watch(syncStatusProvider);
-    final isSyncing = syncResult.status == SyncStatus.syncing;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4),
+    return const Padding(
+      padding: EdgeInsets.zero,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const RealtimeStatusIndicator(),
-          const SyncStatusIndicator(),
-          const SyncConflictBadge(),
-          SyncProgressIndicator(isSyncing: isSyncing),
+          SecurityStatusBadge(),
+          RealtimeStatusIndicator(),
+          SyncStatusIndicator(), // Pending count
+          SyncConflictBadge(),
         ],
       ),
     );
   }
 }
+

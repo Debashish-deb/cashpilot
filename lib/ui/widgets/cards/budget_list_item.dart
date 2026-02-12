@@ -139,7 +139,7 @@ class BudgetListItem extends ConsumerWidget {
                   ],
                   const Spacer(),
                   Text(
-                    _formatCurrency(budget.totalLimit ?? 0, currency),
+                    _formatCurrency(context, budget.totalLimit ?? 0, currency),
                     style: AppTypography.titleMedium.copyWith(
                       fontWeight: FontWeight.bold,
                       color: textColor,
@@ -164,11 +164,11 @@ class BudgetListItem extends ConsumerWidget {
     AsyncValue<List<int>> historyAsync,
     Budget budget,
   ) {
-    return historyAsync.when(
+    return historyAsync.maybeWhen(
       data: (history) {
         if (history.length < 7) return const SizedBox.shrink();
 
-        return spentAsync.when(
+        return spentAsync.maybeWhen(
           data: (totalSpent) {
             if (budget.totalLimit != null &&
                 totalSpent >= budget.totalLimit!) {
@@ -210,12 +210,10 @@ class BudgetListItem extends ConsumerWidget {
               ),
             );
           },
-          loading: () => const SizedBox.shrink(),
-          error: (_, __) => const SizedBox.shrink(),
+          orElse: () => const SizedBox.shrink(),
         );
       },
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      orElse: () => const SizedBox.shrink(),
     );
   }
 
@@ -291,7 +289,7 @@ class BudgetListItem extends ConsumerWidget {
     Budget budget,
     AsyncValue<int> spentAsync,
   ) {
-    return spentAsync.when(
+    return spentAsync.maybeWhen(
       data: (spent) => BudgetHealthChip(
         startDate: budget.startDate,
         endDate: budget.endDate,
@@ -299,8 +297,7 @@ class BudgetListItem extends ConsumerWidget {
         totalSpent: spent,
         isCompact: true,
       ),
-      loading: () => _fallbackChip(),
-      error: (_, __) => _fallbackChip(),
+      orElse: () => _fallbackChip(),
     );
   }
 
@@ -321,8 +318,9 @@ class BudgetListItem extends ConsumerWidget {
     );
   }
 
-  String _formatCurrency(int cents, String currency) {
+  String _formatCurrency(BuildContext context, int cents, String currency) {
     return NumberFormat.currency(
+      locale: AppLocalizations.of(context)!.localeName,
       symbol: _getCurrencySymbol(currency),
       decimalDigits: 0,
     ).format(cents / 100);

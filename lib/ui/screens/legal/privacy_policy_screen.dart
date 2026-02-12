@@ -14,7 +14,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? Colors.black : theme.scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
@@ -229,6 +229,22 @@ Email: privacy@cashpilot.app
 
 Supervisory Authority:
 You have the right to lodge a complaint with your local data protection authority.''',
+                ),
+
+                _buildSection(
+                  context,
+                  isDark: isDark,
+                  icon: Icons.account_balance_outlined,
+                  title: '11. Open Banking & Financial Data Consent',
+                  content: '''
+When you enable Bank Connectivity, you explicitly consent to CashPilot accessing your transaction history via our regulated partner, Nordigen (a GoCardless company). 
+
+**Key Consent Terms:**
+• **Access Purpose:** Solely for expense tracking and budgeting.
+• **No Credentials Stored:** Your bank login credentials are never stored or seen by CashPilot.
+• **Data Retention:** Bank transactions are stored locally and encrypted in your cloud sync.
+• **90-Day Renewal:** You must re-authorize access every 90 days as per PSD2 regulations.
+• **Revocation:** You can disable connectivity or delete account links at any time in Settings.''',
                 ),
 
                 const SizedBox(height: 32),

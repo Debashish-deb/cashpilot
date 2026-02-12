@@ -1,3 +1,4 @@
+import 'package:cashpilot/l10n/app_localizations.dart' show AppLocalizations;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cashpilot/core/theme/app_typography.dart';
@@ -15,10 +16,11 @@ class ABTestingScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('A/B Testing Dashboard'),
+        title: Text(AppLocalizations.of(context)!.adminABDashboard),
         backgroundColor: isDark ? Colors.grey.shade900 : const Color(0xFF6750A4),
         foregroundColor: Colors.white,
       ),
@@ -30,28 +32,28 @@ class ABTestingScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _buildActiveTestsSection(ref),
+            _buildActiveTestsSection(context, ref, l10n),
             const SizedBox(height: 24),
-            _buildCompletedTestsSection(ref),
+            _buildCompletedTestsSection(context, ref, l10n),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showCreateTestDialog(context),
         icon: const Icon(Icons.add),
-        label: const Text('New Test'),
+        label: Text(AppLocalizations.of(context)!.adminNewTest),
       ),
     );
   }
 
-  Widget _buildActiveTestsSection(WidgetRef ref) {
+  Widget _buildActiveTestsSection(BuildContext context, WidgetRef ref, AppLocalizations l10n) {
     final activeTestsAsync = ref.watch(activeTestsProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Active Tests',
+          l10n.abActiveTests,
           style: AppTypography.headlineSmall.copyWith(
             fontWeight: FontWeight.bold,
           ),
@@ -59,26 +61,26 @@ class ABTestingScreen extends ConsumerWidget {
         const SizedBox(height: 12),
         activeTestsAsync.when(
           data: (tests) {
-            if (tests.isEmpty) return _buildEmptyState('No active tests');
+            if (tests.isEmpty) return _buildEmptyState(l10n.abNoActiveTests);
             return Column(
-              children: tests.map((test) => _buildTestCard(ref, test, context: null)).toList(),
+              children: tests.map((test) => _buildTestCard(context, ref, test, l10n)).toList(),
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, s) => Text('Error: $e'),
+          error: (e, s) => Text(l10n.commonErrorMessage(e.toString())),
         ),
       ],
     );
   }
 
-  Widget _buildCompletedTestsSection(WidgetRef ref) {
+  Widget _buildCompletedTestsSection(BuildContext context, WidgetRef ref, AppLocalizations l10n) {
     final completedTestsAsync = ref.watch(completedTestsProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Completed Tests',
+          l10n.abCompletedTests,
           style: AppTypography.headlineSmall.copyWith(
             fontWeight: FontWeight.bold,
           ),
@@ -86,19 +88,19 @@ class ABTestingScreen extends ConsumerWidget {
         const SizedBox(height: 12),
         completedTestsAsync.when(
           data: (tests) {
-            if (tests.isEmpty) return _buildEmptyState('No completed tests yet');
+            if (tests.isEmpty) return _buildEmptyState(l10n.abNoCompletedTests);
             return Column(
               children: tests.map((test) => _buildCompletedTestItem(ref, test)).toList(),
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, s) => Text('Error: $e'),
+          error: (e, s) => Text(l10n.commonErrorMessage(e.toString())),
         ),
       ],
     );
   }
 
-  Widget _buildTestCard(WidgetRef ref, ABTest test, {BuildContext? context}) {
+  Widget _buildTestCard(BuildContext context, WidgetRef ref, ABTest test, AppLocalizations l10n) {
     // Note: context is not needed for internal logic anymore, but kept implementation structure
     return Consumer(
       builder: (context, ref, _) {
@@ -125,7 +127,7 @@ class ABTestingScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      'Active',
+                      l10n.abStatusActive,
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.blue.shade700,
@@ -137,7 +139,7 @@ class ABTestingScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Started: ${_formatDate(test.startDate)}',
+                l10n.abStartedPrefix(_formatDate(test.startDate)),
                 style: AppTypography.bodySmall.copyWith(
                   color: Colors.grey.shade600,
                 ),
@@ -146,30 +148,10 @@ class ABTestingScreen extends ConsumerWidget {
               // Performance comparison
               Row(
                 children: [
-                  Expanded(
-                    child: _buildModelStats(
-                      'Control (${test.controlVersion})',
-                      test.controlStats,
-                      false,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildModelStats(
-                      'Treatment (${test.treatmentVersion})',
-                      test.treatmentStats,
-                      _isWinning(test.controlStats, test.treatmentStats),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
                   TextButton.icon(
                     onPressed: () => _showTestDetails(context, test),
                     icon: const Icon(Icons.analytics),
-                    label: const Text('View Details'),
+                    label: Text(l10n.abViewDetails),
                   ),
                   const Spacer(),
                   OutlinedButton.icon(
@@ -178,7 +160,7 @@ class ABTestingScreen extends ConsumerWidget {
                       foregroundColor: Colors.orange.shade700,
                     ),
                     icon: const Icon(Icons.stop),
-                    label: const Text('End Test'),
+                    label: Text(l10n.adminEndTest),
                   ),
                 ],
               ),
@@ -189,52 +171,7 @@ class ABTestingScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildModelStats(String label, ModelStats stats, bool isWinning) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isWinning
-            ? Colors.green.withValues(alpha: 0.1)
-            : Colors.grey.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: isWinning
-            ? Border.all(color: Colors.green, width: 2)
-            : null,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  style: AppTypography.labelSmall.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              if (isWinning)
-                Icon(Icons.star, size: 16, color: Colors.green.shade700),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${(stats.acceptanceRate * 100).toInt()}% accept',
-            style: AppTypography.bodyMedium.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          Text(
-            '${stats.totalScans} scans',
-            style: AppTypography.bodySmall.copyWith(
-              color: Colors.grey.shade600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildCompletedTestItem(WidgetRef ref, ABTest test) {
     final improvement = test.results?['improvement'] as double? ?? 0.0;
@@ -242,6 +179,7 @@ class ABTestingScreen extends ConsumerWidget {
 
     return Consumer(
       builder: (context, ref, _) {
+        final l10n = AppLocalizations.of(context)!;
         return ListTile(
           leading: Icon(
             isImprovement ? Icons.trending_up : Icons.trending_down,
@@ -249,7 +187,7 @@ class ABTestingScreen extends ConsumerWidget {
           ),
           title: Text(test.testName),
           subtitle: Text(
-            'Ended: ${_formatDate(test.endDate ?? test.startDate)}',
+            l10n.abEndedPrefix(_formatDate(test.endDate ?? test.startDate)),
           ),
           trailing: Text(
             '${improvement > 0 ? '+' : ''}${(improvement * 100).toStringAsFixed(1)}%',
@@ -284,9 +222,7 @@ class ABTestingScreen extends ConsumerWidget {
     );
   }
 
-  bool _isWinning(ModelStats control, ModelStats treatment) {
-    return treatment.acceptanceRate > control.acceptanceRate;
-  }
+
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();
@@ -320,8 +256,8 @@ class ABTestingScreen extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('End A/B Test?'),
-        content: Text('Are you sure you want to end "${test.testName}"?'),
+        title: Text(AppLocalizations.of(context)!.adminEndTestTitle),
+        content: Text(AppLocalizations.of(context)!.abEndConfirmMessage(test.testName)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -332,7 +268,7 @@ class ABTestingScreen extends ConsumerWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
             ),
-            child: const Text('End Test'),
+            child: Text(AppLocalizations.of(context)!.adminEndTest),
           ),
         ],
       ),
@@ -345,7 +281,7 @@ class ABTestingScreen extends ConsumerWidget {
         
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Test ended successfully')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.adminTestEndedSuccess)),
           );
           // Refresh lists
           ref.invalidate(activeTestsProvider);

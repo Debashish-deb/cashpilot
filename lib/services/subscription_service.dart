@@ -5,12 +5,14 @@
 /// Tiers: Free, Pro, Pro Plus
 library;
 
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants/subscription.dart';
 import '../core/utils/logger.dart';
 import 'auth_service.dart';
 import 'stripe_service.dart';
+import '../core/security/entitlement_validator.dart';
 
 /// Subscription service - Singleton
 class SubscriptionService {
@@ -30,6 +32,10 @@ class SubscriptionService {
   // Family membership tracking
   bool _isMemberOfProPlusFamily = false;
   String? _familyOwnerId;
+  
+  // Signed Entitlement for cryptographic verification
+  SignedEntitlement? _signedEntitlement;
+  final EntitlementValidator _validator = EntitlementValidator();
 
   // Getters
   SubscriptionTier get currentTier => _currentTier;
@@ -62,6 +68,7 @@ class SubscriptionService {
 
   // Initialization guard (prevent duplicate initializations)
   bool _initialized = false;
+  bool get isInitialized => _initialized;
 
   /// Initialize subscription state
   Future<void> initialize() async {
@@ -167,6 +174,18 @@ class SubscriptionService {
     // Family membership
     _isMemberOfProPlusFamily = prefs.getBool('is_family_member') ?? false;
     _familyOwnerId = prefs.getString('family_owner_id');
+
+    // Load signed entitlement
+    final entitlementJson = prefs.getString('signed_entitlement');
+    if (entitlementJson != null) {
+      try {
+        _signedEntitlement = SignedEntitlement.fromJson(
+          jsonDecode(entitlementJson) as Map<String, dynamic>,
+        );
+      } catch (e) {
+        logger.warning('Failed to parse signed entitlement', category: LogCategory.subscription);
+      }
+    }
   }
 
   /// Save subscription state to local storage
@@ -201,6 +220,12 @@ class SubscriptionService {
     } else {
       await prefs.remove('family_owner_id');
     }
+
+    if (_signedEntitlement != null) {
+      await prefs.setString('signed_entitlement', jsonEncode(_signedEntitlement!.toJson()));
+    } else {
+      await prefs.remove('signed_entitlement');
+    }
   }
 
   /// Reset subscription to free tier (for guest users or logout)
@@ -214,6 +239,7 @@ class SubscriptionService {
     _ocrScansResetAt = null;
     _isMemberOfProPlusFamily = false;
     _familyOwnerId = null;
+    _signedEntitlement = null;
     
     await _saveToStorage();
     logger.info('Subscription reset to free tier', category: LogCategory.subscription);
@@ -577,6 +603,34 @@ class SubscriptionService {
         error: e,
       );
     }
+  }
+
+  /// Verify if the current entitlement is cryptographically valid
+  /// HARDENING: This is used to gate ALL sensitive module features.
+  bool isEntitlementValid() {
+    if (_currentTier == SubscriptionTier.free) return true;
+    
+    // NO TOKEN = NO ACCESS (Enterprise Fintech Standard)
+    if (_signedEntitlement == null) {
+      logger.warning('Entitlement check failed: No signed token present.', category: LogCategory.security);
+      return false;
+    }
+    
+    final userId = authService.currentUser?.id ?? 'guest';
+    final isValid = _validator.verify(_signedEntitlement!, userId);
+    
+    if (!isValid) {
+      logger.error('CRYPTOGRAPHIC ENTITLEMENT TAMPER DETECTED', category: LogCategory.security);
+    }
+    
+    return isValid;
+  }
+
+  /// Update signed entitlement (usually called after sync or purchase)
+  Future<void> updateEntitlement(SignedEntitlement entitlement) async {
+    _signedEntitlement = entitlement;
+    _currentTier = entitlement.tier;
+    await _saveToStorage();
   }
 }
 

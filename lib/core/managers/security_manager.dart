@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/app_providers.dart';
 import '../../services/encryption_service.dart';
+import '../security/security_policy_engine.dart';
 
 // =============================================================================
 // SECURITY MANAGER - Singleton Pattern
@@ -19,6 +20,9 @@ class SecurityManager {
   static final SecurityManager _instance = SecurityManager._internal();
   factory SecurityManager() => _instance;
   SecurityManager._internal();
+
+  final SecurityPolicyEngine _policyEngine = SecurityPolicyEngine();
+  DeviceIntegrityReport? _lastReport;
 
   // Rate limiting storage
   final Map<String, List<DateTime>> _requestLog = {};
@@ -379,10 +383,31 @@ class SecurityManager {
   // ==========================================================================
 
   /// Check if this device is trusted
+  /// P0 SECURITY: Includes hardware-backed trust and real-time integrity evaluation
   Future<bool> isDeviceTrusted(Ref ref) async {
+    // 1. Check persistent trust flag
     final prefs = ref.read(sharedPreferencesProvider);
-    return prefs.getBool('device_trusted') ?? false;
+    final isMarkedTrusted = prefs.getBool('device_trusted') ?? false;
+    
+    // 2. Continuous Integrity Evaluation (tamper detection)
+    _lastReport = await _policyEngine.evaluateIntegrity();
+    
+    if (_lastReport!.isCompromised) {
+      logSecurityEvent(
+        type: SecurityEventType.tamperDetected,
+        details: 'Tamper detected: ${_lastReport!.signals.join(", ")}',
+      );
+      return false; // Compromised devices are NEVER trusted
+    }
+
+    return isMarkedTrusted && _lastReport!.trustScore > 0.6;
   }
+
+  /// Get the current trust score from the last evaluation
+  double get currentTrustScore => _lastReport?.trustScore ?? 0.0;
+  
+  /// Get the current integrity signals
+  List<String> get currentIntegritySignals => _lastReport?.signals ?? [];
 
   /// Mark device as trusted
   Future<void> trustDevice(Ref ref) async {
@@ -423,6 +448,7 @@ enum SecurityEventType {
   deviceRevoked,
   dataExported,
   dataDeleted,
+  tamperDetected,
   suspiciousActivity,
 }
 

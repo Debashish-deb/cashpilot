@@ -1,8 +1,11 @@
+import 'package:cashpilot/features/savings_goals/presentation/controllers/savings_goals_state.dart' show SavingsGoalsState;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../../../data/drift/app_database.dart';
-import '../../../../features/savings/providers/savings_providers.dart';
+import 'package:cashpilot/features/savings_goals/domain/entities/savings_goal.dart';
+import 'package:cashpilot/features/savings_goals/presentation/providers/savings_goals_providers.dart';
+import 'package:cashpilot/features/savings_goals/application/commands/create_goal_cmd.dart';
+import 'package:cashpilot/features/savings_goals/application/commands/update_goal_cmd.dart';
 import '../../../../core/providers/app_providers.dart';
 import '../../../widgets/input/category_icon_selector.dart';
 import '../../../widgets/input/category_color_selector.dart';
@@ -32,7 +35,7 @@ class _SavingsGoalFormDialogState extends ConsumerState<SavingsGoalFormDialog> {
     final goal = widget.existingGoal;
     _titleController = TextEditingController(text: goal?.title ?? '');
     _targetController = TextEditingController(text: goal != null ? (goal.targetAmount / 100).toStringAsFixed(0) : '');
-    _currentController = TextEditingController(text: goal != null ? (goal.currentAmount / 100).toStringAsFixed(0) : '');
+    _currentController = TextEditingController(text: goal != null && goal.currentAmount > 0 ? (goal.currentAmount / 100).toStringAsFixed(0) : '0');
     
     if (goal != null) {
       _selectedIcon = goal.iconName;
@@ -60,7 +63,9 @@ class _SavingsGoalFormDialogState extends ConsumerState<SavingsGoalFormDialog> {
     final userId = ref.read(currentUserIdProvider);
     
     if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User not signed in')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User not signed in')));
+      }
       return;
     }
 
@@ -71,35 +76,54 @@ class _SavingsGoalFormDialogState extends ConsumerState<SavingsGoalFormDialog> {
         ? '#${_selectedColor!.toARGB32().toRadixString(16).substring(2)}' 
         : null;
 
-    if (widget.existingGoal != null) {
-      await controller.updateGoal(
-        id: widget.existingGoal!.id,
-        title: _titleController.text,
-        targetAmount: target.toInt(),
-        currentAmount: current.toInt(),
-        iconName: _selectedIcon,
-        colorHex: colorHex,
-        deadline: _deadline,
-      );
-    } else {
-      await controller.createGoal(
-        title: _titleController.text,
-        targetAmount: target.toInt(),
-        currentAmount: current.toInt(),
-        userId: userId,
-        iconName: _selectedIcon,
-        colorHex: colorHex,
-        deadline: _deadline,
-      );
-    }
+    try {
+      if (widget.existingGoal != null) {
+        final cmd = UpdateGoalCmd(
+          id: widget.existingGoal!.id,
+          title: _titleController.text,
+          targetAmount: target.toInt(),
+          currentAmount: current.toInt(),
+          iconName: _selectedIcon,
+          colorHex: colorHex,
+          deadline: _deadline,
+          revision: widget.existingGoal!.revision,
+        );
+        
+        await controller.update(cmd);
+      } else {
+        final cmd = CreateGoalCmd(
+          title: _titleController.text,
+          targetAmount: target.toInt(),
+          userId: userId,
+          iconName: _selectedIcon,
+          colorHex: colorHex,
+          deadline: _deadline,
+          currentAmount: current.toInt(),
+        );
+        await controller.create(cmd);
+      }
 
-    if (mounted) Navigator.pop(context);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save goal: $e')),
+        );
+      }
+    }
+  }
+
+  String _getCurrencySymbol(String code) {
+    const symbols = {'EUR': '€', 'USD': '\$', 'GBP': '£', 'BDT': '৳', 'INR': '₹'};
+    return symbols[code] ?? code;
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(savingsGoalsControllerProvider);
-    final isLoading = state is AsyncLoading;
+    final isLoading = state == const SavingsGoalsState.processing();
+    final currency = ref.watch(currencyProvider);
+    final currencySymbol = _getCurrencySymbol(currency);
 
     return AlertDialog(
       title: Text(widget.existingGoal != null ? 'Edit Goal' : 'New Savings Goal'),
@@ -117,16 +141,29 @@ class _SavingsGoalFormDialogState extends ConsumerState<SavingsGoalFormDialog> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _targetController,
-                decoration: const InputDecoration(labelText: 'Target Amount', prefixText: '€ '),
+                decoration: InputDecoration(labelText: 'Target Amount', prefixText: '$currencySymbol '),
                 keyboardType: TextInputType.number,
-                validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+                validator: (v) {
+                  if (v?.isEmpty ?? true) return 'Required';
+                  final amount = double.tryParse(v!);
+                  if (amount == null || amount <= 0) return 'Invalid amount';
+                  if (amount > 999999999) return 'Amount too large';
+                  return null;
+                },
               ),
               if (widget.existingGoal != null) ...[
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _currentController,
-                  decoration: const InputDecoration(labelText: 'Current Saved', prefixText: '€ '),
+                  decoration: InputDecoration(labelText: 'Current Saved', prefixText: '$currencySymbol '),
                   keyboardType: TextInputType.number,
+                  validator: (v) {
+                    if (v?.isNotEmpty ?? false) {
+                      final amount = double.tryParse(v!);
+                      if (amount == null || amount < 0) return 'Invalid amount';
+                    }
+                    return null;
+                  },
                 ),
               ],
               const SizedBox(height: 16),

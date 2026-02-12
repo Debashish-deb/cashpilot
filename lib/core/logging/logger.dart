@@ -3,8 +3,6 @@
 library;
 
 import 'package:flutter/foundation.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 
 /// Log levels
 enum LogLevel {
@@ -83,8 +81,6 @@ class Logger {
   static LogLevel _globalMinLevel = LogLevel.debug;
   static final List<LogEntry> _buffer = [];
   static const int _maxBufferSize = 1000;
-  static File? _logFile;
-  static bool _fileLoggingEnabled = false;
 
   Logger(this.module, {this.minLevel = LogLevel.debug});
 
@@ -93,23 +89,15 @@ class Logger {
     _globalMinLevel = level;
   }
 
-  /// Enable file logging (for debugging)
+  /// Enable file logging (Stubbed for Web Compatibility)
   static Future<void> enableFileLogging() async {
-    if (!kDebugMode) return; // Only in debug mode
-    
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      _logFile = File('${directory.path}/cashpilot_logs.txt');
-      _fileLoggingEnabled = true;
-    } catch (e) {
-      debugPrint('Failed to enable file logging: $e');
-    }
+    // File logging disabled for web compatibility
+    debugPrint('File logging is not supported in this version');
   }
 
   /// Disable file logging
   static void disableFileLogging() {
-    _fileLoggingEnabled = false;
-    _logFile = null;
+    // No-op
   }
 
   /// Log debug message
@@ -169,23 +157,6 @@ class Logger {
     // Output to console in debug mode
     if (kDebugMode) {
       debugPrint(entry.toString());
-    }
-
-    // Write to file if enabled
-    if (_fileLoggingEnabled && _logFile != null) {
-      _writeToFile(entry);
-    }
-  }
-
-  /// Write log entry to file
-  static void _writeToFile(LogEntry entry) {
-    try {
-      _logFile?.writeAsStringSync(
-        '${entry.toString()}\n',
-        mode: FileMode.append,
-      );
-    } catch (e) {
-      // Silently fail to avoid log recursion
     }
   }
 

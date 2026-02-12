@@ -11,6 +11,7 @@ import '../services/auth_service.dart';
 import '../services/subscription_service.dart';
 import '../core/providers/app_providers.dart';
 import '../core/constants/subscription.dart';
+import '../services/kill_switch_service.dart';
 
 /// Feature gating service for Pro features
 class FeatureGateService {
@@ -21,9 +22,35 @@ class FeatureGateService {
   /// Get the current subscription tier (from auth service or subscription service)
   /// Made public for external use (e.g., receipt scanning)
   Future<SubscriptionTier> getCurrentTier() async {
-    // Try to get from auth service first (server-side truth)
+    // 1. Check server-side truth from auth service
     final tierString = await authService.getSubscriptionTier();
-    return SubscriptionTier.fromString(tierString);
+    final tier = SubscriptionTier.fromString(tierString);
+    
+    // 2. Perform cryptographic verification if tier is paid
+    if (tier != SubscriptionTier.free) {
+      if (!subscriptionService.isEntitlementValid()) {
+        return SubscriptionTier.free; // Force downgrade if verification fails
+      }
+    }
+    
+    return tier;
+  }
+
+  /// Verification helper for gated features
+  Future<bool> _isVerified(SubscriptionTier requiredTier) async {
+    final currentTier = await getCurrentTier();
+    
+    // Pro Plus required
+    if (requiredTier == SubscriptionTier.proPlus) {
+      return currentTier == SubscriptionTier.proPlus;
+    }
+    
+    // Pro required
+    if (requiredTier == SubscriptionTier.pro) {
+      return currentTier == SubscriptionTier.pro || currentTier == SubscriptionTier.proPlus;
+    }
+    
+    return true;
   }
 
   /// Check if user can use OCR scanning
@@ -31,11 +58,14 @@ class FeatureGateService {
   /// Pro: Limited (20/month)
   /// Pro Plus: Unlimited
   Future<OCRAccess> canUseOCR() async {
-    final tier = await getCurrentTier();
-    
-    if (tier == SubscriptionTier.proPlus) {
+    // P0 OPERATIONAL: Check Kill Switch
+    if (!killSwitchService.isOCRAllowed) {
+      return OCRAccess.notAvailable; // Kill switch disables OCR for all tiers
+    }
+
+    if (await _isVerified(SubscriptionTier.proPlus)) {
       return OCRAccess.unlimited;
-    } else if (tier == SubscriptionTier.pro) {
+    } else if (await _isVerified(SubscriptionTier.pro)) {
       // Pro gets 20 scans/month (per payment plan)
       final usage = await _getOCRUsage();
       return usage < 20 ? OCRAccess.allowed : OCRAccess.limitReached;
@@ -49,9 +79,7 @@ class FeatureGateService {
   /// Free: No (unless family member of Pro Plus)
   /// Pro/Pro Plus: Yes
   Future<bool> canUseCloudSync() async {
-    final tier = await getCurrentTier();
-    
-    if (tier != SubscriptionTier.free) {
+    if (await _isVerified(SubscriptionTier.pro)) {
       return true;
     }
     
@@ -62,48 +90,41 @@ class FeatureGateService {
   /// Check if user can create/manage family budgets
   /// Only Pro Plus
   Future<bool> canUseFamilyBudgets() async {
-    final tier = await getCurrentTier();
-    return tier == SubscriptionTier.proPlus;
+    return await _isVerified(SubscriptionTier.proPlus);
   }
 
   /// Check if user can use bank connectivity
   /// Only Pro Plus
   Future<bool> canUseBankConnectivity() async {
-    final tier = await getCurrentTier();
-    return tier == SubscriptionTier.proPlus;
+    return await _isVerified(SubscriptionTier.proPlus);
   }
 
   /// Check if user can use real-time currency conversion
   /// Pro and Pro Plus
   Future<bool> canUseRealTimeCurrency() async {
-    final tier = await getCurrentTier();
-    return tier != SubscriptionTier.free;
+    return await _isVerified(SubscriptionTier.pro);
   }
 
   /// Check if user can use multi-color themes
   /// Pro and Pro Plus (Free: single color only)
   Future<bool> canUseMultiColorThemes() async {
-    final tier = await getCurrentTier();
-    return tier != SubscriptionTier.free;
+    return await _isVerified(SubscriptionTier.pro);
   }
 
   /// Check if user has full expert mode access
   /// Free: Limited expert mode
   /// Pro/Pro Plus: Full
   Future<bool> hasFullExpertMode() async {
-    final tier = await getCurrentTier();
-    return tier != SubscriptionTier.free;
+    return await _isVerified(SubscriptionTier.pro);
   }
 
   /// Check if user can use AI insights
   /// Free: Limited/Basic
   /// Pro/Pro Plus: Full
   Future<AIInsightLevel> getAIInsightLevel() async {
-    final tier = await getCurrentTier();
-    
-    if (tier == SubscriptionTier.proPlus) {
+    if (await _isVerified(SubscriptionTier.proPlus)) {
       return AIInsightLevel.advanced;
-    } else if (tier == SubscriptionTier.pro) {
+    } else if (await _isVerified(SubscriptionTier.pro)) {
       return AIInsightLevel.full;
     } else {
       return AIInsightLevel.limited;

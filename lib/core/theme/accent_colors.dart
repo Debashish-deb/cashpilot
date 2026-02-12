@@ -2,7 +2,6 @@
 /// Apple-polished + Material-accurate accent colors
 library;
 import 'dart:async';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -187,13 +186,9 @@ class AccentColors {
 
 class AccentColorNotifier extends StateNotifier<AccentColorOption> {
   final SharedPreferences _prefs;
-  StreamSubscription? _authSubscription;
   static const _key = 'accent_color';
 
-  AccentColorNotifier(this._prefs) : super(_loadInitial(_prefs)) {
-    _setupAuthListener();
-    _syncFromCloud();
-  }
+  AccentColorNotifier(this._prefs) : super(_loadInitial(_prefs));
 
   static AccentColorOption _loadInitial(SharedPreferences prefs) {
     final saved = prefs.getString(_key);
@@ -221,7 +216,6 @@ class AccentColorNotifier extends StateNotifier<AccentColorOption> {
     if (state == option) return;
     state = option;
     await _prefs.setString(_key, option.name);
-    await _syncToCloud();
   }
 
   /// Manual refresh from SharedPreferences
@@ -233,81 +227,7 @@ class AccentColorNotifier extends StateNotifier<AccentColorOption> {
   }
 
   AccentColorConfig get currentConfig => AccentColors.getConfig(state);
-  
-  // --- CLOUD SYNC LOGIC ---
 
-  void _setupAuthListener() {
-    try {
-      _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-        if (data.event == AuthChangeEvent.signedIn) {
-          _syncFromCloud();
-        }
-      });
-    } catch (_) {}
-  }
-
-  Future<void> _syncToCloud() async {
-    try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) return;
-
-      final resp = await Supabase.instance.client
-          .from('profiles')
-          .select('metadata')
-          .eq('id', user.id)
-          .maybeSingle();
-          
-      final currentMetadata = (resp?['metadata'] as Map?) ?? {};
-      final newMetadata = Map<String, dynamic>.from(currentMetadata);
-      newMetadata['accent_color'] = state.name;
-
-      await Supabase.instance.client
-          .from('profiles')
-          .update({
-            'metadata': newMetadata,
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', user.id);
-    } catch (_) {}
-  }
-
-  Future<void> _syncFromCloud() async {
-    try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) return;
-
-      final resp = await Supabase.instance.client
-          .from('profiles')
-          .select('metadata')
-          .eq('id', user.id)
-          .maybeSingle();
-
-      if (resp != null) {
-        final metadata = (resp['metadata'] as Map?) ?? {};
-        final cloudValue = metadata['accent_color'] as String?;
-        if (cloudValue != null) {
-          final option = AccentColorOption.values.firstWhere(
-            (o) => o.name == cloudValue,
-            orElse: () => AccentColorOption.emerald,
-          );
-          
-          if (option != state) {
-            state = option;
-            await _prefs.setString(_key, option.name);
-          }
-        } else {
-           // Cloud has no value, push local
-           await _syncToCloud();
-        }
-      }
-    } catch (_) {}
-  }
-  
-  @override
-  void dispose() {
-    _authSubscription?.cancel();
-    super.dispose();
-  }
 }
 
 final accentColorProvider =

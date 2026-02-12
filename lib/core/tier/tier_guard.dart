@@ -7,9 +7,11 @@ class TierGuard {
   /// Tier limits configuration
   static const Map<String, TierLimits> tierLimits = {
     'free': TierLimits(
-      maxBudgets: 5, // Increased from 2 for better testing experience
+      maxBudgets: 1, // Contract: 1
       maxSharedBudgets: 0,
-      maxOcrScansPerMonth: 5,
+      maxMembersPerBudget: 1, // Self only
+      maxExpenses: 500, // Contract: 500
+      maxOcrScansPerMonth: 0, // Contract: 0
       maxCategoriesPerBudget: 20,
       canUseRecurring: false,
       canUseSavingsGoals: false,
@@ -18,9 +20,11 @@ class TierGuard {
     ),
 
     'pro': TierLimits(
-      maxBudgets: 10,
+      maxBudgets: 10, // Contract: 10
       maxSharedBudgets: 3,
-      maxOcrScansPerMonth: 50,
+      maxMembersPerBudget: 3,
+      maxExpenses: -1, // Unlimited
+      maxOcrScansPerMonth: 10, // Contract: 10/mo
       maxCategoriesPerBudget: 50,
       canUseRecurring: true,
       canUseSavingsGoals: true,
@@ -30,6 +34,8 @@ class TierGuard {
     'pro_plus': TierLimits(
       maxBudgets: -1, // Unlimited
       maxSharedBudgets: -1,
+      maxMembersPerBudget: 6,
+      maxExpenses: -1, // Unlimited
       maxOcrScansPerMonth: -1,
       maxCategoriesPerBudget: -1,
       canUseRecurring: true,
@@ -41,7 +47,12 @@ class TierGuard {
   
   /// Get tier limits for user
   static TierLimits getLimits(String tier) {
-    return tierLimits[tier] ?? tierLimits['free']!;
+    var normalized = tier.toLowerCase().replaceAll(' ', '').replaceAll('_', '');
+    
+    // Map to internal keys
+    if (normalized == 'proplus') normalized = 'pro_plus';
+    
+    return tierLimits[normalized] ?? tierLimits['free']!;
   }
   
   /// Check if user can create budget
@@ -57,9 +68,32 @@ class TierGuard {
     
     if (currentBudgetCount >= limits.maxBudgets) {
       return TierValidationResult.denied(
-        reason: 'Budget limit reached',
+        reason: 'Budget limit reached (${limits.maxBudgets})',
         limit: limits.maxBudgets,
         current: currentBudgetCount,
+        requiredTier: 'pro',
+      );
+    }
+    
+    return TierValidationResult.allowed();
+  }
+
+  /// Check if user can create expense
+  static Future<TierValidationResult> canCreateExpense({
+    required String tier,
+    required int currentExpenseCount,
+  }) async {
+    final limits = getLimits(tier);
+    
+    if (limits.maxExpenses == -1) {
+      return TierValidationResult.allowed();
+    }
+    
+    if (currentExpenseCount >= limits.maxExpenses) {
+      return TierValidationResult.denied(
+        reason: 'Expense limit reached (${limits.maxExpenses})',
+        limit: limits.maxExpenses,
+        current: currentExpenseCount,
         requiredTier: 'pro',
       );
     }
@@ -145,6 +179,30 @@ class TierGuard {
     return TierValidationResult.allowed();
   }
   
+  /// Check if user can add member to budget
+  static Future<TierValidationResult> canAddMember({
+    required String tier,
+    required int currentMemberCount,
+  }) async {
+    final limits = getLimits(tier);
+    
+    if (limits.maxMembersPerBudget == -1) {
+      return TierValidationResult.allowed();
+    }
+    
+    // Note: currentMemberCount typically includes the owner
+    if (currentMemberCount >= limits.maxMembersPerBudget) {
+      return TierValidationResult.denied(
+        reason: 'Budget member limit reached',
+        limit: limits.maxMembersPerBudget,
+        current: currentMemberCount,
+        requiredTier: tier == 'free' ? 'pro' : 'pro_plus',
+      );
+    }
+    
+    return TierValidationResult.allowed();
+  }
+  
   /// Check if feature is available
   static bool canUseFeature(String tier, String feature) {
     final limits = getLimits(tier);
@@ -168,6 +226,7 @@ class TierGuard {
 class TierLimits {
   final int maxBudgets; // -1 = unlimited
   final int maxSharedBudgets;
+  final int maxExpenses; // New: -1 = unlimited
   final int maxOcrScansPerMonth;
   final int maxCategoriesPerBudget;
   final bool canUseRecurring;
@@ -175,11 +234,15 @@ class TierLimits {
   final bool canUseAnalytics;
   final bool canUseRealtime;
   
+  final int maxMembersPerBudget;
+  
   const TierLimits({
     required this.maxBudgets,
     required this.maxSharedBudgets,
+    required this.maxExpenses,
     required this.maxOcrScansPerMonth,
     required this.maxCategoriesPerBudget,
+    required this.maxMembersPerBudget,
     required this.canUseRecurring,
     required this.canUseSavingsGoals,
     required this.canUseAnalytics,

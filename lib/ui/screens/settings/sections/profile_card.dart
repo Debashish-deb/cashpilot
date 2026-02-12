@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -39,83 +40,157 @@ class ProfileCard extends ConsumerWidget {
       subtitle = l10n.authGuest;
     }
     
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return GestureDetector(
       onTap: () => context.push(AppRoutes.profile),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: accentColor.withValues(alpha: 0.2), width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: accentColor.withValues(alpha: 0.1),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20),
+          bottomRight: Radius.circular(20),
+          topRight: Radius.circular(4),
+          bottomLeft: Radius.circular(4),
         ),
-        child: Row(
-          children: [
-            // Avatar
-            avatarUrl != null
-              ? Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(64 * 0.22),
-                    border: Border.all(color: accentColor.withValues(alpha: 0.3), width: 2),
-                    image: DecorationImage(image: NetworkImage(avatarUrl), fit: BoxFit.cover),
-                  ),
-                )
-              : CPAppIcon(
-                  icon: Icons.person_rounded,
-                  color: accentColor,
-                  size: 64,
-                  iconSize: 32,
-                  useGradient: true,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                bottomRight: Radius.circular(16),
+                topRight: Radius.circular(4),
+                bottomLeft: Radius.circular(4),
+              ),
+              border: Border.all(
+                color: isDark 
+                    ? Colors.white.withValues(alpha: 0.4) 
+                    : Colors.white.withValues(alpha: 0.3), 
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: accentColor.withValues(alpha: 0.1),
+                  blurRadius: 20,
+                  spreadRadius: -5,
                 ),
-            
-            const SizedBox(width: 16),
-            
-            // Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          displayName,
-                          style: AppTypography.titleLarge.copyWith(fontWeight: FontWeight.w600),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      _SubscriptionBadge(),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+              ],
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark ? [
+                  Colors.white.withValues(alpha: 0.12), 
+                  Colors.white.withValues(alpha: 0.05),
+                ] : [
+                  Colors.white.withValues(alpha: 0.4),
+                  Colors.white.withValues(alpha: 0.2),
                 ],
               ),
             ),
-            
-            // Chevron
-            Icon(
-              Icons.chevron_right_rounded,
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+            child: Stack(
+              children: [
+                // Centered Content
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Avatar with Glow
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: accentColor.withValues(alpha: 0.4),
+                              blurRadius: 25,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: avatarUrl != null
+                          ? Container(
+                              width: 72,
+                              height: 72,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white.withValues(alpha: 0.8), width: 2),
+                                image: DecorationImage(image: NetworkImage(avatarUrl), fit: BoxFit.cover),
+                              ),
+                            )
+                          : CPAppIcon(
+                              icon: Icons.person_rounded,
+                              color: accentColor,
+                              size: 72,
+                              iconSize: 36,
+                              useGradient: true,
+                            ),
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Info
+                      Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  displayName.toUpperCase(),
+                                  style: AppTypography.titleMedium.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.2,
+                                    fontSize: 16,
+                                    color: isDark ? Colors.white : accentColor,
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.black.withValues(alpha: 0.2),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const _SubscriptionBadge(),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            subtitle,
+                            style: AppTypography.bodySmall.copyWith(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: isDark 
+                                  ? Colors.white.withValues(alpha: 0.6) 
+                                  : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Top Right Navigation Indicator
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: (isDark ? Colors.white : accentColor).withValues(alpha: 0.3),
+                    size: 14,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

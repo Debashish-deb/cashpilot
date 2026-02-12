@@ -7,23 +7,30 @@ import 'dart:async';
 import 'package:cashpilot/core/constants/app_constants.dart' show AppConstants, AppLanguage, AppThemeMode;
 import 'package:cashpilot/core/services/navigation_service.dart' show NavigationService;
 import 'package:cashpilot/core/sync/idempotency_tracker.dart' show IdempotencyTracker;
-import 'package:cashpilot/data/drift/encrypted_database.dart' show EncryptedDatabaseExecutor;
-import 'package:cashpilot/services/security/key_manager.dart' show keyManagerProvider, KeyType;
-import 'package:drift/native.dart';
-import 'package:flutter/foundation.dart';
+import 'package:cashpilot/data/drift/connection.dart';
+import 'package:flutter/material.dart' show debugPrint;
+
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../services/backup/backup_service_factory.dart';
 
 import 'package:cashpilot/data/drift/app_database.dart';
 import '../../services/auth_service.dart';
 import '../../services/currency_converter_service.dart';
 import '../services/data/export_service.dart';
-import '../constants/app_routes.dart';
 import '../router/app_router.dart';
 import '../../features/receipt/services/receipt_learning_service.dart';
 import '../../features/barcode/services/barcode_learning_service.dart';
+import '../../features/family/services/family_repository.dart';
+import '../../features/family/services/duplicate_detection_service.dart';
+import '../../features/family/services/relationship_inference_service.dart';
+import '../../domain/family/services/relationship_service.dart';
+import '../../services/device_info_service.dart';
 
 // ============================================================
 // INTERNAL: PREFS WRITE SERIALIZER (ENTERPRISE HARDENING)
@@ -57,17 +64,8 @@ final databaseProvider = Provider<AppDatabase>((ref) {
   // Ensure encryption is initialized before creating database
   _ensureEncryptionInitialized();
   
-  // Create encrypted database connection (same as _openConnection in app_database.dart)
-  final db = AppDatabase(EncryptedDatabaseExecutor.openEncryptedConnection(() async {
-    // Get key from KeyManager
-    final keyManager = ref.read(keyManagerProvider);
-    await keyManager.initialize();
-    final keyBytes = await keyManager.getKey(KeyType.backupKey);
-    if (keyBytes == null) return null;
-    
-    // Convert to hex string for SQLCipher
-    return keyBytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
-  }));
+  // Create database connection (automatically handles platform & encryption)
+  final db = AppDatabase();
   ref.onDispose(() => db.close());
   return db;
 });
@@ -80,7 +78,7 @@ void _ensureEncryptionInitialized() {
   
   // Initialize SQLCipher synchronously (only runs once)
   // This is deferred from main() to avoid blocking app startup
-  EncryptedDatabaseExecutor.initializeSync();
+  initializeDatabaseSync();
   _encryptionInitialized = true;
 }
 
@@ -137,6 +135,36 @@ final barcodeLearningServiceProvider = Provider((ref) {
 });
 
 // ============================================================
+// FAMILY PROVIDERS
+// ============================================================
+
+/// Provides the FamilyRepository
+final familyRepositoryProvider = Provider<FamilyRepository>((ref) {
+  final db = ref.watch(databaseProvider);
+  return FamilyRepository(db);
+});
+
+/// Provides the DuplicateDetectionService
+final duplicateDetectionServiceProvider = Provider<DuplicateDetectionService>((ref) {
+  return DuplicateDetectionService();
+});
+
+/// Provides the RelationshipInferenceService
+final relationshipInferenceServiceProvider = Provider<RelationshipInferenceService>((ref) {
+  return RelationshipInferenceService();
+});
+
+/// Provides the RelationshipService (Domain logic)
+final relationshipServiceProvider = Provider<RelationshipService>((ref) {
+  return RelationshipService();
+});
+
+/// Provides the BackupService (platform specific)
+final backupServiceProvider = Provider<BackupService>((ref) {
+  return PlatformBackupService();
+});
+
+// ============================================================
 // SHARED PREFERENCES PROVIDER
 // ============================================================
 
@@ -149,6 +177,16 @@ final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
 final _prefsWriteQueueProvider = Provider<_PrefsWriteQueue>((ref) {
   final q = _PrefsWriteQueue();
   return q;
+});
+
+// ============================================================
+// SECURE STORAGE PROVIDER
+// ============================================================
+
+/// Provides FlutterSecureStorage instance
+final secureStorageProvider = Provider<FlutterSecureStorage>((ref) {
+  // Use platform-specific options if needed, but defaults are usually fine for 10.0.0+
+  return const FlutterSecureStorage();
 });
 
 // ============================================================
@@ -166,14 +204,9 @@ final themeModeProvider =
 class ThemeModeNotifier extends StateNotifier<AppThemeMode> {
   final SharedPreferences _prefs;
   final _PrefsWriteQueue _queue;
-  StreamSubscription? _authSubscription;
   static const _key = 'theme_mode';
 
-  ThemeModeNotifier(this._prefs, this._queue) : super(_loadTheme(_prefs)) {
-    _setupAuthListener();
-    // Try initial sync (if logged in)
-    _syncFromCloud();
-  }
+  ThemeModeNotifier(this._prefs, this._queue) : super(_loadTheme(_prefs));
 
   static AppThemeMode _loadTheme(SharedPreferences prefs) {
     final value = prefs.getString(_key);
@@ -189,19 +222,9 @@ class ThemeModeNotifier extends StateNotifier<AppThemeMode> {
     await _queue.run(() async {
       await _prefs.setString(_key, mode.value);
     });
-    
-    // Sync change to cloud
-    try {
-      await _syncToCloud();
-      _log('ThemeModeNotifier: Synced $mode to cloud');
-    } catch (e) {
-      _log('ThemeModeNotifier: Sync failed: $e');
-    }
   }
 
-  void _log(String msg) {
-    if (kDebugMode) debugPrint(msg);
-  }
+
 
   void toggleTheme() {
     final modes = AppThemeMode.values;
@@ -211,93 +234,14 @@ class ThemeModeNotifier extends StateNotifier<AppThemeMode> {
     unawaited(setTheme(modes[nextIndex]));
   }
   
-  // --- CLOUD SYNC LOGIC ---
-
-  void _setupAuthListener() {
-    try {
-      _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-        if (data.event == AuthChangeEvent.signedIn) {
-          _syncFromCloud();
-        }
-      });
-    } catch (_) {
-      // Supabase might not be initialized in tests
-    }
-  }
-
-  Future<void> _syncToCloud() async {
-    try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) return;
-
-      // We need to fetch current metadata to merge (avoid overwriting other keys)
-      // Or we can rely on Postgres jsonb_set if we write a custom RPC, but fetch-merge is safer here
-      final resp = await Supabase.instance.client
-          .from('profiles')
-          .select('metadata')
-          .eq('id', user.id)
-          .maybeSingle();
-          
-      final currentMetadata = (resp?['metadata'] as Map?) ?? {};
-      final newMetadata = Map<String, dynamic>.from(currentMetadata);
-      newMetadata['theme_mode'] = state.value;
-
-      await Supabase.instance.client
-          .from('profiles')
-          .update({
-            'metadata': newMetadata,
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', user.id);
-    } catch (e) {
-      // Silent fail (offline)
-    }
-  }
-
-  Future<void> _syncFromCloud() async {
-    try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) return;
-
-      final resp = await Supabase.instance.client
-          .from('profiles')
-          .select('metadata')
-          .eq('id', user.id)
-          .maybeSingle();
-
-      if (resp != null) {
-        final metadata = (resp['metadata'] as Map?) ?? {};
-        final cloudValue = metadata['theme_mode'] as String?;
-        if (cloudValue != null) {
-          final mode = AppThemeMode.fromString(cloudValue);
-          if (mode != state) {
-            state = mode;
-            await _prefs.setString(_key, mode.value);
-          }
-        } else {
-           // Cloud has no value, push local
-           await _syncToCloud();
-        }
-      }
-    } catch (e) {
-      // Silent fail
-    }
-  }
-  
-  /// Manual refresh from SharedPreferences (after batch sync)
   void refreshFromPrefs() {
     final mode = _loadTheme(_prefs);
-    _log('ThemeModeNotifier: refreshFromPrefs current=$state new=$mode val=${_prefs.getString(_key)}');
+    debugPrint('ThemeModeNotifier: refreshFromPrefs current=$state new=$mode val=${_prefs.getString(_key)}');
     if (state != mode) {
       state = mode;
     }
   }
 
-  @override
-  void dispose() {
-    _authSubscription?.cancel();
-    super.dispose();
-  }
 }
 
 // ============================================================
@@ -315,14 +259,11 @@ final languageProvider =
 class LanguageNotifier extends StateNotifier<AppLanguage> {
   final SharedPreferences _prefs;
   final _PrefsWriteQueue _queue;
-  StreamSubscription? _authSubscription;
   static const _key = 'language';
 
   LanguageNotifier(this._prefs, this._queue) : super(_loadLanguage(_prefs)) {
     // Synchronize global Intl locale on startup
     Intl.defaultLocale = state.code;
-    _setupAuthListener();
-    _syncFromCloud();
   }
 
   static AppLanguage _loadLanguage(SharedPreferences prefs) {
@@ -339,82 +280,10 @@ class LanguageNotifier extends StateNotifier<AppLanguage> {
     await _queue.run(() async {
       await _prefs.setString(_key, language.code);
     });
-    
-    // Sync change to cloud
-    try {
-      await _syncToCloud();
-      _log('LanguageNotifier: Synced ${language.code} to cloud');
-    } catch (e) {
-      _log('LanguageNotifier: Sync failed: $e');
-    }
   }
 
-  void _log(String msg) {
-    if (kDebugMode) debugPrint(msg);
-  }
+
   
-  // --- CLOUD SYNC LOGIC ---
-
-  void _setupAuthListener() {
-    try {
-      _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-        if (data.event == AuthChangeEvent.signedIn) {
-          _syncFromCloud();
-        }
-      });
-    } catch (_) {
-      // Supabase might not be initialized in tests
-    }
-  }
-
-  Future<void> _syncToCloud() async {
-    try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) return;
-
-      await Supabase.instance.client
-          .from('profiles')
-          .update({
-            'language_preference': state.code,
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', user.id);
-    } catch (e) {
-      // Silent fail (offline)
-    }
-  }
-
-  Future<void> _syncFromCloud() async {
-    try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) return;
-
-      final resp = await Supabase.instance.client
-          .from('profiles')
-          .select('language_preference')
-          .eq('id', user.id)
-          .maybeSingle();
-
-      if (resp != null) {
-        final cloudValue = resp['language_preference'] as String?;
-        if (cloudValue != null) {
-          final language = AppLanguage.fromCode(cloudValue);
-          if (language != state) {
-            state = language;
-            Intl.defaultLocale = language.code;
-            await _prefs.setString(_key, language.code);
-          }
-        } else {
-           // Cloud has no value, push local
-           await _syncToCloud();
-        }
-      }
-    } catch (e) {
-      // Silent fail
-    }
-  }
-
-  /// Manual refresh from SharedPreferences
   void refreshFromPrefs() {
     final language = _loadLanguage(_prefs);
     if (state != language) {
@@ -423,11 +292,6 @@ class LanguageNotifier extends StateNotifier<AppLanguage> {
     }
   }
   
-  @override
-  void dispose() {
-    _authSubscription?.cancel();
-    super.dispose();
-  }
 }
 
 // ============================================================
@@ -445,7 +309,7 @@ final currencyProvider =
 class CurrencyNotifier extends StateNotifier<String> {
   final SharedPreferences _prefs;
   final _PrefsWriteQueue _queue;
-  StreamSubscription? _authSubscription;
+
   static const _key = 'currency';
 
   CurrencyNotifier(this._prefs, this._queue) : super(_loadCurrency(_prefs)) {
@@ -486,7 +350,7 @@ class CurrencyNotifier extends StateNotifier<String> {
 
   void _setupAuthListener() {
     try {
-      _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      Supabase.instance.client.auth.onAuthStateChange.listen((data) {
         if (data.event == AuthChangeEvent.signedIn) {
           _syncFromCloud();
         }
@@ -555,11 +419,6 @@ class CurrencyNotifier extends StateNotifier<String> {
     }
   }
 
-  @override
-  void dispose() {
-    _authSubscription?.cancel();
-    super.dispose();
-  }
 }
 
 // ============================================================
@@ -739,31 +598,7 @@ class BiometricNotifier extends StateNotifier<bool> {
     }
   }
 
-  Future<void> _syncFromCloud() async {
-    try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) return;
 
-      final response = await Supabase.instance.client
-          .from('profiles')
-          .select('metadata')
-          .eq('id', user.id)
-          .single();
-
-      final metadata = response['metadata'] as Map<String, dynamic>?;
-      if (metadata?['biometric_enabled'] != null) {
-        final cloudValue = metadata!['biometric_enabled'] as bool;
-        if (cloudValue != state) {
-          state = cloudValue;
-          await _queue.run(() async {
-            await _prefs.setBool(_key, cloudValue);
-          });
-        }
-      }
-    } catch (e) {
-      // Non-fatal: keep local value
-    }
-  }
   /// Manual refresh from SharedPreferences
   void refreshFromPrefs() {
     final enabled = _prefs.getBool(_key) ?? false;
@@ -830,31 +665,7 @@ class AppLockNotifier extends StateNotifier<bool> {
     }
   }
 
-  Future<void> _syncFromCloud() async {
-    try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) return;
 
-      final response = await Supabase.instance.client
-          .from('profiles')
-          .select('metadata')
-          .eq('id', user.id)
-          .single();
-
-      final metadata = response['metadata'] as Map<String, dynamic>?;
-      if (metadata?['app_lock_enabled'] != null) {
-        final cloudValue = metadata!['app_lock_enabled'] as bool;
-        if (cloudValue != state) {
-          state = cloudValue;
-          await _queue.run(() async {
-            await _prefs.setBool(_key, cloudValue);
-          });
-        }
-      }
-    } catch (e) {
-      // Non-fatal: keep local value
-    }
-  }
   /// Manual refresh from SharedPreferences
   void refreshFromPrefs() {
     final enabled = _prefs.getBool(_key) ?? false;
@@ -1219,3 +1030,13 @@ final idempotencyTrackerProvider = Provider<IdempotencyTracker>((ref) {
   return IdempotencyTracker(ref.read(sharedPreferencesProvider));
 });
 
+// ============================================================
+// SYNC & OPERATIONAL PROVIDERS
+// ============================================================
+
+/// Provides the DeviceInfoService
+final deviceInfoServiceProvider = Provider<DeviceInfoService>((ref) {
+  return DeviceInfoService();
+});
+
+/// Provides the SyncOrchestrator

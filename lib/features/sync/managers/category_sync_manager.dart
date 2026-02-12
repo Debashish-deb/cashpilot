@@ -1,17 +1,17 @@
+import 'package:cashpilot/features/sync/services/sync_checkpoint_service.dart' show SyncCheckpointService;
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:drift/drift.dart';
 import 'base_sync_manager.dart';
 import '../../../data/drift/app_database.dart';
 import '../../../services/auth_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cashpilot/features/sync/services/sync_checkpoint_service.dart';
 
 class CategorySyncManager implements BaseSyncManager<Category> {
   final AppDatabase db;
   final AuthService authService;
-  final SharedPreferences prefs;
-  static const _syncKey = 'last_categories_sync_iso';
+  final SyncCheckpointService checkpointService;
 
-  CategorySyncManager(this.db, this.authService, this.prefs);
+  CategorySyncManager(this.db, this.authService, this.checkpointService);
 
   @override
   Future<void> syncUp(String id) async {
@@ -35,15 +35,16 @@ class CategorySyncManager implements BaseSyncManager<Category> {
   Future<int> pullChanges() async {
     int count = 0;
     try {
-      final lastSyncStr = prefs.getString(_syncKey);
+      final checkpoint = await checkpointService.getCheckpoint('categories');
+      final lastSyncAt = checkpoint.lastSyncAt;
       
       var query = authService.client
           .from('categories')
           .select();
       
       // Incremental sync: only fetch changes since last sync
-      if (lastSyncStr != null) {
-        query = query.gt('updated_at', lastSyncStr);
+      if (lastSyncAt != null) {
+        query = query.gt('updated_at', lastSyncAt.toIso8601String());
       }
 
       final remoteCategories = await query;
@@ -65,7 +66,7 @@ class CategorySyncManager implements BaseSyncManager<Category> {
       
       // Save checkpoint if we received data
       if (maxUpdated != null) {
-        await prefs.setString(_syncKey, maxUpdated.toIso8601String());
+        await checkpointService.updateCheckpoint('categories', lastSyncAt: maxUpdated);
       }
       
       debugPrint('[CategorySyncManager] Synced $count categories from cloud.');

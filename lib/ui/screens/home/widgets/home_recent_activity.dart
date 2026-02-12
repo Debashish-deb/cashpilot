@@ -4,16 +4,14 @@ import 'package:go_router/go_router.dart';
 import 'package:cashpilot/l10n/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../core/providers/app_providers.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/managers/format_manager.dart';
 import '../../../../core/helpers/localized_category_helper.dart';
 import '../../../../features/home/viewmodels/home_view_model.dart';
-import '../../../widgets/common/section_header.dart';
-import '../../../widgets/common/glass_card.dart';
 import '../../../widgets/common/empty_state.dart';
 import '../../../widgets/common/cp_app_icon.dart';
 import '../../../widgets/common/app_grade_icons.dart';
+import '../../../widgets/expenses/collapsible_expense_group.dart';
 
 class HomeRecentActivity extends ConsumerWidget {
   const HomeRecentActivity({super.key});
@@ -22,70 +20,103 @@ class HomeRecentActivity extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final homeStateAsync = ref.watch(homeViewModelProvider);
     final l10n = AppLocalizations.of(context)!;
+    final formatManager = ref.watch(formatManagerProvider);
+
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionHeader(title: l10n.homeRecentActivity),
-        const SizedBox(height: 16),
-        homeStateAsync.when(
-          data: (state) {
-            if (state.recentExpenses.isEmpty) {
-              return EmptyState(
-                title: l10n.expensesNoExpenses,
-                message: l10n.homeTrackSpendingDesc,
-                buttonLabel: l10n.homeTrackSpendingBtn,
-                icon: Icons.receipt_long_rounded,
-                onAction: () => context.push(AppRoutes.addExpense),
-              );
-            }
-
-            final categoryMap = state.categoryMap;
+        const SizedBox(height: 0), // Removed duplicate title
+        Builder(
+          builder: (context) {
+            // Fix: Persist data during background refreshes (prevent collapse at bottom of screen)
+            final state = homeStateAsync.valueOrNull;
             
-            return GlassCard(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              borderRadius: 20,
-              child: Column(
-                children: state.recentExpenses.take(5).toList().asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final expense = entry.value;
-                  
-                  final category = expense.categoryId != null ? categoryMap[expense.categoryId] : null;
-                  Color categoryColor = AppColors.primaryGreen;
-                  
-                  if (category?.colorHex != null) {
-                    try {
-                      categoryColor = Color(int.parse(category!.colorHex!.replaceFirst('#', '0xFF')));
-                    } catch (_) {}
-                  }
+            if (state != null) {
+              if (state.recentExpenses.isEmpty) {
+                  return EmptyState(
+                    title: l10n.expensesNoExpenses,
+                    message: l10n.homeTrackSpendingDesc,
+                    buttonLabel: l10n.homeTrackSpendingBtn,
+                    icon: Icons.receipt_long_rounded,
+                    onAction: () => context.push(AppRoutes.addExpense),
+                  );
+              }
 
+              final budgetMap = state.budgetMap;
+              final categoryMap = state.categoryMap;
+              final dateGroups = state.expensesByDateAndBudget;
+              
+              // Sort dates descending
+              final sortedDates = dateGroups.keys.toList()..sort((a, b) => b.compareTo(a));
+              
+              return Column(
+                children: sortedDates.map((date) {
+                  final budgetGroups = dateGroups[date]!;
+                  final dateFormatted = formatManager.formatDate(date);
+                  
                   return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _ExpenseListItem(
-                        title: expense.title,
-                        amount: expense.amount,
-                        currency: state.currency,
-                        date: expense.date,
-                        categoryColor: categoryColor,
-                        categoryIconName: category?.iconName,
-                      ),
-                      if (index < 4 && index < state.recentExpenses.length - 1)
-                        Divider(
-                          height: 1,
-                          indent: 56,
-                          color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, top: 16, bottom: 8),
+                        child: Text(
+                          dateFormatted.toUpperCase(),
+                          style: AppTypography.labelSmall.copyWith(
+                            color: Theme.of(context).primaryColor.withValues(alpha: 0.7),
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
                         ),
+                      ),
+                      ...budgetGroups.entries.map((budgetEntry) {
+                        final budgetId = budgetEntry.key;
+                        final expenses = budgetEntry.value;
+                        final budget = budgetMap[budgetId];
+                        final budgetName = budget?.title ?? l10n.catUncategorized;
+                        
+                        final totalAmount = expenses.fold<double>(0, (sum, e) => sum + (e.amount / 100));
+                        
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: CollapsibleExpenseGroup(
+                            title: budgetName,
+                            iconName: 'wallet', // Standard budget icon
+                            color: AppColors.primaryGreen,
+                            totalAmount: totalAmount,
+                            currency: state.currency,
+                            initiallyExpanded: true, // Expand by default for better visibility
+                            children: [
+                              ...expenses.map((expense) {
+                                final category = categoryMap[expense.categoryId];
+                                return _ExpenseListItem(
+                                  title: expense.title,
+                                  amount: expense.amount,
+                                  currency: state.currency,
+                                  date: expense.date,
+                                  categoryColor: category?.colorHex != null 
+                                    ? Color(int.parse(category!.colorHex!.replaceFirst('#', '0xFF')))
+                                    : AppColors.primaryGreen,
+                                  categoryIconName: category?.iconName,
+                                  categoryId: expense.categoryId,
+                                  subCategoryId: expense.subCategoryId,
+                                  showDate: false, // Date is already in section header
+                                );
+                              }),
+                            ],
+                          ),
+                        );
+                      }),
                     ],
                   );
                 }).toList(),
-              ),
-            );
+              );
+            }
+            
+            // Only shrink if we have NO data and are loading.
+            // Ideally we should show a skeleton here too, but to be safe and match previous behavior for initial load:
+            return const SizedBox.shrink(); 
           },
-          loading: () => const Center(child: Padding(
-            padding: EdgeInsets.all(20.0),
-            child: CircularProgressIndicator(),
-          )),
-          error: (_, __) => const SizedBox(),
         ),
       ],
     );
@@ -99,6 +130,9 @@ class _ExpenseListItem extends ConsumerWidget {
   final DateTime date;
   final Color categoryColor;
   final String? categoryIconName;
+  final String? categoryId;
+  final String? subCategoryId;
+  final bool showDate;
 
   const _ExpenseListItem({
     required this.title,
@@ -107,6 +141,9 @@ class _ExpenseListItem extends ConsumerWidget {
     required this.date,
     this.categoryColor = AppColors.primaryGreen,
     this.categoryIconName,
+    this.categoryId,
+    this.subCategoryId,
+    this.showDate = true,
   });
 
   @override
@@ -121,12 +158,25 @@ class _ExpenseListItem extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 10),
       child: Row(
         children: [
-          CPAppIcon(
-            icon: AppGradeIcons.getIcon(categoryIconName),
-            color: categoryColor,
-            size: 40,
-            iconSize: 20,
-            useGradient: true, 
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: categoryColor.withValues(alpha: 0.5),
+                  blurRadius: 10,
+                  spreadRadius: -2,
+                ),
+              ],
+            ),
+            child: CPAppIcon(
+              icon: AppGradeIcons.getIcon(categoryIconName),
+              color: categoryColor,
+              size: 40,
+              iconSize: 20,
+              useGradient: true,
+              useShadow: false, 
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -140,11 +190,21 @@ class _ExpenseListItem extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  formatManager.formatDate(date),
-                  style: AppTypography.bodySmall.copyWith(
-                    color: Theme.of(context).hintColor,
+                  LocalizedCategoryHelper.getLocalizedHierarchy(context, categoryId, subCategoryId),
+                  style: AppTypography.labelSmall.copyWith(
+                    color: Theme.of(context).hintColor.withValues(alpha: 0.7),
+                    fontSize: 10,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
+                if (showDate)
+                  Text(
+                    formatManager.formatDate(date),
+                    style: AppTypography.bodySmall.copyWith(
+                      color: Theme.of(context).hintColor,
+                    ),
+                  ),
               ],
             ),
           ),

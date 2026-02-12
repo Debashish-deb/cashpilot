@@ -1,144 +1,158 @@
-/// Receipt Learning Service - Captures user corrections for ML improvement
-/// Tracks how users edit OCR results to improve future extractions
-library;
-
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
+import '../models/receipt_data.dart';
 import '../models/receipt_outcome.dart';
 import '../models/receipt_model_info.dart';
 
-/// Provider for receipt learning service
-final receiptLearningServiceProvider = Provider<ReceiptLearningService>((ref) {
-  return ReceiptLearningService();
-});
-
-/// Service for tracking and learning from receipt corrections
 class ReceiptLearningService {
-  final _supabase = Supabase.instance.client;
-  
-  /// Record when user accepts a receipt scan without changes
+  final _db = Supabase.instance.client;
+
+  Future<void> record({
+    required ReceiptOutcome outcome,
+    required ReceiptData original,
+    required ReceiptData? corrected,
+    required ReceiptModelInfo model,
+  }) async {
+    final delta = corrected != null
+        ? ReceiptCorrectionDelta.compute(original, corrected)
+        : null;
+
+    final event = {
+      'model_version': model.modelVersion,
+      'outcome': outcome.status.name, // Assuming ReceiptOutcomeStatus enum has name
+      'confidence': 0.0, // original.confidence, // ReceiptData doesn't have confidence anymore in new model
+      'delta': delta?.toJson(),
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+
+    try {
+      await _db.from('receipt_learning_events').insert(event);
+    } catch (_) {
+      // Fail silently in offline/dev
+    }
+  }
+
+  /// Record a user acceptance of the receipt data (no changes)
   Future<void> recordAcceptance({
     required String receiptId,
     required String modelVersion,
   }) async {
-    final event = ReceiptCorrectionEvent(
-      receiptId: receiptId,
-      outcome: ReceiptOutcome.accepted,
-      corrections: {},
-      timestamp: DateTime.now(),
-      modelVersion: modelVersion,
-    );
-    
-    await _persistEvent(event);
+    final event = {
+      'receipt_id': receiptId,
+      'model_version': modelVersion,
+      'outcome': 'success',
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+
+    try {
+      await _db.from('receipt_learning_events').insert(event);
+    } catch (_) {}
   }
-  
-  /// Record when user edits receipt fields
+
+  /// Record a user correction
   Future<void> recordCorrection({
     required String receiptId,
     required Map<String, ReceiptFieldCorrection> corrections,
-    String? modelVersion,
-  }) async {
-    final event = ReceiptCorrectionEvent(
-      receiptId: receiptId,
-      outcome: ReceiptOutcome.edited,
-      corrections: corrections,
-      timestamp: DateTime.now(),
-      modelVersion: modelVersion ?? ReceiptModelInfo.currentVersion,
-    );
-    
-    await _persistEvent(event);
-  }
-  
-  /// Record when user rejects/discards a scan
-  Future<void> recordRejection({
-    required String receiptId,
     required String modelVersion,
   }) async {
-    final event = ReceiptCorrectionEvent(
-      receiptId: receiptId,
-      outcome: ReceiptOutcome.rejected,
-      corrections: {},
-      timestamp: DateTime.now(),
-      modelVersion: modelVersion,
-    );
-    
-    await _persistEvent(event);
-  }
-  
-  /// Persist learning event to Supabase
-  Future<void> _persistEvent(ReceiptCorrectionEvent event) async {
+    final event = {
+      'receipt_id': receiptId,
+      'model_version': modelVersion,
+      'outcome': 'partial',
+      'corrections': corrections.map((k, v) => MapEntry(k, v.toJson())),
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+
     try {
-      // Store in a dedicated learning_events table
-      await _supabase.from('receipt_learning_events').insert({
-        'receipt_id': event.receiptId,
-        'outcome': event.outcome.toJson(),
-        'corrections': event.corrections.map((k, v) => MapEntry(k, v.toJson())),
-        'timestamp': event.timestamp.toIso8601String(),
-        'model_version': event.modelVersion,
-        'user_id': _supabase.auth.currentUser?.id,
-      });
-    } catch (e) {
-      // Don't block user flow if learning fails
-      print('Failed to persist receipt learning event: $e');
-    }
+      await _db.from('receipt_learning_events').insert(event);
+    } catch (_) {}
   }
-  
-  /// Get learning statistics for a model version
-  Future<Map<String, dynamic>> getModelStats(String modelVersion) async {
+
+  /// Production ML health monitor
+  Future<ModelHealthReport> getHealth(String modelVersion) async {
     try {
-      final response = await _supabase
+      final res = await _db
           .from('receipt_learning_events')
           .select()
           .eq('model_version', modelVersion);
-      
-      final events = (response as List).map((e) => 
-        ReceiptCorrectionEvent.fromJson(e as Map<String, dynamic>)
-      ).toList();
-      
-      final accepted = events.where((e) => e.outcome == ReceiptOutcome.accepted).length;
-      final edited = events.where((e) => e.outcome == ReceiptOutcome.edited).length;
-      final rejected = events.where((e) => e.outcome == ReceiptOutcome.rejected).length;
-      
-      return {
-        'total_scans': events.length,
-        'accepted': accepted,
-        'edited': edited,
-        'rejected': rejected,
-        'acceptance_rate': events.isEmpty ? 0.0 : accepted / events.length,
-      };
-    } catch (e) {
-      print('Failed to get model stats: $e');
-      return {};
+
+      return ModelHealthReport.from(res as List);
+    } catch (_) {
+      return const ModelHealthReport(total: 0, acceptance: 0, correction: 0, rejection: 0);
     }
   }
-  
-  /// Get most commonly corrected fields (for model improvement)
-  Future<List<String>> getMostCorrectedFields(String modelVersion) async {
-    try {
-      final response = await _supabase
-          .from('receipt_learning_events')
-          .select()
-          .eq('model_version', modelVersion)
-          .eq('outcome', 'edited');
-      
-      final fieldCounts = <String, int>{};
-      
-      for (final item in response as List) {
-        final event = ReceiptCorrectionEvent.fromJson(item as Map<String, dynamic>);
-        for (final fieldName in event.corrections.keys) {
-          fieldCounts[fieldName] = (fieldCounts[fieldName] ?? 0) + 1;
-        }
+}
+
+class ModelHealthReport {
+  final int total;
+  final double acceptance;
+  final double correction;
+  final double rejection;
+
+  const ModelHealthReport({
+    required this.total,
+    required this.acceptance,
+    required this.correction,
+    required this.rejection,
+  });
+
+  bool get needsRetraining =>
+      rejection > 0.12 || correction > 0.30;
+
+  factory ModelHealthReport.from(List rows) {
+    int a = 0, c = 0, r = 0;
+    for (final e in rows) {
+      switch (e['outcome']) {
+        case 'success':
+          a++;
+          break;
+        case 'partial':
+          c++;
+          break;
+        case 'failed':
+          r++;
+          break;
       }
-      
-      // Sort by count descending
-      final sorted = fieldCounts.entries.toList()
-        ..sort((a, b) => b.value.compareTo(a.value));
-      
-      return sorted.map((e) => e.key).toList();
-    } catch (e) {
-      print('Failed to get corrected fields: $e');
-      return [];
     }
+    final total = rows.length;
+    return ModelHealthReport(
+      total: total,
+      acceptance: total == 0 ? 0 : a / total,
+      correction: total == 0 ? 0 : c / total,
+      rejection: total == 0 ? 0 : r / total,
+    );
   }
+}
+
+class ReceiptCorrectionDelta {
+  final Map<String, dynamic> changes;
+
+  ReceiptCorrectionDelta(this.changes);
+  
+  // This might not be used anymore if UI constructs manual corrections, but keeping for safety
+  static ReceiptCorrectionDelta compute(ReceiptData original, ReceiptData corrected) {
+    return ReceiptCorrectionDelta({});
+  }
+
+  Map<String, dynamic> toJson() => changes;
+}
+
+class ReceiptFieldCorrection {
+  final String fieldName;
+  final dynamic originalValue;
+  final double originalConfidence;
+  final dynamic correctedValue;
+
+  ReceiptFieldCorrection({
+    required this.fieldName,
+    required this.originalValue,
+    required this.originalConfidence,
+    required this.correctedValue,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'field': fieldName,
+    'original': originalValue,
+    'confidence': originalConfidence,
+    'corrected': correctedValue,
+  };
 }

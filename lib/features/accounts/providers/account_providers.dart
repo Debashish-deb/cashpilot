@@ -24,7 +24,7 @@ final totalBalanceProvider = Provider<int>((ref) {
 
   return accountsAsync.maybeWhen(
     data: (accounts) =>
-        accounts.fold<int>(0, (sum, acc) => sum + acc.balance.toInt()),
+        accounts.fold<int>(0, (sum, acc) => sum + acc.balance),
     orElse: () => 0,
   );
 });
@@ -50,10 +50,10 @@ final netWorthProvider = Provider<NetWorthData>((ref) {
           case 'credit':
           case 'loan':
             // Liabilities grow upward — debt increases
-            totalLiabilities += acc.balance.toInt();
+            totalLiabilities += acc.balance;
             break;
           default:
-            totalAssets += acc.balance.toInt();
+            totalAssets += acc.balance;
         }
       }
 
@@ -119,7 +119,7 @@ final totalAssetsProvider = Provider<AsyncValue<int>>((ref) {
     data: (accounts) {
       final assets = accounts
           .where((acc) => acc.type != 'credit' && acc.type != 'loan')
-          .fold<int>(0, (sum, acc) => sum + acc.balance.toInt());
+          .fold<int>(0, (sum, acc) => sum + acc.balance);
       return AsyncData(assets);
     },
     loading: () => const AsyncLoading(),
@@ -133,7 +133,7 @@ final totalLiabilitiesProvider = Provider<AsyncValue<int>>((ref) {
     data: (accounts) {
       final liabilities = accounts
           .where((acc) => acc.type == 'credit' || acc.type == 'loan')
-          .fold<int>(0, (sum, acc) => sum + acc.balance.toInt());
+          .fold<int>(0, (sum, acc) => sum + acc.balance);
       return AsyncData(liabilities);
     },
     loading: () => const AsyncLoading(),

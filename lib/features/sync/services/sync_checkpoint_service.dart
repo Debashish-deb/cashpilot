@@ -3,7 +3,7 @@
 library;
 
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../services/device_info_service.dart';
 
@@ -21,12 +21,12 @@ class SyncCheckpoint {
 }
 
 class SyncCheckpointService {
-  final SharedPreferences _prefs;
+  final FlutterSecureStorage _storage;
   final DeviceInfoService _deviceInfoService = DeviceInfoService();
   
   String? _deviceId;
   
-  SyncCheckpointService(this._prefs);
+  SyncCheckpointService(this._storage);
   
   /// Get device-specific key prefix
   Future<String> _getKeyPrefix() async {
@@ -40,8 +40,9 @@ class SyncCheckpointService {
     final timeKey = '$prefix${tableName}_time';
     final revKey = '$prefix${tableName}_rev';
     
-    final timeStr = _prefs.getString(timeKey);
-    final rev = _prefs.getInt(revKey);
+    final timeStr = await _storage.read(key: timeKey);
+    final revStr = await _storage.read(key: revKey);
+    final rev = revStr != null ? int.tryParse(revStr) : null;
     
     return SyncCheckpoint(
       tableName: tableName,
@@ -60,10 +61,10 @@ class SyncCheckpointService {
     final revKey = '$prefix${tableName}_rev';
     
     if (lastSyncAt != null) {
-      await _prefs.setString(timeKey, lastSyncAt.toIso8601String());
+      await _storage.write(key: timeKey, value: lastSyncAt.toIso8601String());
     }
     if (lastRevision != null) {
-      await _prefs.setInt(revKey, lastRevision);
+      await _storage.write(key: revKey, value: lastRevision.toString());
     }
     
     if (kDebugMode) {
@@ -94,10 +95,11 @@ class SyncCheckpointService {
   /// Clear all checkpoints (force full sync)
   Future<void> clearAllCheckpoints() async {
     final prefix = await _getKeyPrefix();
-    final keys = _prefs.getKeys().where((k) => k.startsWith(prefix));
+    final all = await _storage.readAll();
+    final keys = all.keys.where((k) => k.startsWith(prefix));
     
     for (final key in keys) {
-      await _prefs.remove(key);
+      await _storage.delete(key: key);
     }
     
     if (kDebugMode) {
@@ -108,7 +110,7 @@ class SyncCheckpointService {
   /// Clear checkpoint for a specific table
   Future<void> clearCheckpoint(String tableName) async {
     final prefix = await _getKeyPrefix();
-    await _prefs.remove('$prefix${tableName}_time');
-    await _prefs.remove('$prefix${tableName}_rev');
+    await _storage.delete(key: '$prefix${tableName}_time');
+    await _storage.delete(key: '$prefix${tableName}_rev');
   }
 }

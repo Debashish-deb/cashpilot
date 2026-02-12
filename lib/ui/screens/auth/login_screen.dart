@@ -46,26 +46,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   bool _isLogin = true;
   bool _biometricAvailable = false;
 
-  late final AnimationController _buttonController;
-  late final Animation<double> _buttonScale;
-
   @override
   void initState() {
     super.initState();
-
-    _buttonController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 120),
-      lowerBound: 0.96,
-      upperBound: 1.0,
-      value: 1.0,
-    );
-
-    _buttonScale = CurvedAnimation(
-      parent: _buttonController,
-      curve: Curves.easeOut,
-    );
-
     _checkBiometricAvailability();
   }
 
@@ -83,7 +66,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   @override
   void dispose() {
-    _buttonController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -97,63 +79,53 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     return Scaffold(
       body: Stack(
         children: [
-          _buildBackground(context),
+          // _buildBackground(context), // Removed per user request
           SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                // Determine screen size category
+                // Dynamic scaling
                 final height = constraints.maxHeight;
-                final isSmallScreen = height < 700;
-                final isShortScreen = height < 600;
-
+                // Proportions (Compact)
+                final double topSpacer = height * 0.03; // Reduced
+                final double logoSize = (height * 0.08).clamp(40.0, 60.0); // Much smaller (~20% of previous max)
+                final double gapAfterLogo = height * 0.02;
+                final double gapBeforeForm = height * 0.02;
+                final double gapAfterForm = height * 0.02;
+                
                 return SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: height - 60, // Account for vertical padding
-                    ),
-                    child: IntrinsicHeight(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: 400, // Safe max width for tablets
+                        minHeight: height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom, 
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Dynamic top spacing
-                          SizedBox(height: isShortScreen ? 24 : 48),
+                          SizedBox(height: topSpacer + 20),
 
-                          _buildHeader(isSmallScreen),
+                          _buildHeader(logoSize),
 
-                          // Flexible spacer instead of fixed height
-                          if (isShortScreen) 
-                            const SizedBox(height: 24)
-                          else 
-                            const Spacer(flex: 2),
+                          SizedBox(height: gapBeforeForm + 10),
 
                           // 🧊 GLASS CARD CONTAINER
                           _buildGlassCard(
-                            child: _buildForm(authState, l10n, isSmallScreen),
+                            child: _buildForm(authState, l10n),
                           ),
 
-                          // Flexible spacer
-                          if (isShortScreen)
-                            const SizedBox(height: 20)
-                          else
-                            const Spacer(flex: 1),
+                          SizedBox(height: gapAfterForm + 10),
 
                           _buildDivider(),
 
-                          SizedBox(height: isSmallScreen ? 20 : 28),
+                          const SizedBox(height: 16),
+                          
+                          // Compact Social Row
+                          _buildCompactSocialRow(),
 
-                          _buildSocialButtons(),
-
-                          if (_biometricAvailable) ...[
-                            SizedBox(height: isSmallScreen ? 16 : 20),
-                            _buildBiometricButton(),
-                          ],
-
-                          // Flexible spacer
-                          if (isShortScreen)
-                            const SizedBox(height: 24)
-                          else
-                            const Spacer(flex: 2),
+                          const SizedBox(height: 32),
 
                           _buildToggle(),
                           
@@ -161,11 +133,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
                           _buildSkipButton(),
 
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 32),
 
                           _buildLegalFooter(context),
                           
-                          const SizedBox(height: 32),
+                          SizedBox(height: height * 0.05 + 20),
                         ],
                       ),
                     ),
@@ -209,10 +181,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   // Header (Screenshot-friendly)
   // ─────────────────────────────────────────
 
-  Widget _buildHeader([bool isSmallScreen = false]) {
-    final double iconSize = isSmallScreen ? 32 : 44;
-    final double containerSize = isSmallScreen ? 64 : 88;
-    final double spacing = isSmallScreen ? 16 : 28;
+  Widget _buildHeader(double logoSize) {
+    final double containerSize = logoSize * 2.0; 
     final l10n = AppLocalizations.of(context)!;
 
     return Column(
@@ -227,31 +197,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 Theme.of(context).primaryColor.withValues(alpha: 0.85),
               ],
             ),
-            borderRadius: BorderRadius.circular(isSmallScreen ? 18 : 24),
+            borderRadius: BorderRadius.circular(containerSize * 0.27),
             boxShadow: [
               BoxShadow(
-                blurRadius: isSmallScreen ? 16 : 22,
-                offset: Offset(0, isSmallScreen ? 6 : 10),
+                blurRadius: containerSize * 0.25,
+                offset: Offset(0, containerSize * 0.1),
                 color: Colors.black.withValues(alpha: 0.12),
               ),
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(isSmallScreen ? 18 : 24),
+            borderRadius: BorderRadius.circular(containerSize * 0.27),
             child: Image.asset(
               'assets/images/logo_CP.png',
-              width: iconSize,
-              height: iconSize,
+              width: logoSize,
+              height: logoSize,
               fit: BoxFit.contain,
             ),
           ),
         ),
-        SizedBox(height: spacing),
+        const SizedBox(height: 24),
         Text(
           _isLogin ? l10n.authWelcome : l10n.authCreateAccount,
-          style: (isSmallScreen 
-              ? AppTypography.headlineMedium 
-              : AppTypography.displaySmall).copyWith(
+          style: AppTypography.headlineMedium.copyWith(
             fontWeight: FontWeight.w800,
             letterSpacing: -0.4,
           ),
@@ -286,22 +254,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   // ─────────────────────────────────────────
 
   Widget _buildGlassCard({required Widget child}) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.85),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.2),
-            ),
-          ),
-          child: child,
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
         ),
       ),
+      child: child,
     );
   }
 
@@ -309,15 +271,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   // Form
   // ─────────────────────────────────────────
 
-  Widget _buildForm(AuthState authState, AppLocalizations l10n, [bool isSmallScreen = false]) {
+  Widget _buildForm(AuthState authState, AppLocalizations l10n) {
     return Form(
       key: _formKey,
       child: Column(
         children: [
           _buildEmailField(),
-          SizedBox(height: isSmallScreen ? 12 : 18),
+          const SizedBox(height: 16),
           _buildPasswordField(),
-          SizedBox(height: isSmallScreen ? 18 : 26),
+          const SizedBox(height: 24),
 
           if (authState.errorMessage != null)
             _buildErrorMessage(authState.errorMessage!),
@@ -416,19 +378,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   Widget _buildAnimatedSubmitButton(bool loading) {
     final l10n = AppLocalizations.of(context)!;
-    return ScaleTransition(
-      scale: _buttonScale,
-      child: GestureDetector(
-        onTapDown: (_) => _buttonController.reverse(),
-        onTapUp: (_) => _buttonController.forward(),
-        onTapCancel: () => _buttonController.forward(),
-        child: CPButton(
-          label: _isLogin ? l10n.authSignIn : l10n.authCreateAccount,
-          loading: loading,
-          expanded: true,
-          onTap: _handleSubmit,
-        ),
-      ),
+    return CPButton(
+      label: _isLogin ? l10n.authSignIn : l10n.authCreateAccount,
+      loading: loading,
+      expanded: true,
+      onTap: _handleSubmit,
     );
   }
 
@@ -436,12 +390,70 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   // 🔐 Biometric Button
   // ─────────────────────────────────────────
 
-  Widget _buildBiometricButton() {
+  // ─────────────────────────────────────────
+  // 🤏 Compact Social Row
+  // ─────────────────────────────────────────
+
+  Widget _buildCompactSocialRow() {
     final l10n = AppLocalizations.of(context)!;
-    return CPOutlinedButton(
-      label: l10n.authSignInBiometrics,
-      icon: Icons.fingerprint,
-      onTap: _handleBiometricAuth,
+    
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Google
+        _buildSocialIconBtn(
+          icon: Icons.g_mobiledata, 
+          onTap: _handleGoogleSignIn,
+        ),
+        
+        const SizedBox(width: 16),
+        
+        // Apple
+        _buildSocialIconBtn(
+          icon: Icons.apple, 
+          onTap: _handleAppleSignIn,
+        ),
+
+        if (_biometricAvailable) ...[
+           const SizedBox(width: 16),
+           _buildSocialIconBtn(
+             icon: Icons.fingerprint,
+             onTap: _handleBiometricAuth,
+             isBiometric: true,
+           ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSocialIconBtn({
+    required IconData icon, 
+    required VoidCallback onTap,
+    bool isBiometric = false,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isBiometric 
+                ? Theme.of(context).primaryColor.withOpacity(0.5)
+                : Theme.of(context).dividerColor,
+          ),
+        ),
+        child: Icon(
+          icon,
+          size: 24,
+          color: isBiometric 
+              ? Theme.of(context).primaryColor 
+              : Theme.of(context).iconTheme.color,
+        ),
+      ),
     );
   }
 
@@ -466,28 +478,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     );
   }
 
-  Widget _buildSocialButtons() {
-    final l10n = AppLocalizations.of(context)!;
-    return Row(
-      children: [
-        Expanded(
-          child: CPOutlinedButton(
-            label: l10n.authGoogle,
-            icon: Icons.g_mobiledata,
-            onTap: _handleGoogleSignIn,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: CPOutlinedButton(
-            label: l10n.authApple,
-            icon: Icons.apple,
-            onTap: _handleAppleSignIn,
-          ),
-        ),
-      ],
-    );
-  }
+
 
   Widget _buildToggle() {
     final l10n = AppLocalizations.of(context)!;

@@ -3,6 +3,7 @@
 library;
 
 import 'dart:convert';
+import 'package:cashpilot/core/providers/sync_providers.dart' show conflictListProvider, conflictServiceProvider, openConflictsProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -74,7 +75,7 @@ class ConflictCenterScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildConflictList(BuildContext context, WidgetRef ref, List<Conflict> conflicts) {
+  Widget _buildConflictList(BuildContext context, WidgetRef ref, List<ConflictData> conflicts) {
     return Column(
       children: [
         _buildSummaryBar(context, conflicts.length),
@@ -114,7 +115,7 @@ class ConflictCenterScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _resolveConflict(WidgetRef ref, Conflict conflict, ConflictResolution resolution, [Map<String, dynamic>? mergedData]) async {
+  Future<void> _resolveConflict(WidgetRef ref, ConflictData conflict, ConflictResolution resolution, [Map<String, dynamic>? mergedData]) async {
     await ref.read(conflictServiceProvider).resolveConflict(
       conflictId: conflict.id,
       resolution: resolution,
@@ -126,7 +127,7 @@ class ConflictCenterScreen extends ConsumerWidget {
 }
 
 class _ConflictCard extends StatelessWidget {
-  final Conflict conflict;
+  final ConflictData conflict;
   final Function(ConflictResolution, [Map<String, dynamic>?]) onResolve;
 
   const _ConflictCard({
@@ -204,7 +205,7 @@ class _ConflictCard extends StatelessWidget {
     );
   }
 
-  void _showMergeDialog(BuildContext context, Conflict conflict) {
+  void _showMergeDialog(BuildContext context, ConflictData conflict) {
     showDialog(
       context: context,
       builder: (context) => ConflictMergeDialog(

@@ -96,6 +96,14 @@ class ConflictResolver {
 
   /// Core deterministic resolution logic with 4-step tie-breaker
   ConflictResolutionResult _resolveDeterministic(ConflictRecord conflict) {
+    // 0. Safety Check: If NO metadata is present on either side (valid for some edge cases)
+    // We cannot safely determine a winner automatically without risking data loss/overwrite.
+    if (conflict.localVersion == null && conflict.remoteVersion == null &&
+        conflict.localUpdatedAt == null && conflict.remoteUpdatedAt == null) {
+      return const ManualResolutionRequired(
+          'Missing version and timestamp metadata on both records');
+    }
+
     // 1. Version Comparison (Higher wins)
     final localV = conflict.localVersion;
     final remoteV = conflict.remoteVersion;

@@ -15,7 +15,7 @@ class SyncContract {
     this.requiresBaseRevision = true,
   });
   
-  /// Master sync contract definition
+  /// Master sync contract definition - Enforces technical_contract.md
   static const Map<String, SyncContract> contracts = {
     'budgets': SyncContract(
       entityType: 'budgets',
@@ -52,6 +52,18 @@ class SyncContract {
       isSyncable: true,
       deleteType: DeleteType.soft,
       conflictStrategy: ConflictStrategy.latest,
+    ),
+    'recurring_expenses': SyncContract(
+      entityType: 'recurring_expenses',
+      isSyncable: true,
+      deleteType: DeleteType.soft,
+      conflictStrategy: ConflictStrategy.latest,
+    ),
+    'budget_members': SyncContract(
+        entityType: 'budget_members',
+        isSyncable: true,
+        deleteType: DeleteType.soft,
+        conflictStrategy: ConflictStrategy.ownerWins,
     ),
     'settings': SyncContract(
       entityType: 'settings',
@@ -98,7 +110,8 @@ enum ConflictStrategy {
   /// Owner of budget wins (for budgets)
   ownerWins,
   
-  /// Merge non-conflicting fields, fail on conflicts
+  /// Merge non-conflicting fields, fail on conflicts.
+  /// For conflicting fields, LWW (Last Writer Wins) on timestamp.
   fieldMerge,
   
   /// Latest timestamp wins (for settings, categories)

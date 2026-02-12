@@ -10,7 +10,11 @@ import 'plugin_system.dart';
 import 'models/intelligence_models.dart';
 import 'modules/budget_intelligence_module.dart';
 import 'modules/spending_intelligence_module.dart';
-
+import 'modules/behavioral_intelligence_module.dart';
+import '../../features/knowledge/domain/repositories/knowledge_repository.dart';
+import '../../features/knowledge/infrastructure/repositories/knowledge_repository_impl.dart';
+import '../../features/knowledge/domain/entities/knowledge_article.dart';
+import '../../features/knowledge/infrastructure/services/knowledge_seed_service.dart';
 
 class FinancialIntelligenceEngine {
   /// Singleton instance
@@ -29,6 +33,7 @@ class FinancialIntelligenceEngine {
   final _pluginSystem = PluginSystem();
 
   bool _initialized = false;
+  KnowledgeRepository? _knowledgeRepository;
 
   // ---------------------------------------------------------------------------
   // PERFORMANCE METRICS
@@ -51,6 +56,7 @@ class FinancialIntelligenceEngine {
 
     _pluginSystem.register(BudgetIntelligenceModule());
     _pluginSystem.register(SpendingIntelligenceModule());
+    _pluginSystem.register(BehavioralIntelligenceModule());
 
     final context = EngineContext(
       database: database,
@@ -59,7 +65,15 @@ class FinancialIntelligenceEngine {
 
     await _pluginSystem.initializeAll(context);
 
+    await _cache.initialize();
     _cache.startPeriodicCleanup();
+    
+    // Initialize Knowledge Repository
+    _knowledgeRepository = KnowledgeRepositoryImpl(database);
+
+    // Seed Knowledge Data
+    final seedService = KnowledgeSeedService(database);
+    await seedService.seedIfNeeded();
 
     _initialized = true;
 
@@ -91,7 +105,10 @@ class FinancialIntelligenceEngine {
         final cacheKey = 'engine:v1:budget:$budgetId';
 
         if (!forceRefresh) {
-          final cached = _cache.get<BudgetIntelligence>(cacheKey);
+          final cached = await _cache.get<BudgetIntelligence>(
+            cacheKey,
+            deserializer: (json) => BudgetIntelligence.fromJson(json),
+          );
           if (cached != null) return cached;
         }
 
@@ -105,7 +122,12 @@ class FinancialIntelligenceEngine {
           cacheKey: cacheKey,
         );
 
-        _cache.set(cacheKey, enriched);
+        // Fire and forget set? No, better to await or ignore
+        unawaited(_cache.set(
+          cacheKey, 
+          enriched,
+          serializer: (val) => val.toJson(),
+        ));
         return enriched;
       },
       fallback: _defaultBudgetIntelligence(budgetId),
@@ -169,7 +191,10 @@ class FinancialIntelligenceEngine {
         final cacheKey = 'engine:v1:spending:$userId:${scope.name}';
 
         if (!forceRefresh) {
-          final cached = _cache.get<SpendingIntelligence>(cacheKey);
+          final cached = await _cache.get<SpendingIntelligence>(
+            cacheKey,
+            deserializer: (json) => SpendingIntelligence.fromJson(json),
+          );
           if (cached != null) return cached;
         }
 
@@ -181,7 +206,45 @@ class FinancialIntelligenceEngine {
           },
         );
 
-        _cache.set(cacheKey, result);
+        // MERGE BEHAVIORAL PATTERNS (Phase B)
+        try {
+          final behavioralPatterns = await _pluginSystem.query<List<SpendingPattern>>(
+            pluginName: 'behavioral_intelligence',
+            params: {
+              'userId': userId,
+              'scope': scope,
+            },
+          );
+          
+          if (behavioralPatterns.isNotEmpty) {
+            final mergedPatterns = List<SpendingPattern>.from(result.patterns)
+              ..addAll(behavioralPatterns);
+            
+            final enriched = SpendingIntelligence(
+              userId: result.userId,
+              averageDaily: result.averageDaily,
+              patterns: mergedPatterns,
+              topCategories: result.topCategories,
+              peakDays: result.peakDays,
+              computedAt: result.computedAt,
+            );
+            
+            unawaited(_cache.set(
+              cacheKey, 
+              enriched,
+              serializer: (val) => val.toJson(),
+            ));
+            return enriched;
+          }
+        } catch (e) {
+          debugPrint('[IntelligenceEngine] Behavioral merge failed: $e');
+        }
+
+        unawaited(_cache.set(
+          cacheKey, 
+          result,
+          serializer: (val) => val.toJson(),
+        ));
         return result;
       },
       fallback: _defaultSpendingIntelligence(userId),
@@ -196,6 +259,73 @@ class FinancialIntelligenceEngine {
       topCategories: const {},
       peakDays: const [],
       computedAt: DateTime.now(),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // KNOWLEDGE SUGGESTIONS
+  // ---------------------------------------------------------------------------
+
+  Future<List<KnowledgeArticle>> suggestArticles({
+    required String userId,
+    bool forceRefresh = false,
+  }) async {
+    return _withErrorHandling(
+      operation: 'suggest_articles',
+      fn: () async {
+        if (!_initialized || _knowledgeRepository == null) {
+          return [];
+        }
+
+        // 1. Analyze spending to get context
+        final spending = await analyzeSpending(
+          userId: userId,
+          scope: AnalysisScope.last30Days, 
+          forceRefresh: forceRefresh,
+        );
+        
+        // 2. Derive topics from spending patterns
+        final Set<String> suggestedTopics = {'budgeting'}; // Always suggest budgeting
+        
+        // Pattern-based topic derivation
+        for (final pattern in spending.patterns) {
+          if (pattern.type == PatternType.weekendSplurge) {
+            suggestedTopics.add('impulse_control');
+            suggestedTopics.add('savings');
+          }
+          if (pattern.type == PatternType.recurringMerchant) {
+            // Could link to subscription management if we find many recurring
+            suggestedTopics.add('budgeting');
+          }
+        }
+
+        // Potential for more logic: if peak days are Fri/Sat, also hint impulse control
+        if (spending.peakDays.contains(4) || spending.peakDays.contains(5)) { // Fri, Sat
+           suggestedTopics.add('impulse_control');
+        }
+
+        // If user has very low average spending relative to some benchmark, suggest investing?
+        // (This needs a benchmark, but let's assume if they have top categories but low total)
+        // For now, let's just add 'investing' as a secondary topic.
+        suggestedTopics.add('investing');
+        
+        // 3. Fetch articles for topics
+        final List<KnowledgeArticle> allSuggestions = [];
+        
+        for (final topic in suggestedTopics) {
+          final articles = await _knowledgeRepository!.getArticles(topic: topic, limit: 3);
+          allSuggestions.addAll(articles);
+        }
+
+        // Deduplicate and limit
+        final unique = <String, KnowledgeArticle>{};
+        for (var a in allSuggestions) {
+          unique[a.id] = a;
+        }
+        
+        return unique.values.toList();
+      },
+      fallback: [],
     );
   }
 

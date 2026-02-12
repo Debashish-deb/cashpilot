@@ -2,13 +2,12 @@
 /// Apple-inspired segmented control tabs with glassmorphism
 library;
 
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../features/expenses/providers/expense_filter_provider.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/tokens.g.dart';
 
 /// Apple-inspired filter bar with segmented controls
 class ExpenseFilterBar extends ConsumerWidget {
@@ -88,26 +87,22 @@ class _AppleSegmentedControl<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final primaryColor = isSecondary ? AppColors.accent : theme.colorScheme.primary;
+    final primaryColor = isSecondary ? AppTokens.brandSecondary : theme.colorScheme.primary;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: Container(
-          height: isSecondary ? 36 : 40,
-          decoration: BoxDecoration(
-            color: isDark 
-                ? Colors.white.withValues(alpha: 0.06)
-                : Colors.black.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isDark 
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.06),
-              width: 0.5,
-            ),
-          ),
+    return Container(
+      height: isSecondary ? 36 : 40,
+      decoration: BoxDecoration(
+        color: isDark 
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.black.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isDark 
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.black.withValues(alpha: 0.05),
+          width: 0.5,
+        ),
+      ),
           child: LayoutBuilder(
             builder: (context, constraints) {
               final segmentWidth = constraints.maxWidth / values.length;
@@ -127,14 +122,6 @@ class _AppleSegmentedControl<T> extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: primaryColor,
                         borderRadius: BorderRadius.circular(8),
-                        boxShadow: [
-                          BoxShadow(
-                            color: primaryColor.withValues(alpha: isDark ? 0.4 : 0.3),
-                            blurRadius: 8,
-                            spreadRadius: -2,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
                       ),
                     ),
                   ),
@@ -177,8 +164,6 @@ class _AppleSegmentedControl<T> extends StatelessWidget {
               );
             },
           ),
-        ),
-      ),
     );
   }
 }

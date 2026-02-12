@@ -2,6 +2,8 @@
 /// Fixed: Medium issue - Merchant detection lacks memory
 library;
 
+import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 
@@ -25,7 +27,7 @@ class LearnedMerchant {
   factory LearnedMerchant.fromJson(Map<String, dynamic> json) {
     return LearnedMerchant(
       normalizedName: json['normalized_name'] as String,
-      variations: (json['variations'] as List).cast<String>(),
+      variations: List<String>.from(json['variations'] as List),
       seenCount: json['seen_count'] as int,
       lastSeen: DateTime.parse(json['last_seen'] as String),
       category: json['category'] as String?,
@@ -133,19 +135,14 @@ class MerchantMemoryService {
   
   void _load() {
     try {
-      final json = _prefs.getString(_storageKey);
-      if (json == null) return;
+      final jsonStr = _prefs.getString(_storageKey);
+      if (jsonStr == null) return;
       
-      final data = Map<String, dynamic>.from(
-        Map<String, dynamic>.from(
-          Map<String, dynamic>.from(
-            Map<String, dynamic>.from(
-              {}
-            )
-          )
-        )
-      );
-      // Simplified - in real implementation parse JSON
+      final List<dynamic> list = jsonDecode(jsonStr);
+      for (final item in list) {
+        final merchant = LearnedMerchant.fromJson(item as Map<String, dynamic>);
+        _merchants[merchant.normalizedName] = merchant;
+      }
       debugPrint('[MerchantMemory] Loaded ${_merchants.length} merchants');
     } catch (e) {
       debugPrint('[MerchantMemory] Load error: $e');
@@ -154,8 +151,8 @@ class MerchantMemoryService {
   
   Future<void> _save() async {
     try {
-      // Simplified - in real implementation save as JSON
-      await _prefs.setString(_storageKey, '{}');
+      final list = _merchants.values.map((m) => m.toJson()).toList();
+      await _prefs.setString(_storageKey, jsonEncode(list));
       debugPrint('[MerchantMemory] Saved ${_merchants.length} merchants');
     } catch (e) {
       debugPrint('[MerchantMemory] Save error: $e');

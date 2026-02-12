@@ -35,28 +35,11 @@ class CategoryController {
       colorHex: Value(colorHex),
       parentId: Value(parentId),
       isSystem: const Value(false),
+      syncState: const Value('dirty'), 
+      versionVector: const Value(null),
     ));
     
-    // Trigger sync with error logging
-    // Phase 1: Queue for sync via outbox (instead of direct sync)
-    try {
-      await _outbox.queueEvent(
-        entityType: 'category',
-        entityId: id,
-        operation: 'create',
-        payload: {
-          'name': name,
-          'type': type,
-          'iconName': iconName,
-          'colorHex': colorHex,
-          'parentId': parentId,
-        },
-        baseRevision: 0,
-      );
-    } catch (e) {
-      debugPrint('⚠️ Category outbox queue failed for $id: $e');
-    }
-    
+    // OutboxService usage removed - DataBatchSync will pick up dirty record.
     return id;
   }
 
@@ -78,27 +61,9 @@ class CategoryController {
       colorHex: Value(colorHex ?? existing.colorHex),
       parentId: Value(parentId ?? existing.parentId),
       updatedAt: Value(DateTime.now()),
+      syncState: const Value('dirty'), // Critical: Mark dirty for sync
+      revision: Value(existing.revision + 1), // Increment local revision
     ));
-
-    // Trigger sync with error logging
-    // Phase 1: Queue for sync via outbox
-    try {
-      final revision = existing.revision ?? 0;
-      await _outbox.queueEvent(
-        entityType: 'category',
-        entityId: id,
-        operation: 'update',
-        payload: {
-          if (name != null) 'name': name,
-          if (iconName != null) 'iconName': iconName,
-          if (colorHex != null) 'colorHex': colorHex,
-          if (parentId != null) 'parentId': parentId,
-        },
-        baseRevision: revision,
-      );
-    } catch (e) {
-      debugPrint('⚠️ Category outbox queue failed for $id: $e');
-    }
   }
 
   /// Delete a category (soft delete)
@@ -116,25 +81,11 @@ class CategoryController {
     
     // Step 3: Soft delete the parent
     await (_db.update(_db.categories)..where((t) => t.id.equals(id)))
-        .write(const CategoriesCompanion(isDeleted: Value(true)));
-
-    // Trigger sync with error logging
-    // Phase 1: Queue for sync via outbox
-    try {
-      final existing = await (_db.select(_db.categories)..where((t) => t.id.equals(id))).getSingleOrNull();
-      if (existing != null) {
-        final revision = existing.revision;
-        await _outbox.queueEvent(
-          entityType: 'category',
-          entityId: id,
-          operation: 'delete',
-          payload: {'deletedAt': DateTime.now().toIso8601String()},
-          baseRevision: revision,
-        );
-      }
-    } catch (e) {
-      debugPrint('⚠️ Category outbox queue failed for $id: $e');
-    }
+        .write(const CategoriesCompanion(
+          isDeleted: Value(true),
+          syncState: Value('dirty'), // Critical: Mark dirty for sync
+          updatedAt: Value.absent(), // handled by default or trigger
+    ));
     
     debugPrint('✅ Category $id deleted (+ ${children.length} children)');
   }
@@ -144,23 +95,12 @@ class CategoryController {
   Future<void> mergeCategories(String sourceId, String targetId) async {
     await _db.mergeCategories(sourceId, targetId);
     
-    // TODO: Queue sync events for affected entities
-    // For now, simpler to just mark source as deleted for sync
-    try {
-      final existing = await (_db.select(_db.categories)..where((t) => t.id.equals(sourceId))).getSingleOrNull();
-      if (existing != null) {
-         final revision = existing.revision;
-         await _outbox.queueEvent(
-           entityType: 'category',
-           entityId: sourceId,
-           operation: 'delete',
-           payload: {'mergedInto': targetId, 'deletedAt': DateTime.now().toIso8601String()},
-           baseRevision: revision,
-         );
-      }
-    } catch (e) {
-      debugPrint('⚠️ Merge outbox queue failed for $sourceId: $e');
-    }
+    // Mark source as deleted for sync
+    await (_db.update(_db.categories)..where((t) => t.id.equals(sourceId)))
+        .write(const CategoriesCompanion(
+          isDeleted: Value(true),
+          syncState: Value('dirty'),
+    ));
   }
 }
 

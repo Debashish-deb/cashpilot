@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:cashpilot/l10n/app_localizations.dart';
-import 'package:cashpilot/core/constants/default_categories.dart'; // LocalizedCategory
+// LocalizedCategory
 import 'package:uuid/uuid.dart';
 import '../../../core/utils/app_snackbar.dart';
 
@@ -18,6 +18,7 @@ import '../../../core/providers/app_providers.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../features/budgets/providers/budget_providers.dart';
 import '../../../features/expenses/providers/expense_providers.dart';
+import '../../../features/categories/providers/category_providers.dart';
 import '../../../data/drift/app_database.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../widgets/budgets/overspend_forecast_bar.dart';
@@ -53,64 +54,66 @@ class BudgetDetailsScreen extends ConsumerWidget {
               statusBarColor: Colors.transparent,
             ),
             child: Scaffold(
-              body: CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  _buildSliverAppBar(
-                    context,
-                    ref,
-                    data,
-                    currency,
-                    l10n,
-                  ),
-                  // Sticky mini-summary bar (per blueprint spec)
-                  SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _StickyMiniSummaryDelegate(
-                      spent: data.totalSpent,
-                      remaining: data.remaining,
-                      dailyBudget: _calculateDailyBudget(data),
-                      currency: currency,
-                      l10n: l10n,
+              body: SafeArea(
+                top: false, // SliverAppBar handles top
+                child: CustomScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  slivers: [
+                    _buildSliverAppBar(
+                      context,
+                      ref,
+                      data,
+                      currency,
+                      l10n,
                     ),
-                  ),
-                  SliverLayoutBuilder(
-                    builder: (context, constraints) {
-                      final horizontalPadding = constraints.crossAxisExtent < 360 ? 12.0 : 16.0;
-                      return SliverPadding(
-                        padding: EdgeInsets.all(horizontalPadding),
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate(
-                        [
-                          _buildSemiBudgetsSection(
-                            context,
-                            data,
-                            currency,
-                            l10n,
-                          ),
-                          const SizedBox(height: 24),
-                          _buildExpensesSection(
-                            context,
-                            ref,
-                            expensesAsync,
-                            data,
-                            currency,
-                            l10n,
-                          ),
-                          const SizedBox(height: 24),
-                          // Family Members Section
-                          BudgetMembersSection(
-                            budgetId: budgetId,
-                            budget: data.budget,
-                          ),
-                          const SizedBox(height: 100),
-                        ],
+                    // Sticky mini-summary bar (per blueprint spec)
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: _StickyMiniSummaryDelegate(
+                        spent: data.totalSpent,
+                        remaining: data.remaining,
+                        dailyBudget: _calculateDailyBudget(data),
+                        currency: currency,
+                        l10n: l10n,
                       ),
-                      ),
-                    );
-                    },
-                  ),
-                ],
+                    ),
+                    SliverLayoutBuilder(
+                      builder: (context, constraints) {
+                        final horizontalPadding = constraints.crossAxisExtent < 360 ? 12.0 : 16.0;
+                        return SliverPadding(
+                          padding: EdgeInsets.all(horizontalPadding),
+                      sliver: SliverList(
+                        delegate: SliverChildListDelegate(
+                          [
+                            _buildSemiBudgetsSection(
+                              context,
+                              data,
+                              currency,
+                              l10n,
+                            ),
+                            const SizedBox(height: 24),
+                            _buildExpensesSection(
+                              context,
+                              ref,
+                              expensesAsync,
+                              data,
+                              currency,
+                              l10n,
+                            ),
+                            const SizedBox(height: 24),
+                            BudgetMembersSection(
+                              budgetId: budgetId,
+                              budget: data.budget,
+                            ),
+                            const SizedBox(height: 32),
+                          ],
+                        ),
+                        ),
+                      );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -152,9 +155,8 @@ class BudgetDetailsScreen extends ConsumerWidget {
 
     final primaryColor = Theme.of(context).primaryColor;
     
-    // Responsive expandedHeight to prevent overflow on smaller screens
-    final screenHeight = MediaQuery.of(context).size.height;
-    final expandedHeight = (screenHeight * 0.42).clamp(300.0, 380.0);
+    // SAFE MODE: Use fixed expandedHeight to prevent layout instability with font scaling
+    const double expandedHeight = 400.0;
 
     return SliverAppBar(
       expandedHeight: expandedHeight,
@@ -194,16 +196,13 @@ class BudgetDetailsScreen extends ConsumerWidget {
               end: Alignment.bottomRight,
             ),
           ),
-          // Responsive top padding based on screen size
-          padding: EdgeInsets.fromLTRB(16, (screenHeight * 0.12).clamp(70.0, 100.0), 16, 16),
-          child: SafeArea(
-            bottom: false,
-            left: false,
-            right: false,
-            top: false,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.end,
+          // SAFE MODE: Use fixed top padding or kToolbarHeight + safe area
+          padding: const EdgeInsets.fromLTRB(16, 90, 16, 16),
+          child: SingleChildScrollView(
+              // SAFE MODE: Remove NeverScrollableScrollPhysics to allow scrolling if content overflows due to large fonts
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 // Title row
                 Row(
@@ -245,7 +244,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
                     Expanded(
                       child: _HeaderMetric(
                         label: l10n.budgetsSpent,
-                        value: _formatCurrency(data.totalSpent, currency),
+                        value: _formatCurrency(context, data.totalSpent, currency),
                         alignRight: false,
                       ),
                     ),
@@ -253,7 +252,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
                       Expanded(
                         child: _HeaderMetric(
                           label: l10n.budgetsRemaining,
-                          value: _formatCurrency(data.remaining, currency),
+                          value: _formatCurrency(context, data.remaining, currency),
                           alignRight: true,
                         ),
                       ),
@@ -306,7 +305,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${(safeProgress * 100).toStringAsFixed(0)}% of ${_formatCurrency(budget.totalLimit!, currency)}',
+                    '${(safeProgress * 100).toStringAsFixed(0)}% of ${_formatCurrency(context, budget.totalLimit!, currency)}',
                     style: AppTypography.labelSmall.copyWith(
                       color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.8),
                     ),
@@ -335,19 +334,12 @@ class BudgetDetailsScreen extends ConsumerWidget {
     String currency,
     AppLocalizations l10n,
   ) {
-    if (data.semiBudgets.isEmpty) {
-      return _buildEmptySemiBudgets(context, l10n);
-    }
-
-    final theme = Theme.of(context);
-    final onSurface = theme.colorScheme.onSurface;
-    final isDark = theme.brightness == Brightness.dark;
+    final grouped = data.groupedSemiBudgets;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Header row
-        // Section header (iOS Settings style)
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Row(
@@ -359,7 +351,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.5,
-                  color: onSurface.withValues(alpha: 0.6),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
               TextButton.icon(
@@ -375,128 +367,228 @@ class BudgetDetailsScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 8),
-        // Category cards (per blueprint: height 74-82, radius 18, icon 44x44)
-        ...data.semiBudgets.map((semiBudget) {
-          final spent = data.semiBudgetSpending[semiBudget.id] ?? 0;
-          final limit = semiBudget.limitAmount;
-          final hasLimit = limit > 0;
-          final progress = hasLimit ? (spent / limit).clamp(0.0, 2.0) : 0.0;
-
-          final color = _getColorFromHex(semiBudget.colorHex, context);
-
-          // Robust Icon Resolution:
-          // 1. Try generic lookup (iconName ?? name)
-          // 2. If it returns fallback (circle) AND we had an iconName, retry with just name
-          //    This fixes cases where DB has generic 'iconName' but 'name' is specific (e.g. 'Electricity')
-          IconData iconData = AppGradeIcons.getIcon(semiBudget.iconName ?? semiBudget.name);
-          if (iconData == Icons.circle_rounded && semiBudget.iconName != null) {
-             final nameIcon = AppGradeIcons.getIcon(semiBudget.name);
-             if (nameIcon != Icons.circle_rounded) {
-                 iconData = nameIcon;
-             }
+        
+        // Render Grouped Categories
+        ...grouped.entries.map((entry) {
+          final parent = entry.key;
+          final children = entry.value;
+          
+          if (children.isEmpty) {
+            return _buildCategoryCard(context, data, parent, currency);
+          } else {
+            return _buildParentCategoryGroup(context, data, parent, children, currency);
           }
-
-          return GlassCard(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            borderRadius: 18, // Blueprint spec
-            color: theme.colorScheme.surface.withValues(alpha: 0.6),
-            border: Border.all(
-              color: theme.dividerColor.withValues(alpha: isDark ? 0.14 : 0.10),
-              width: 1,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Row: icon + name + amount
-                Row(
-                  children: [
-                    // Icon container: 44x44, radius 14 (per blueprint)
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(
-                        iconData,
-                        size: 20,
-                        color: color,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        LocalizedCategoryHelper.getLocalizedName(context, semiBudget.name, iconName: semiBudget.iconName),
-                        style: AppTypography.titleSmall.copyWith(
-                          color: onSurface,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (hasLimit)
-                      Flexible(
-                        child: Text(
-                          '${_formatCurrency(spent, currency)} / ${_formatCurrency(limit, currency)}',
-                          style: AppTypography.bodySmall.copyWith(
-                            color: onSurface.withValues(alpha: 0.6),
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.right,
-                        ),
-                      )
-                    else
-                      Flexible(
-                        child: Text(
-                          _formatCurrency(spent, currency),
-                          style: AppTypography.bodySmall.copyWith(
-                            color: onSurface.withValues(alpha: 0.6),
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.right,
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                // Progress line height: 6 (per blueprint - thin, no huge glow)
-                BudgetProgressBar(
-                  progress: progress,
-                  height: 6, // Blueprint spec: thin progress line
-                ),
-              ],
-            ),
-          );
         }),
       ],
     );
   }
 
-  Widget _buildEmptySemiBudgets(
+  Widget _buildCategoryCard(
     BuildContext context,
-    AppLocalizations l10n,
-  ) {
-    return EmptyState(
-      title: l10n.budgetsNoCategories,
-      message: l10n.budgetsAddCategoriesHint,
-      buttonLabel: l10n.categoryAdd,
-      icon: Icons.category_outlined,
-      useGlass: false,
-      onAction: () => context.push(
-        AppRoutes.categoryAddPath(budgetId), // Using class member budgetId which is available in closure scope? No, need to pass it or access via provider/widget. 
-        // Wait, _buildEmptySemiBudgets is a method on ConsumerWidget and doesn't close over 'budgetId' from constructor easily unless passed.
-        // But the previous implementation used 'budgetId' which implies it WAS available?
-        // Ah, previous code: context.push(AppRoutes.categoryAddPath(budgetId)) -- check line 522 in original
-        // Let's check if 'budgetId' is available. The class 'BudgetDetailsScreen' has 'final String budgetId'.
-        // But 'build' is the method. Helpers are usually instance methods.
-        // Yes, BudgetDetailsScreen is a widget. 'budgetId' is 'this.budgetId'.
-        // So 'budgetId' is available.
+    BudgetWithSemiBudgets data,
+    SemiBudget semiBudget,
+    String currency, {
+    bool isSubcategory = false,
+  }) {
+    final theme = Theme.of(context);
+    final onSurface = theme.colorScheme.onSurface;
+    final isDark = theme.brightness == Brightness.dark;
+
+    final spent = data.semiBudgetSpending[semiBudget.id] ?? 0;
+    final limit = semiBudget.limitAmount;
+    final hasLimit = limit > 0;
+    final progress = hasLimit ? (spent / limit).clamp(0.0, 2.0) : 0.0;
+
+    final color = _getColorFromHex(semiBudget.colorHex, context);
+    IconData iconData = AppGradeIcons.getIcon(semiBudget.iconName ?? semiBudget.name);
+
+    return GlassCard(
+      margin: EdgeInsets.only(bottom: 12, left: isSubcategory ? 24 : 0),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      borderRadius: 18,
+      color: theme.colorScheme.surface.withValues(alpha: isSubcategory ? 0.4 : 0.6),
+      border: Border.all(
+        color: theme.dividerColor.withValues(alpha: isDark ? 0.14 : 0.10),
+        width: 1,
+      ),
+      onTap: () => context.push(AppRoutes.categoryEditPath(budgetId, semiBudget.id)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: isSubcategory ? 36 : 44,
+                height: isSubcategory ? 36 : 44,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(isSubcategory ? 10 : 14),
+                ),
+                child: Icon(
+                  iconData,
+                  size: isSubcategory ? 18 : 20,
+                  color: color,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  LocalizedCategoryHelper.getLocalizedName(context, semiBudget.name, iconName: semiBudget.iconName),
+                  style: (isSubcategory ? AppTypography.bodyMedium : AppTypography.titleSmall).copyWith(
+                    color: onSurface,
+                    fontWeight: isSubcategory ? FontWeight.w500 : FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              IconButton(
+                splashRadius: 20,
+                iconSize: 18,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                icon: Icon(Icons.edit_outlined, color: onSurface.withValues(alpha: 0.4)),
+                onPressed: () => context.push(AppRoutes.categoryEditPath(budgetId, semiBudget.id)),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _formatCurrency(context, spent, currency),
+                    style: AppTypography.labelMedium.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: onSurface,
+                    ),
+                  ),
+                  if (hasLimit)
+                    Text(
+                      'of ${_formatCurrency(context, limit, currency)}',
+                      style: AppTypography.labelSmall.copyWith(
+                        color: onSurface.withValues(alpha: 0.5),
+                        fontSize: 10,
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          BudgetProgressBar(
+            progress: progress,
+            height: isSubcategory ? 4 : 6,
+          ),
+        ],
       ),
     );
   }
+
+  Widget _buildParentCategoryGroup(
+    BuildContext context,
+    BudgetWithSemiBudgets data,
+    SemiBudget parent,
+    List<SemiBudget> children,
+    String currency,
+  ) {
+    final theme = Theme.of(context);
+    final onSurface = theme.colorScheme.onSurface;
+    
+    // Aggregates
+    final totalSpent = data.getAggregatedSpending(parent.id);
+    final totalLimit = data.getAggregatedLimit(parent.id);
+    final hasLimit = totalLimit > 0;
+    final progress = hasLimit ? (totalSpent / totalLimit).clamp(0.0, 2.0) : 0.0;
+    
+    final color = _getColorFromHex(parent.colorHex, context);
+    IconData iconData = AppGradeIcons.getIcon(parent.iconName ?? parent.name);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: theme.dividerColor.withValues(alpha: 0.1),
+        ),
+      ),
+      child: Theme(
+        data: theme.copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          leading: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(iconData, size: 20, color: color),
+          ),
+          title: Text(
+            LocalizedCategoryHelper.getLocalizedName(context, parent.name, iconName: parent.iconName),
+            style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w700),
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${_formatCurrency(context, totalSpent, currency)} spent',
+                      style: AppTypography.labelSmall.copyWith(color: onSurface.withValues(alpha: 0.6)),
+                    ),
+                    if (hasLimit)
+                      Text(
+                        'Limit: ${_formatCurrency(context, totalLimit, currency)}',
+                        style: AppTypography.labelSmall.copyWith(color: onSurface.withValues(alpha: 0.6)),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                BudgetProgressBar(progress: progress, height: 6),
+              ],
+            ),
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                splashRadius: 20,
+                iconSize: 18,
+                icon: Icon(Icons.edit_outlined, color: onSurface.withValues(alpha: 0.4)),
+                onPressed: () => context.push(AppRoutes.categoryEditPath(budgetId, parent.id)),
+              ),
+              const Icon(Icons.keyboard_arrow_down_rounded),
+            ],
+          ),
+          children: [
+            // Children subcategories
+            ...children.map((child) => _buildCategoryCard(context, data, child, currency, isSubcategory: true)),
+            
+            // Edit Parent button
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton.icon(
+                    onPressed: () => context.push(AppRoutes.categoryEditPath(budgetId, parent.id)),
+                    icon: const Icon(Icons.edit_outlined, size: 14),
+                    label: Text(AppLocalizations.of(context)!.commonEdit, style: const TextStyle(fontSize: 12)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
 
   // ---------------------------------------------------------------------------
   // RECENT EXPENSES
@@ -513,6 +605,10 @@ class BudgetDetailsScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final onSurface = theme.colorScheme.onSurface;
     final isDark = theme.brightness == Brightness.dark;
+
+    // Watch categories and subcategories for mapping
+    final categoriesAsync = ref.watch(allCategoriesProvider);
+    final subCategoriesAsync = ref.watch(allSubCategoriesProvider);
 
     // Build efficient maps for O(1) lookups
     final categoryIcons = <String, String>{};
@@ -558,109 +654,67 @@ class BudgetDetailsScreen extends ConsumerWidget {
               );
             }
 
-            // Group expenses by date
-            final groups = _groupExpensesByDate(expenses, context);
+            // Build category and subcategory maps from providers
+            final categoryMap = <String, Category>{};
+            final subCategoryMap = <String, SubCategory>{};
+            
+            if (categoriesAsync.hasValue) {
+              for (final c in categoriesAsync.value!) {
+                categoryMap[c.id] = c;
+              }
+            }
+            if (subCategoriesAsync.hasValue) {
+              for (final s in subCategoriesAsync.value!) {
+                subCategoryMap[s.id] = s;
+              }
+            }
+
+            // Group expenses by Category -> Subcategory
+            final hierarchy = <String, Map<String, List<Expense>>>{};
+            for (var expense in expenses) {
+              final catId = expense.categoryId ?? 'undeclared';
+              final subCatId = expense.subCategoryId ?? 'none';
+              
+              hierarchy.putIfAbsent(catId, () => {});
+              hierarchy[catId]!.putIfAbsent(subCatId, () => []).add(expense);
+            }
 
             return Column(
-              children: [
-                ...groups.entries.map((entry) {
-                  final groupLabel = entry.key;
-                  final groupExpenses = entry.value;
-                  final groupTotal = groupExpenses.fold<int>(0, (sum, e) => sum + e.amount);
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Date header with total
-                      Container(
-                        margin: const EdgeInsets.only(top: 12, bottom: 8),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: isDark 
-                              ? Colors.white.withValues(alpha: 0.06)
-                              : Colors.black.withValues(alpha: 0.04),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: isDark 
-                                ? Colors.white.withValues(alpha: 0.08)
-                                : Colors.black.withValues(alpha: 0.06),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  _getIconForDateGroup(groupLabel, l10n),
-                                  size: 14,
-                                  color: theme.colorScheme.primary,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  groupLabel,
-                                  style: AppTypography.labelMedium.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: onSurface,
-                                    letterSpacing: -0.2,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    '${l10n.categorySpentMonth(groupTotal.toStringAsFixed(0))}',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
-                                      color: theme.colorScheme.primary,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Text(
-                              '-$currency${(groupTotal / 100).toStringAsFixed(2)}',
-                              style: AppTypography.labelMedium.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.danger,
-                                letterSpacing: -0.3,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Expenses in this group
-                      ...groupExpenses.map((expense) {
-                        return _buildExpenseItem(
-                          context, 
-                          ref, 
-                          expense, 
-                          currency, 
-                          theme, 
-                          onSurface, 
-                          isDark,
-                          categoryIcons,
-                          categoryColors,
-                        );
-                      }),
-                    ],
-                  );
-                }),
+              children: hierarchy.entries.map((categoryEntry) {
+                final catId = categoryEntry.key;
+                final subGroups = categoryEntry.value;
+                final category = categoryMap[catId];
                 
-                if (expenses.length > 10)
-                  TextButton.icon(
-                    onPressed: () => context.push(
-                      AppRoutes.expenseListPath(budgetId),
-                    ),
-                    icon: const Icon(Icons.arrow_forward, size: 16),
-                    label: Text(l10n.expensesViewAll),
+                final allExpensesInCategory = subGroups.values.expand((e) => e).toList();
+                final totalAmount = allExpensesInCategory.fold<double>(0, (sum, e) => sum + (e.amount / 100));
+                
+                Color categoryColor = theme.colorScheme.primary;
+                if (category?.colorHex != null) {
+                  try {
+                    categoryColor = Color(int.parse(category!.colorHex!.replaceFirst('#', '0xFF')));
+                  } catch (_) {}
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildCategoryExpenseAccordion(
+                    context,
+                    ref,
+                    category: category,
+                    categoryId: catId,
+                    subGroups: subGroups,
+                    subCategoryMap: subCategoryMap,
+                    totalAmount: totalAmount,
+                    categoryColor: categoryColor,
+                    currency: currency,
+                    theme: theme,
+                    onSurface: onSurface,
+                    isDark: isDark,
+                    categoryIcons: categoryIcons,
+                    categoryColors: categoryColors,
                   ),
-              ],
+                );
+              }).toList(),
             );
           },
           loading: () => const Center(
@@ -682,13 +736,141 @@ class BudgetDetailsScreen extends ConsumerWidget {
   // HELPERS
   // ---------------------------------------------------------------------------
 
-  String _formatCurrency(int amountInCents, String currency) {
+  String _formatCurrency(BuildContext context, int amountInCents, String currency) {
     final amount = amountInCents / 100;
     final format = NumberFormat.currency(
+      locale: AppLocalizations.of(context)!.localeName,
       symbol: currency == 'EUR' ? '€' : currency,
       decimalDigits: 2,
     );
     return format.format(amount);
+  }
+
+  /// Build category expense accordion for hierarchical display
+  Widget _buildCategoryExpenseAccordion(
+    BuildContext context,
+    WidgetRef ref, {
+    required Category? category,
+    required String categoryId,
+    required Map<String, List<Expense>> subGroups,
+    required Map<String, SubCategory> subCategoryMap,
+    required double totalAmount,
+    required Color categoryColor,
+    required String currency,
+    required ThemeData theme,
+    required Color onSurface,
+    required bool isDark,
+    required Map<String, String> categoryIcons,
+    required Map<String, Color> categoryColors,
+  }) {
+    final l10n = AppLocalizations.of(context)!;
+    final categoryName = category != null 
+        ? LocalizedCategoryHelper.getLocalizedName(context, category.name, iconName: category.iconName)
+        : 'Uncategorized';
+    final iconData = AppGradeIcons.getIcon(category?.iconName);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.dividerColor.withValues(alpha: 0.1),
+        ),
+      ),
+      child: Theme(
+        data: theme.copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          leading: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: categoryColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(iconData, size: 20, color: categoryColor),
+          ),
+          title: Text(
+            categoryName,
+            style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w700),
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              '$currency${totalAmount.toStringAsFixed(2)}',
+              style: AppTypography.labelMedium.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppColors.danger,
+              ),
+            ),
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '${subGroups.values.expand((e) => e).length} items',
+                style: AppTypography.labelSmall.copyWith(color: onSurface.withValues(alpha: 0.5)),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.keyboard_arrow_down_rounded),
+            ],
+          ),
+          children: subGroups.entries.map((subEntry) {
+            final subCatId = subEntry.key;
+            final expenses = subEntry.value;
+            final subCategory = subCategoryMap[subCatId];
+            final subTotal = expenses.fold<double>(0, (sum, e) => sum + (e.amount / 100));
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (subCategory != null && subCatId != 'none')
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16, top: 8, bottom: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          LocalizedCategoryHelper.getLocalizedName(context, subCategory.name),
+                          style: AppTypography.labelSmall.copyWith(
+                            color: categoryColor.withValues(alpha: 0.8),
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(right: 16),
+                          child: Text(
+                            '$currency${subTotal.toStringAsFixed(2)}',
+                            style: AppTypography.labelSmall.copyWith(
+                              color: onSurface.withValues(alpha: 0.6),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ...expenses.map((expense) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: _buildExpenseItem(
+                    context,
+                    ref,
+                    expense,
+                    currency,
+                    theme,
+                    onSurface,
+                    isDark,
+                    categoryIcons,
+                    categoryColors,
+                  ),
+                )),
+              ],
+            );
+          }).toList(),
+        ),
+      ),
+    );
   }
 
   /// Group expenses by date category
@@ -745,17 +927,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
   }
 
   /// Get icon for date group label
-  IconData _getIconForDateGroup(String label, AppLocalizations l10n) {
-    if (label == l10n.dateToday) {
-      return Icons.today_outlined;
-    } else if (label == l10n.dateYesterday) {
-      return Icons.history;
-    } else if (label == l10n.dateThisWeek) {
-      return Icons.view_week_outlined;
-    } else {
-      return Icons.calendar_month_outlined;
-    }
-  }
+
 
   /// Build individual expense item
   Widget _buildExpenseItem(
@@ -769,6 +941,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
     Map<String, String> categoryIcons,
     Map<String, Color> categoryColors,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final categoryId = expense.semiBudgetId;
     final iconName = categoryIcons[categoryId];
     final categoryColor = categoryColors[categoryId] ?? theme.colorScheme.primary;
@@ -829,7 +1002,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              '-${_formatCurrency(expense.amount, currency)}',
+              '-${_formatCurrency(context, expense.amount, currency)}',
               style: AppTypography.titleSmall.copyWith(
                 color: AppColors.danger,
                 fontWeight: FontWeight.w600,
@@ -844,13 +1017,13 @@ class BudgetDetailsScreen extends ConsumerWidget {
               ),
               padding: EdgeInsets.zero,
               itemBuilder: (c) => [
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'edit',
                   child: Row(
                     children: [
-                      Icon(Icons.edit_outlined, size: 18),
-                      SizedBox(width: 8),
-                      Text('Edit'),
+                      const Icon(Icons.edit_outlined, size: 18),
+                      const SizedBox(width: 8),
+                      Text(l10n.commonEdit),
                     ],
                   ),
                 ),
@@ -900,6 +1073,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
     WidgetRef ref,
     Budget budget,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     // Capture the outer context (from widget tree) before modal opens
     final outerContext = context;
     
@@ -917,7 +1091,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
             children: [
               ListTile(
                 leading: const Icon(Icons.share_outlined),
-                title: const Text('Share Budget'),
+                title: Text(l10n.commonShare),
                 onTap: () {
                   Navigator.pop(modalContext);
                   _showShareBudgetDialog(outerContext, ref, budget);
@@ -925,7 +1099,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
               ),
               ListTile(
                 leading: const Icon(Icons.copy_outlined),
-                title: const Text('Duplicate Budget'),
+                title: Text(l10n.commonDuplicate),
                 onTap: () {
                   Navigator.pop(modalContext);
                   AppSnackBar.showInfo(outerContext, 'Duplicate feature coming soon');
@@ -933,7 +1107,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
               ),
               ListTile(
                 leading: const Icon(Icons.archive_outlined),
-                title: const Text('Archive Budget'),
+                title: Text(l10n.commonArchive),
                 onTap: () {
                   Navigator.pop(modalContext);
                   AppSnackBar.showSuccess(outerContext, 'Budget archived');
@@ -967,6 +1141,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
     WidgetRef ref,
     Budget budget,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final emailController = TextEditingController();
     String role = 'editor';
 
@@ -974,16 +1149,16 @@ class BudgetDetailsScreen extends ConsumerWidget {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('Share Budget'),
+          title: Text(AppLocalizations.of(context)!.budgetShareTitle), // Using generic/fallback until regenerated
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Invite family members to join "${budget.title}"'),
+              Text(l10n.budgetInviteMessage(budget.title)),
               const SizedBox(height: 16),
               TextField(
                 controller: emailController,
                 decoration: const InputDecoration(
-                  labelText: 'Email Address',
+                  labelText: 'Email Address', // Keep simple or add key if needed
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.email_outlined),
                 ),
@@ -996,14 +1171,14 @@ class BudgetDetailsScreen extends ConsumerWidget {
                   labelText: 'Access Level',
                   border: OutlineInputBorder(),
                 ),
-                items: const [
+                items: [
                   DropdownMenuItem(
                     value: 'editor',
-                    child: Text('Editor (Can add expenses)'),
+                    child: Text(l10n.budgetRoleEditor),
                   ),
                   DropdownMenuItem(
                     value: 'viewer',
-                    child: Text('Viewer (Read only)'),
+                    child: Text(l10n.budgetRoleViewer),
                   ),
                 ],
                 onChanged: (v) {
@@ -1016,7 +1191,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(l10n.commonCancel),
             ),
             FilledButton(
               onPressed: () async {
@@ -1046,7 +1221,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Invitation sent to $email'),
+                        content: Text(l10n.budgetInviteSent(email)),
                       ),
                     );
                   }
@@ -1054,13 +1229,13 @@ class BudgetDetailsScreen extends ConsumerWidget {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Failed to invite: $e'),
+                        content: Text(l10n.budgetInviteFailed(e.toString())),
                       ),
                     );
                   }
                 }
               },
-              child: const Text('Invite'),
+              child: Text(l10n.commonAdd), 
             ),
           ],
         ),
@@ -1073,18 +1248,18 @@ class BudgetDetailsScreen extends ConsumerWidget {
     WidgetRef ref,
     Budget budget,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete Budget'),
+        title: Text(l10n.budgetDeleteConfirmTitle),
         content: Text(
-          'Are you sure you want to delete "${budget.title}"?\n\n'
-          'This will also delete all expenses and categories in this budget.',
+          '${l10n.categoryDeleteConfirm(budget.title)}\n\nThis will also delete all expenses and categories in this budget.', // Leave this english for now or add key
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           TextButton(
             onPressed: () async {
@@ -1113,11 +1288,11 @@ class BudgetDetailsScreen extends ConsumerWidget {
               } catch (e) {
                 debugPrint('[BudgetDetails] ⚠️ Error during deletion: $e');
                 scaffoldMessenger.showSnackBar(
-                  SnackBar(content: Text('Failed to delete budget: $e')),
+                  SnackBar(content: Text(l10n.budgetDeleteFailed(e.toString()))),
                 );
               }
             },
-            child: const Text('DELETE'),
+            child: Text(l10n.budgetDeleteShort.toUpperCase()),
           ),
         ],
       ),
@@ -1129,15 +1304,16 @@ class BudgetDetailsScreen extends ConsumerWidget {
     WidgetRef ref,
     Expense expense,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete Expense'),
-        content: Text('Delete "${expense.title}"?'),
+        title: Text(l10n.expenseDeleteConfirmTitle),
+        content: Text(l10n.expenseDeleteConfirmMessage(expense.title)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           TextButton(
             onPressed: () async {
@@ -1157,7 +1333,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
               }
             },
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Delete'),
+            child: Text(l10n.budgetDeleteShort),
           ),
         ],
       ),
@@ -1195,12 +1371,16 @@ class _HeaderMetric extends StatelessWidget {
           ),
           textAlign: textAlign,
         ),
-        Text(
-          value,
-          style: AppTypography.moneyMedium.copyWith(
-            color: Theme.of(context).colorScheme.onPrimary,
+
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value,
+            style: AppTypography.moneyMedium.copyWith(
+              color: Theme.of(context).colorScheme.onPrimary,
+            ),
+            textAlign: textAlign,
           ),
-          textAlign: textAlign,
         ),
       ],
     );
@@ -1267,25 +1447,31 @@ class _StickyMiniSummaryDelegate extends SliverPersistentHeaderDelegate {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildMiniStat(
-            context,
-            l10n.budgetsSpent,
-            _formatCurrency(spent),
-            AppColors.danger,
+          Expanded(
+            child: _buildMiniStat(
+              context,
+              l10n.budgetsSpent,
+              _formatCurrency(context, spent),
+              AppColors.danger,
+            ),
           ),
           _divider(context),
-          _buildMiniStat(
-            context,
-            l10n.budgetsRemaining,
-            _formatCurrency(remaining),
-            theme.colorScheme.primary,
+          Expanded(
+            child: _buildMiniStat(
+              context,
+              l10n.budgetsRemaining,
+              _formatCurrency(context, remaining),
+              theme.colorScheme.primary,
+            ),
           ),
           _divider(context),
-          _buildMiniStat(
-            context,
-            'Daily',
-            _formatCurrency(dailyBudget),
-            theme.colorScheme.primary,
+          Expanded(
+            child: _buildMiniStat(
+              context,
+              'Daily',
+              _formatCurrency(context, dailyBudget),
+              theme.colorScheme.primary,
+            ),
           ),
         ],
       ),
@@ -1307,13 +1493,18 @@ class _StickyMiniSummaryDelegate extends SliverPersistentHeaderDelegate {
             color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             fontSize: 10,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: 2),
-        Text(
-          value,
-          style: AppTypography.labelMedium.copyWith(
-            color: color,
-            fontWeight: FontWeight.w700,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value,
+            style: AppTypography.labelMedium.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ],
@@ -1328,10 +1519,10 @@ class _StickyMiniSummaryDelegate extends SliverPersistentHeaderDelegate {
     );
   }
 
-  String _formatCurrency(int amountInCents) {
+  String _formatCurrency(BuildContext context, int amountInCents) {
     final amount = amountInCents / 100;
     final format = NumberFormat.simpleCurrency(
-      locale: l10n.localeName,
+      locale: AppLocalizations.of(context)!.localeName,
       name: currency,
       decimalDigits: 2,
     );

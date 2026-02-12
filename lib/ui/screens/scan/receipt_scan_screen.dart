@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:cashpilot/l10n/app_localizations.dart';
 
 import '../../../core/constants/app_routes.dart';
@@ -62,7 +63,7 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       child: Scaffold(
-        backgroundColor: isDark ? const Color(0xFF000000) : const Color(0xFFF2F2F7),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: SafeArea(
           child: _scanResult != null
               ? _buildResultView()
@@ -103,7 +104,7 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
 
                 // Title
                 Text(
-                  'Scan Receipt',
+                  l10n.scanTitle,
                   style: AppTypography.headlineMedium.copyWith(
                     fontWeight: FontWeight.w700,
                     letterSpacing: -0.5,
@@ -111,10 +112,10 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Automatically extract expense details\nfrom your receipts using AI',
+                  l10n.scanSubtitle,
                   textAlign: TextAlign.center,
                   style: AppTypography.bodyLarge.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    color: theme.colorScheme.onSurface.withOpacity(0.6),
                     height: 1.4,
                   ),
                 ),
@@ -124,7 +125,7 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
                 // Premium glass-style action buttons
                 _buildAppleActionButton(
                   icon: Icons.camera_alt_rounded,
-                  title: 'Camera',
+                  title: l10n.scanTakePhoto,
                   subtitle: 'Take a photo of your receipt',
                   onTap: _isScanning ? null : _scanFromCamera,
                   isPrimary: true,
@@ -135,8 +136,8 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
 
                 _buildAppleActionButton(
                   icon: Icons.photo_library_rounded,
-                  title: 'Photo Library',
-                  subtitle: 'Choose an existing photo',
+                  title: l10n.scanGallery,
+                  subtitle: 'Choose from your photo library',
                   onTap: _isScanning ? null : _scanFromGallery,
                   isPrimary: false,
                   isDark: isDark,
@@ -175,13 +176,13 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
       decoration: BoxDecoration(
         color: isDark
-            ? Colors.black.withValues(alpha: 0.5)
-            : Colors.white.withValues(alpha: 0.8),
+            ? Colors.black.withOpacity(0.5)
+            : Colors.white.withOpacity(0.8),
         border: Border(
           bottom: BorderSide(
             color: isDark
-                ? Colors.white.withValues(alpha: 0.1)
-                : Colors.black.withValues(alpha: 0.1),
+                ? Colors.white.withOpacity(0.1)
+                : Colors.black.withOpacity(0.1),
           ),
         ),
       ),
@@ -195,8 +196,8 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: isDark
-                    ? Colors.white.withValues(alpha: 0.1)
-                    : Colors.black.withValues(alpha: 0.05),
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.black.withOpacity(0.05),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Icon(
@@ -232,8 +233,8 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
           decoration: BoxDecoration(
             gradient: RadialGradient(
               colors: [
-                theme.primaryColor.withValues(alpha: 0.15 + (_pulseController.value * 0.1)),
-                theme.primaryColor.withValues(alpha: 0.05),
+                theme.primaryColor.withOpacity(0.15 + (_pulseController.value * 0.1)),
+                theme.primaryColor.withOpacity(0.05),
                 Colors.transparent,
               ],
               stops: const [0.3, 0.7, 1.0],
@@ -250,13 +251,13 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
                   end: Alignment.bottomRight,
                   colors: [
                     theme.primaryColor,
-                    theme.primaryColor.withValues(alpha: 0.8),
+                    theme.primaryColor.withOpacity(0.8),
                   ],
                 ),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: theme.primaryColor.withValues(alpha: 0.4),
+                    color: theme.primaryColor.withOpacity(0.4),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -293,27 +294,27 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
           color: isPrimary
               ? theme.primaryColor
               : isDark
-                  ? Colors.white.withValues(alpha: 0.08)
+                  ? Colors.white.withOpacity(0.08)
                   : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: isPrimary
               ? null
               : Border.all(
                   color: isDark
-                      ? Colors.white.withValues(alpha: 0.1)
-                      : Colors.black.withValues(alpha: 0.08),
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.black.withOpacity(0.08),
                 ),
           boxShadow: isPrimary
               ? [
                   BoxShadow(
-                    color: theme.primaryColor.withValues(alpha: 0.3),
+                    color: theme.primaryColor.withOpacity(0.3),
                     blurRadius: 16,
                     offset: const Offset(0, 6),
                   ),
                 ]
               : [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: Colors.black.withOpacity(0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -327,8 +328,8 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
               height: 52,
               decoration: BoxDecoration(
                 color: isPrimary
-                    ? Colors.white.withValues(alpha: 0.2)
-                    : theme.primaryColor.withValues(alpha: 0.1),
+                    ? Colors.white.withOpacity(0.2)
+                    : theme.primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
@@ -356,8 +357,8 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
                     subtitle,
                     style: AppTypography.bodySmall.copyWith(
                       color: isPrimary
-                          ? Colors.white.withValues(alpha: 0.8)
-                          : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          ? Colors.white.withOpacity(0.8)
+                          : theme.colorScheme.onSurface.withOpacity(0.6),
                     ),
                   ),
                 ],
@@ -368,8 +369,8 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
             Icon(
               Icons.chevron_right_rounded,
               color: isPrimary
-                  ? Colors.white.withValues(alpha: 0.8)
-                  : theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                  ? Colors.white.withOpacity(0.8)
+                  : theme.colorScheme.onSurface.withOpacity(0.3),
             ),
           ],
         ),
@@ -378,6 +379,7 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
   }
 
   Widget _buildLoadingIndicator() {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
         SizedBox(
@@ -390,9 +392,9 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
         ),
         const SizedBox(height: 16),
         Text(
-          'Analyzing receipt...',
+          l10n.scanScanning,
           style: AppTypography.bodyMedium.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
           ),
         ),
       ],
@@ -400,13 +402,14 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
   }
 
   Widget _buildAppleErrorCard() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.danger.withValues(alpha: 0.1),
+        color: AppColors.danger.withOpacity(0.1),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.danger.withValues(alpha: 0.3),
+          color: AppColors.danger.withOpacity(0.3),
         ),
       ),
       child: Row(
@@ -414,7 +417,7 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.danger.withValues(alpha: 0.15),
+              color: AppColors.danger.withOpacity(0.15),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -446,12 +449,13 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
   }
 
   Widget _buildTipsSection(bool isDark) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.black.withValues(alpha: 0.03),
+            ? Colors.white.withOpacity(0.05)
+            : Colors.black.withOpacity(0.03),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -466,7 +470,7 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
               ),
               const SizedBox(width: 8),
               Text(
-                'Tips for best results',
+                l10n.scanTipsTitle,
                 style: AppTypography.titleSmall.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -474,10 +478,10 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
             ],
           ),
           const SizedBox(height: 16),
-          _buildTipItem('Ensure good lighting'),
-          _buildTipItem('Keep the receipt flat'),
-          _buildTipItem('Capture the entire receipt'),
-          _buildTipItem('Avoid shadows and glare'),
+          _buildTipItem(l10n.scanTipLighting),
+          _buildTipItem(l10n.scanTipSteady),
+          _buildTipItem(l10n.scanTipEntire),
+          _buildTipItem(l10n.scanTipShadows),
         ],
       ),
     );
@@ -500,7 +504,7 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
           Text(
             text,
             style: AppTypography.bodyMedium.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
             ),
           ),
         ],
@@ -547,7 +551,7 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
                 _buildAppleDataCard(
                   icon: Icons.payments_rounded,
                   label: l10n.scanTotalAmount,
-                  value: _formatCurrency(result.extractedAmount!, currency),
+                  value: _formatCurrency(context, result.extractedAmount!, currency),
                   color: AppColors.success,
                   isDark: isDark,
                   confidence: result.extraction?.total?.confidence,
@@ -596,6 +600,7 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
   }
 
   Widget _buildAppleConfidenceCard(double confidence) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
@@ -606,10 +611,10 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
             : AppColors.success;
     
     final label = confidence < 0.45
-        ? 'Low Confidence'
+        ? 'Low'
         : confidence < 0.75
-            ? 'Medium Confidence'
-            : 'High Confidence';
+            ? 'Medium'
+            : 'High';
 
     final icon = confidence < 0.45
         ? Icons.warning_rounded
@@ -624,13 +629,13 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            color.withValues(alpha: 0.15),
-            color.withValues(alpha: 0.05),
+            color.withOpacity(0.15),
+            color.withOpacity(0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: color.withValues(alpha: 0.3),
+          color: color.withOpacity(0.3),
         ),
       ),
       child: Column(
@@ -642,11 +647,15 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
                 children: [
                   Icon(icon, color: color, size: 24),
                   const SizedBox(width: 12),
-                  Text(
-                    label,
-                    style: AppTypography.titleMedium.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: color,
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.titleMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: color,
+                      ),
                     ),
                   ),
                 ],
@@ -654,7 +663,7 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.2),
+                  color: color.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -672,7 +681,7 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
             borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
               value: confidence,
-              backgroundColor: color.withValues(alpha: 0.2),
+              backgroundColor: color.withOpacity(0.2),
               valueColor: AlwaysStoppedAnimation(color),
               minHeight: 8,
             ),
@@ -703,14 +712,14 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDark
-            ? Colors.white.withValues(alpha: 0.08)
+            ? Colors.white.withOpacity(0.08)
             : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: isDark
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
+                  color: Colors.black.withOpacity(0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -722,7 +731,7 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
+              color: color.withOpacity(0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 24),
@@ -734,10 +743,14 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
               children: [
                 Row(
                   children: [
-                    Text(
-                      label,
-                      style: AppTypography.labelMedium.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                    Flexible(
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.labelMedium.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                        ),
                       ),
                     ),
                     // ML Enhancement: Confidence Badge
@@ -746,7 +759,7 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: confidenceColor!.withValues(alpha: 0.15),
+                          color: confidenceColor!.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -771,10 +784,14 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: AppTypography.titleLarge.copyWith(
-                    fontWeight: FontWeight.w600,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    value,
+                    style: AppTypography.titleLarge.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -786,11 +803,12 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
   }
 
   Widget _buildRawTextExpansion(ReceiptScanResult result, bool isDark) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
         color: isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.black.withValues(alpha: 0.03),
+            ? Colors.white.withOpacity(0.05)
+            : Colors.black.withOpacity(0.03),
         borderRadius: BorderRadius.circular(16),
       ),
       child: ExpansionTile(
@@ -805,7 +823,7 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
             const Icon(Icons.article_outlined, size: 20),
             const SizedBox(width: 12),
             Text(
-              'Raw Text',
+              l10n.scanRawText,
               style: AppTypography.titleSmall.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -819,7 +837,7 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
             margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             decoration: BoxDecoration(
               color: isDark
-                  ? Colors.black.withValues(alpha: 0.3)
+                  ? Colors.black.withOpacity(0.3)
                   : Colors.white,
               borderRadius: BorderRadius.circular(12),
             ),
@@ -837,41 +855,46 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
   }
 
   Widget _buildAppleActionButtons(ReceiptScanResult result) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () => setState(() => _scanResult = null),
-            icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Scan Again'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          SizedBox(
+            width: MediaQuery.textScalerOf(context).scale(120).clamp(120.0, 160.0),
+            child: OutlinedButton.icon(
+              onPressed: () => setState(() => _scanResult = null),
+              icon: const Icon(Icons.refresh_rounded),
+              label: Text(l10n.scanAgain, maxLines: 1, overflow: TextOverflow.ellipsis),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          flex: 2,
-          child: FilledButton.icon(
-            onPressed: result.hasAmount
-                ? () => _createExpenseFromResult(result)
-                : null,
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('Add Expense'),
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: MediaQuery.textScalerOf(context).scale(180).clamp(180.0, 240.0),
+            child: FilledButton.icon(
+              onPressed: result.hasAmount
+                  ? () => _createExpenseFromResult(result)
+                  : null,
+              icon: const Icon(Icons.add_rounded),
+              label: Text(l10n.expensesAddExpense, maxLines: 1, overflow: TextOverflow.ellipsis),
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -889,8 +912,9 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
 
   Future<void> _performScan(bool fromCamera) async {
     // Get current subscription tier
-    final tierAsync = ref.read(currentTierProvider);
-    final tier = tierAsync.value ?? SubscriptionTier.free;
+    final currentTierAsync = ref.watch(currentTierProvider);
+    final currentTier = currentTierAsync.value ?? SubscriptionTier.free;
+    final l10n = AppLocalizations.of(context)!;
 
     setState(() {
       _isScanning = true;
@@ -900,8 +924,8 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
     try {
       final scanner = ref.read(receiptScannerProvider);
       final result = fromCamera
-          ? await scanner.scanFromCamera(tier: tier)
-          : await scanner.scanFromGallery(tier: tier);
+          ? await scanner.scanFromCamera(tier: currentTier)
+          : await scanner.scanFromGallery(tier: currentTier);
 
       if (result != null) {
         // Check if gated (user doesn't have access)
@@ -954,11 +978,11 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
       // Show success confirmation
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Row(
+          content: Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 12),
-              Text('Expense created successfully!'),
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 12),
+              const Text('Expense created successfully!'),
             ],
           ),
           backgroundColor: AppColors.success,
@@ -1046,9 +1070,12 @@ class _ReceiptScanScreenState extends ConsumerState<ReceiptScanScreen>
   // HELPERS
   // ===========================================================================
 
-  String _formatCurrency(int amountInCents, String currency) {
+  String _formatCurrency(BuildContext context, int amountInCents, String currency) {
     final amount = amountInCents / 100;
-    final symbol = currency == 'EUR' ? '€' : currency;
-    return '$symbol${amount.toStringAsFixed(2)}';
+    return NumberFormat.currency(
+      locale: AppLocalizations.of(context)!.localeName,
+      symbol: currency == 'EUR' ? '€' : currency,
+      decimalDigits: 2,
+    ).format(amount);
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:cashpilot/core/providers/sync_providers.dart' show conflictServiceProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cashpilot/data/drift/app_database.dart';
@@ -7,7 +8,7 @@ import 'package:cashpilot/l10n/app_localizations.dart';
 
 /// Screen showing detailed side-by-side comparison of conflicting versions
 class ConflictDetailScreen extends ConsumerWidget {
-  final Conflict conflict;
+  final ConflictData conflict;
 
   const ConflictDetailScreen({super.key, required this.conflict});
 
@@ -48,7 +49,7 @@ class ConflictDetailScreen extends ConsumerWidget {
           // Comparison view
           Expanded(
             child: diffs.isEmpty
-                ? const Center(child: Text('No differences found'))
+                ? Center(child: Text(l10n.syncNoDifferences))
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: diffs.length,
@@ -66,7 +67,7 @@ class ConflictDetailScreen extends ConsumerWidget {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 4,
                   offset: const Offset(0, -2),
                 ),
@@ -88,7 +89,7 @@ class ConflictDetailScreen extends ConsumerWidget {
                           );
                         },
                         icon: const Icon(Icons.phone_android),
-                        label: const Text('Keep Local'),
+                        label: Text(l10n.syncKeepLocal),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
@@ -106,7 +107,7 @@ class ConflictDetailScreen extends ConsumerWidget {
                           );
                         },
                         icon: const Icon(Icons.cloud),
-                        label: const Text('Keep Remote'),
+                        label: Text(l10n.syncKeepRemote),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
@@ -126,7 +127,7 @@ class ConflictDetailScreen extends ConsumerWidget {
                       );
                     },
                     icon: const Icon(Icons.content_copy),
-                    label: const Text('Keep Both (Duplicate)'),
+                    label: Text(l10n.syncKeepBoth),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
@@ -145,20 +146,21 @@ class ConflictDetailScreen extends ConsumerWidget {
     ConflictService service,
     ConflictResolution resolution,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     // Show confirmation
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Resolution'),
+        title: Text(l10n.syncConfirmResolution),
         content: Text(_getConfirmationMessage(resolution)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Confirm'),
+            child: Text(l10n.commonConfirm),
           ),
         ],
       ),
@@ -174,14 +176,14 @@ class ConflictDetailScreen extends ConsumerWidget {
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Conflict resolved successfully')),
+          SnackBar(content: Text(l10n.syncResolvedSuccess)),
         );
         Navigator.pop(context);
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error resolving conflict: $e')),
+          SnackBar(content: Text(l10n.syncErrorResolving(e.toString()))),
         );
       }
     }

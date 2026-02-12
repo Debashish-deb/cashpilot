@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -38,7 +38,7 @@ class CategoryColorSelector extends StatelessWidget {
           selected: selected,
           onTap: () {
             // Platform-correct feedback
-            if (Platform.isIOS) {
+            if (defaultTargetPlatform == TargetPlatform.iOS) {
               HapticFeedback.selectionClick();
             } else {
               HapticFeedback.lightImpact();
@@ -101,7 +101,7 @@ class _ColorDotState extends State<_ColorDot>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isAndroid = Platform.isAndroid;
+    final isAndroid = defaultTargetPlatform == TargetPlatform.android;
 
     final content = ScaleTransition(
       scale: _scale,

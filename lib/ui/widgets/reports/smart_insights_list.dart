@@ -5,7 +5,7 @@ library;
 import 'package:flutter/material.dart';
 import '../../../core/managers/format_manager.dart';
 
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/tokens.g.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -94,8 +94,8 @@ class _InsightRow extends StatelessWidget {
     
     // Background tint based on sentiment
     final backgroundColor = switch (insight.sentiment) {
-      InsightSentiment.positive => AppColors.success.withValues(alpha: 0.08),
-      InsightSentiment.negative => AppColors.danger.withValues(alpha: 0.08),
+      InsightSentiment.positive => AppTokens.semanticSuccess.withValues(alpha: 0.08),
+      InsightSentiment.negative => AppTokens.semanticDanger.withValues(alpha: 0.08),
       InsightSentiment.neutral => theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
     };
 
@@ -168,7 +168,7 @@ class InsightFactory {
       icon: Icons.calendar_today_outlined,
       title: l10n.insightHighestSpendDay,
       value: l10n.insightHighestSpendDayValue(dayName, formatManager.formatCurrency(amount / 100, currencyCode: currency)),
-      color: const Color(0xFFFF9800),
+      color: AppTokens.brandSecondary,
       sentiment: InsightSentiment.neutral,
     );
   }
@@ -182,7 +182,7 @@ class InsightFactory {
       icon: Icons.store_outlined,
       title: l10n.insightMostVisited,
       value: l10n.insightMostVisitedValue(merchantName, count),
-      color: const Color(0xFF2196F3),
+      color: AppTokens.brandPrimary,
       sentiment: InsightSentiment.neutral,
     );
   }
@@ -197,7 +197,7 @@ class InsightFactory {
       icon: isOnTrack ? Icons.check_circle_outline : Icons.warning_outlined,
       title: isOnTrack ? l10n.insightOnTrack : l10n.insightWatchSpending,
       value: l10n.insightSpendingStatus(percentUsed, daysLeft),
-      color: isOnTrack ? AppColors.success : AppColors.danger,
+      color: isOnTrack ? AppTokens.semanticSuccess : AppTokens.semanticDanger,
       sentiment: isOnTrack ? InsightSentiment.positive : InsightSentiment.negative,
     );
   }
@@ -212,7 +212,7 @@ class InsightFactory {
       icon: Icons.savings_outlined,
       title: l10n.insightPotentialSavings,
       value: formatManager.formatCurrency(savingsAmount / 100, currencyCode: currency),
-      color: AppColors.success,
+      color: AppTokens.semanticSuccess,
       sentiment: InsightSentiment.positive,
     );
   }
@@ -227,7 +227,7 @@ class InsightFactory {
       icon: Icons.warning_amber_outlined,
       title: l10n.insightOverBudget,
       value: l10n.insightExceededBy(formatManager.formatCurrency(overBy / 100, currencyCode: currency)),
-      color: AppColors.danger,
+      color: AppTokens.semanticDanger,
       sentiment: InsightSentiment.negative,
     );
   }
@@ -242,7 +242,7 @@ class InsightFactory {
       icon: Icons.trending_flat_outlined,
       title: l10n.insightDailyAverage,
       value: formatManager.formatCurrency(averageAmount / 100, currencyCode: currency),
-      color: const Color(0xFF9C27B0),
+      color: AppTokens.brandAccent,
       sentiment: InsightSentiment.neutral,
     );
   }

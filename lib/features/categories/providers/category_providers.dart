@@ -41,6 +41,12 @@ final groupedCategoriesProvider = FutureProvider<Map<Category, List<Category>>>(
   return grouped;
 });
 
+/// Provider for subcategories filtered by category
+final subCategoriesByCategoryIdProvider = StreamProvider.family<List<SubCategory>, String>((ref, categoryId) {
+  final db = ref.watch(databaseProvider);
+  return (db.select(db.subCategories)..where((t) => t.categoryId.equals(categoryId))).watch();
+});
+
 // =============================================================================
 // CATEGORY SPENDING STATISTICS
 // =============================================================================
@@ -125,3 +131,10 @@ final categorySpendingStatsProvider = FutureProvider<Map<String, CategorySpendin
   
   return stats;
 });
+
+/// Watch all subcategories
+final allSubCategoriesProvider = StreamProvider<List<SubCategory>>((ref) {
+  final db = ref.watch(databaseProvider);
+  return db.watchAllSubCategories();
+});
+

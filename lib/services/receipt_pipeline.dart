@@ -2,9 +2,9 @@
 /// Fixed: Issue - Receipt upload not transactional
 library;
 
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import 'receipt_service.dart';
 
 /// Provider for the transactional receipt pipeline
@@ -95,9 +95,9 @@ class ReceiptPipeline {
   /// Process receipt with atomic guarantee
   /// Either all steps succeed, or all are rolled back
   Future<ReceiptPipelineResult> processReceipt({
-    required File imageFile,
-    required Future<Map<String, dynamic>> Function(File) performOcr,
-    required Future<String> Function(File) uploadImage,
+    required XFile imageFile,
+    required Future<Map<String, dynamic>> Function(XFile) performOcr,
+    required Future<String> Function(XFile) uploadImage,
     required Future<String> Function(Map<String, dynamic>, String) createExpense,
   }) async {
     _state.value = ReceiptPipelineState.scanning;

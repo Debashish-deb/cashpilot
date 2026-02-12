@@ -1,6 +1,5 @@
 import '../use_case.dart';
-import '../../../data/drift/app_database.dart';
-import 'package:drift/drift.dart';
+import '../../repositories/i_expense_repository.dart';
 
 /// Parameters for creating an expense
 class CreateExpenseParams {
@@ -10,10 +9,19 @@ class CreateExpenseParams {
   final int amount;
   final DateTime date;
   final String? categoryId;
+  final String? subCategoryId;
   final String? accountId;
   final String enteredBy;
   final String? tags;
   final String? ocrText;
+  final String currency;
+  final bool skipDuplicateCheck;
+  final String? notes;
+  final String? paymentMethod;
+  final String? receiptUrl;
+  final String? barcodeValue;
+  final String? merchantName;
+  final String? locationName;
 
   CreateExpenseParams({
     required this.budgetId,
@@ -22,73 +30,54 @@ class CreateExpenseParams {
     required this.amount,
     required this.date,
     this.categoryId,
+    this.subCategoryId,
     this.accountId,
     required this.enteredBy,
+    this.currency = 'EUR',
     this.tags,
     this.ocrText,
+    this.skipDuplicateCheck = false,
+    this.notes,
+    this.paymentMethod,
+    this.receiptUrl,
+    this.barcodeValue,
+    this.merchantName,
+    this.locationName,
   });
 }
 
 /// Use case for creating an expense
 /// 
 /// Encapsulates business logic:
-/// - Generates UUID
-/// - Sets sync state to 'dirty'
-/// - Validates budget exists
-/// - Inserts into database
+/// - Validation (delegated to repo for now in some parts, or pre-validation here)
+/// - Calling repository to persist
 class CreateExpenseUseCase extends UseCase<String, CreateExpenseParams> {
-  final AppDatabase _db;
+  final IExpenseRepository _repository;
 
-  CreateExpenseUseCase(this._db);
+  CreateExpenseUseCase(this._repository);
 
   @override
-  Future<String> execute(CreateExpenseParams params) async {
-    // Business Logic: Generate consistent ID
-    final expenseId = _generateExpenseId();
-
-    // Business Logic: Validate budget exists
-    final budget = await (_db.select(_db.budgets)
-      ..where((b) => b.id.equals(params.budgetId))
-    ).getSingleOrNull();
-
-    if (budget == null) {
-      throw Exception('Budget not found: ${params.budgetId}');
-    }
-
-    // Insert expense with 'dirty' sync state
-    await _db.into(_db.expenses).insert(
-      ExpensesCompanion.insert(
-        id: expenseId,
-        budgetId: params.budgetId,
-        semiBudgetId: Value(params.semiBudgetId),
-        title: params.title,
-        amount: params.amount,
-        currency: Value(budget.currency), // Inherit from budget
-        date: params.date,
-        categoryId: Value(params.categoryId),
-        accountId: Value(params.accountId),
-        enteredBy: params.enteredBy,
-        tags: Value(params.tags),
-        ocrText: Value(params.ocrText),
-        syncState: const Value('dirty'), // Will be synced
-        revision: const Value(1),
-      ),
-    );
-
-    return expenseId;
-  }
-
-  String _generateExpenseId() {
-    return 'exp_${DateTime.now().millisecondsSinceEpoch}_${_randomString(6)}';
-  }
-
-  String _randomString(int length) {
-    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    return String.fromCharCodes(
-      Iterable.generate(
-        length,
-        (_) => chars.codeUnitAt((DateTime.now().microsecond * 13) % chars.length),
-      ),
+  Future<String> execute(CreateExpenseParams params) {
+    return _repository.createExpense(
+      budgetId: params.budgetId,
+      semiBudgetId: params.semiBudgetId,
+      title: params.title,
+      amount: params.amount,
+      currency: params.currency,
+      date: params.date,
+      categoryId: params.categoryId,
+      subCategoryId: params.subCategoryId,
+      accountId: params.accountId,
+      enteredBy: params.enteredBy,
+      tags: params.tags,
+      ocrText: params.ocrText,
+      skipDuplicateCheck: params.skipDuplicateCheck,
+      notes: params.notes,
+      paymentMethod: params.paymentMethod ?? 'cash',
+      receiptUrl: params.receiptUrl,
+      barcodeValue: params.barcodeValue,
+      merchantName: params.merchantName,
+      locationName: params.locationName,
     );
   }
 }

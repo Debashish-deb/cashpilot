@@ -270,7 +270,7 @@ class AppTypography {
 
       // Body
       bodyLarge: bodyLarge.copyWith(color: textColor),
-      bodyMedium: bodyMedium.copyWith(color: secondaryTextColor),
+      bodyMedium: bodyMedium.copyWith(color: textColor),
       bodySmall: bodySmall.copyWith(color: secondaryTextColor),
     );
   }

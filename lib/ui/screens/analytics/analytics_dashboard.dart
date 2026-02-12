@@ -3,6 +3,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:cashpilot/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../features/analytics/providers/analytics_providers.dart' hide healthScoreProvider;
@@ -16,7 +17,6 @@ import '../../../features/subscription/providers/subscription_providers.dart';
 import '../../../features/analytics/models/insight_card.dart'; 
 import '../../widgets/analytics/insight_card_widget.dart';
 import 'package:intl/intl.dart';
-import 'package:cashpilot/l10n/app_localizations.dart';
 import '../../../core/providers/app_providers.dart';
 
 class AnalyticsDashboard extends ConsumerStatefulWidget {
@@ -73,7 +73,7 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Budget Analytics'),
+        title: Text(l10n.analyticsTitle),
         centerTitle: true,
         actions: [
           IconButton(
@@ -83,217 +83,223 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          // Invalidate all analytics providers to force refresh
-          ref.invalidate(computed.healthScoreProvider);
-          ref.invalidate(computed.budgetStatisticsProvider);
-          ref.invalidate(computed.categoryBreakdownProvider);
-          
-          // Wait for refresh to complete
-          await Future.wait([
-            ref.refresh(computed.healthScoreProvider(widget.budgetId).future),
-            ref.refresh(computed.budgetStatisticsProvider(widget.budgetId).future),
-            ref.refresh(computed.categoryBreakdownProvider(widget.budgetId).future),
-          ]);
-        },
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // Budget Health Score - Real data from provider
-            Consumer(
-              builder: (context, ref, child) {
-                final healthData = ref.watch(computed.healthScoreProvider(widget.budgetId));
-                return healthData.when(
-                  data: (data) => _EnhancedHealthScoreCard(
-                    score: data.score,
-                    level: data.level,
-                    trend: data.trend,
-                    componentScores: data.componentScores,
-                  ),
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => _ErrorCard('Failed to load health score: $e'),
-                );
-              },
-            ),
-
-            const SizedBox(height: 20),
-
-            // Quick Stats Row - Real data from provider
-            Consumer(
-              builder: (context, ref, child) {
-                final stats = ref.watch(computed.budgetStatisticsProvider(widget.budgetId));
-                return stats.when(
-                  data: (data) => _QuickStatsRow(
-                    totalSpent: data.totalSpent,
-                    totalBudget: data.totalBudget,
-                    daysRemaining: data.daysRemaining,
-                    dailyAverage: data.dailyAverage,
-                    currency: currency,
-                    l10n: l10n,
-                  ),
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => _ErrorCard('Failed to load statistics: $e'),
-                );
-              },
-            ),
-
-            const SizedBox(height: 24),
-
-            // Insights Section
-            if (insightCards.isNotEmpty) ...[
-              _SectionHeader(
-                title: l10n.analyticsSectionInsights,
-                subtitle: '${insightCards.length} ${l10n.analyticsInsights}',
-                icon: Icons.lightbulb_outline,
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            // Invalidate all analytics providers to force refresh
+            ref.invalidate(computed.healthScoreProvider);
+            ref.invalidate(computed.budgetStatisticsProvider);
+            ref.invalidate(computed.categoryBreakdownProvider);
+            
+            // Wait for refresh to complete
+            await Future.wait([
+              ref.refresh(computed.healthScoreProvider(widget.budgetId).future),
+              ref.refresh(computed.budgetStatisticsProvider(widget.budgetId).future),
+              ref.refresh(computed.categoryBreakdownProvider(widget.budgetId).future),
+            ]);
+          },
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              // Budget Health Score - Real data from provider
+              Consumer(
+                builder: (context, ref, child) {
+                  final healthData = ref.watch(computed.healthScoreProvider(widget.budgetId));
+                  return healthData.when(
+                    data: (data) => _EnhancedHealthScoreCard(
+                      score: data.score,
+                      level: data.level,
+                      trend: data.trend,
+                      componentScores: data.componentScores,
+                    ),
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (e, _) => _ErrorCard('Failed to load health score: $e'),
+                  );
+                },
               ),
-              const SizedBox(height: 12),
-              ...insightCards.map((insight) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: InsightCardWidget(
-                  title: insight.title,
-                  message: insight.message,
-                  icon: _getCategoryIcon(insight.category),
-                  color: _getSeverityColor(insight.severity),
-                  actionLabel: insight.actionLabel,
-                  onDismiss: () {
-                    final current = ref.read(currentInsightCardsProvider);
-                    ref.read(currentInsightCardsProvider.notifier).state =
-                        current.where((i) => i.id != insight.id).toList();
-                  },
-                  onAction: () {
-                    if (insight.actionRoute != null) {
-                      context.push(insight.actionRoute!);
-                    }
-                  },
-                ),
-              )),
+    
+              const SizedBox(height: 20),
+    
+              // Quick Stats Row - Real data from provider
+              Consumer(
+                builder: (context, ref, child) {
+                  final stats = ref.watch(computed.budgetStatisticsProvider(widget.budgetId));
+                  return stats.when(
+                    data: (data) => _QuickStatsRow(
+                      totalSpent: data.totalSpent,
+                      totalBudget: data.totalBudget,
+                      daysRemaining: data.daysRemaining,
+                      dailyAverage: data.dailyAverage,
+                      currency: currency,
+                      l10n: l10n,
+                    ),
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (e, _) => _ErrorCard('Failed to load statistics: $e'),
+                  );
+                },
+              ),
+    
               const SizedBox(height: 24),
-            ],
-
-            // Spending Breakdown - Real data from provider
-            Consumer(
-              builder: (context, ref, child) {
-                final breakdown = ref.watch(computed.categoryBreakdownProvider(widget.budgetId));
-                return breakdown.when(
-                  data: (categories) => Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _SectionHeader(
-                        title: l10n.analyticsSectionBreakdown,
-                        subtitle: l10n.analyticsSectionBreakdownSub,
-                        icon: Icons.pie_chart_outline,
-                      ),
-                      const SizedBox(height: 12),
-                      if (categories.isEmpty)
-                        _EmptyState('No expenses yet')
-                      else
-                        _CategoryBreakdownCardReal(
-                          categories: categories,
-                          currency: currency,
-                        ),
-                    ],
+    
+              // Insights Section
+              if (insightCards.isNotEmpty) ...[
+                _SectionHeader(
+                  title: l10n.analyticsSectionInsights,
+                  subtitle: '${insightCards.length} ${l10n.analyticsInsights}',
+                  icon: Icons.lightbulb_outline,
+                ),
+                const SizedBox(height: 12),
+                ...insightCards.map((insight) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: InsightCardWidget(
+                    title: insight.title,
+                    message: insight.message,
+                    icon: _getCategoryIcon(insight.category),
+                    color: _getSeverityColor(insight.severity),
+                    actionLabel: insight.actionLabel,
+                    onDismiss: () {
+                      final current = ref.read(currentInsightCardsProvider);
+                      ref.read(currentInsightCardsProvider.notifier).state =
+                          current.where((i) => i.id != insight.id).toList();
+                    },
+                    onAction: () {
+                      if (insight.actionRoute != null) {
+                        context.push(insight.actionRoute!);
+                      }
+                    },
                   ),
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => _ErrorCard('Failed to load categories: $e'),
-                );
-              },
-            ),
-
-            const SizedBox(height: 24),
-
-            // Burn Rate Analysis - Real Data
-            Consumer(
-              builder: (context, ref, child) {
-                 final statsAsync = ref.watch(computed.budgetStatisticsProvider(widget.budgetId));
-                 return statsAsync.when(
-                   data: (stats) => _BurnRateCard(
-                     dailyAverage: stats.dailyAverage,
-                     daysRemaining: stats.daysRemaining,
-                     projected: stats.projectedTotal,
-                     budget: stats.totalBudget,
-                     willStayUnder: stats.onTrack,
-                     currency: currency,
-                     l10n: l10n,
-                   ),
-                   loading: () => const Center(child: CircularProgressIndicator()),
-                   error: (_, __) => const SizedBox.shrink(),
-                 );
-              },
-            ),
-
-            const SizedBox(height: 24),
-
-            // Time-based patterns - Real Data
-            Consumer(
-              builder: (context, ref, child) {
-                final snapshotAsync = ref.watch(honest.analyticsSnapshotProvider(widget.budgetId));
-                return snapshotAsync.when(
-                  data: (snapshot) {
-                    // Convert Map<int, double> to Map<String, double>
-                    final weekdayMap = <String, double>{};
-                    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-                    snapshot.weekdayBaseline.forEach((dayIndex, amount) {
-                       if (dayIndex >= 1 && dayIndex <= 7) {
-                         weekdayMap[days[dayIndex - 1]] = amount;
-                       }
-                    });
-                    
-                    if (weekdayMap.isEmpty) return const SizedBox.shrink();
-
-                    return Column(
+                )),
+                const SizedBox(height: 24),
+              ],
+    
+              // Spending Breakdown - Real data from provider
+              Consumer(
+                builder: (context, ref, child) {
+                  final breakdown = ref.watch(computed.categoryBreakdownProvider(widget.budgetId));
+                  return breakdown.when(
+                    data: (categories) => Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _SectionHeader(
-                          title: l10n.analyticsSectionPatterns,
-                          subtitle: l10n.analyticsSectionPatternsSub,
-                          icon: Icons.calendar_today_outlined,
+                          title: l10n.analyticsSectionBreakdown,
+                          subtitle: l10n.analyticsSectionBreakdownSub,
+                          icon: Icons.pie_chart_outline,
                         ),
                         const SizedBox(height: 12),
-                        _SpendingPatternsCard(
-                          dayOfWeekData: weekdayMap,
-                          currency: currency,
-                          l10n: l10n,
-                        ),
+                        if (categories.isEmpty)
+                          _EmptyState('No expenses yet')
+                        else
+                          _CategoryBreakdownCardReal(
+                            categories: categories,
+                            currency: currency,
+                          ),
                       ],
-                    );
-                  },
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (_, __) => const SizedBox.shrink(),
-                );
-              },
-            ),
-
-            const SizedBox(height: 24),
-
-            // Comparison - Real Data (using HealthScore trend for now as proxy)
-            Consumer(
-              builder: (context, ref, child) {
-                 final healthAsync = ref.watch(computed.healthScoreProvider(widget.budgetId));
-                 return healthAsync.when(
-                   data: (health) => _ComparisonCard(
-                     thisMonth: 0, // TODO: Fetch from snapshot if needed
-                     lastMonth: 0, 
-                     changePercent: health.trend.toDouble(),
-                     currency: currency,
-                   ),
-                   loading: () => const SizedBox.shrink(),
-                   error: (_, __) => const SizedBox.shrink(),
-                 );
-              },
-            ),
-          ],
+                    ),
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (e, _) => _ErrorCard('Failed to load categories: $e'),
+                  );
+                },
+              ),
+    
+              const SizedBox(height: 24),
+    
+              // Burn Rate Analysis - Real Data
+              Consumer(
+                builder: (context, ref, child) {
+                   final statsAsync = ref.watch(computed.budgetStatisticsProvider(widget.budgetId));
+                   return statsAsync.when(
+                     data: (stats) => _BurnRateCard(
+                       dailyAverage: stats.dailyAverage,
+                       daysRemaining: stats.daysRemaining,
+                       projected: stats.projectedTotal,
+                       budget: stats.totalBudget,
+                       willStayUnder: stats.onTrack,
+                       currency: currency,
+                       l10n: l10n,
+                     ),
+                     loading: () => const Center(child: CircularProgressIndicator()),
+                     error: (_, __) => const SizedBox.shrink(),
+                   );
+                },
+              ),
+    
+              const SizedBox(height: 24),
+    
+              // Time-based patterns - Real Data
+              Consumer(
+                builder: (context, ref, child) {
+                  final snapshotAsync = ref.watch(honest.analyticsSnapshotProvider(widget.budgetId));
+                  return snapshotAsync.when(
+                    data: (snapshot) {
+                      // Convert Map<int, double> to Map<String, double>
+                      final weekdayMap = <String, double>{};
+                      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                      snapshot.weekdayBaseline.forEach((dayIndex, amount) {
+                         if (dayIndex >= 1 && dayIndex <= 7) {
+                           weekdayMap[days[dayIndex - 1]] = amount;
+                         }
+                      });
+                      
+                      if (weekdayMap.isEmpty) return const SizedBox.shrink();
+    
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _SectionHeader(
+                            title: l10n.analyticsSectionPatterns,
+                            subtitle: l10n.analyticsSectionPatternsSub,
+                            icon: Icons.calendar_today_outlined,
+                          ),
+                          const SizedBox(height: 12),
+                          _SpendingPatternsCard(
+                            dayOfWeekData: weekdayMap,
+                            currency: currency,
+                            l10n: l10n,
+                          ),
+                        ],
+                      );
+                    },
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (_, __) => const SizedBox.shrink(),
+                  );
+                },
+              ),
+    
+              const SizedBox(height: 24),
+    
+              // Comparison - Real Data (using HealthScore trend for now as proxy)
+              Consumer(
+                builder: (context, ref, child) {
+                   final healthAsync = ref.watch(computed.healthScoreProvider(widget.budgetId));
+                   return healthAsync.when(
+                     data: (health) => _ComparisonCard(
+                       thisMonth: 0, // TODO: Fetch from snapshot if needed
+                       lastMonth: 0, 
+                       changePercent: health.trend.toDouble(),
+                       currency: currency,
+                     ),
+                     loading: () => const SizedBox.shrink(),
+                     error: (_, __) => const SizedBox.shrink(),
+                   );
+                },
+              ),
+              
+              // Bottom spacer for safe area
+              const SizedBox(height: 32),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildLockedView(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Analytics'),
+        title: Text(l10n.analyticsTitle),
       ),
       body: Center(
         child: Padding(
@@ -306,8 +312,8 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      AppColors.gold.withOpacity(0.2),
-                      AppColors.gold.withOpacity(0.1),
+                      AppColors.gold.withValues(alpha: 0.2),
+                      AppColors.gold.withValues(alpha: 0.1),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -364,7 +370,7 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
               Text(
                 AppLocalizations.of(context)!.analyticsPricing,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ],
@@ -393,10 +399,11 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
   }
 
   void _showHelpDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Understanding Your Analytics'),
+        title: Text(l10n.analyticsHelpTitle),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -420,7 +427,7 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Got it'),
+            child: Text(l10n.commonGotIt),
           ),
         ],
       ),
@@ -1069,9 +1076,9 @@ class _ErrorCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.danger.withOpacity(0.1),
+        color: AppColors.danger.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.danger.withOpacity(0.3)),
+        border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -1135,7 +1142,7 @@ class _CategoryBreakdownCardReal extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

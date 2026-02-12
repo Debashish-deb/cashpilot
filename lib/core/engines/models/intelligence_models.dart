@@ -133,6 +133,47 @@ class BudgetIntelligence {
       cacheKey: cacheKey ?? this.cacheKey,
     );
   }
+  // ------------------------------------------------------------
+  // SERIALIZATION
+  // ------------------------------------------------------------
+
+  Map<String, dynamic> toJson() => {
+        'budget_id': budgetId,
+        'health': health.index,
+        'trend_confidence': trendConfidence.index,
+        'total_limit': totalLimit,
+        'total_spent': totalSpent,
+        'days_passed': daysPassed,
+        'days_total': daysTotal,
+        'days_left': daysLeft,
+        'spend_rate': spendRate,
+        'forecast_total': forecastTotal,
+        'forecast_delta': forecastDelta,
+        'is_anomalous': isAnomalous,
+        'anomaly_score': anomalyScore,
+        'computed_at': computedAt.toIso8601String(),
+        'cache_key': cacheKey,
+      };
+
+  factory BudgetIntelligence.fromJson(Map<String, dynamic> json) {
+    return BudgetIntelligence(
+      budgetId: json['budget_id'] as String,
+      health: BudgetHealthStatus.values[json['health'] as int],
+      trendConfidence: TrendConfidence.values[json['trend_confidence'] as int],
+      totalLimit: json['total_limit'] as int,
+      totalSpent: json['total_spent'] as int,
+      daysPassed: json['days_passed'] as int,
+      daysTotal: json['days_total'] as int,
+      daysLeft: json['days_left'] as int,
+      spendRate: (json['spend_rate'] as num).toDouble(),
+      forecastTotal: (json['forecast_total'] as num).toDouble(),
+      forecastDelta: json['forecast_delta'] as int,
+      isAnomalous: json['is_anomalous'] as bool,
+      anomalyScore: (json['anomaly_score'] as num).toDouble(),
+      computedAt: DateTime.parse(json['computed_at'] as String),
+      cacheKey: json['cache_key'] as String?,
+    );
+  }
 }
 
 // ============================================================
@@ -147,6 +188,7 @@ enum PatternType {
   recurringMerchant,
   bulkBuyOpportunity,
   subscriptionWaste,
+  stressSpending,
 }
 
 /// Discovered spending pattern
@@ -176,7 +218,10 @@ class SpendingPattern {
     this.weekday,
     this.hourOfDay,
     this.categoryId,
+    this.notes,
   });
+
+  final String? notes;
 
   // ------------------------------------------------------------
   // SEMANTIC HELPERS
@@ -192,6 +237,33 @@ class SpendingPattern {
   bool get isSubscriptionRelated =>
       type == PatternType.subscription ||
       type == PatternType.subscriptionWaste;
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'type': type.index,
+        'merchant': merchant,
+        'frequency_count': frequencyCount,
+        'average_amount': averageAmount,
+        'confidence': confidence,
+        'weekday': weekday,
+        'hour_of_day': hourOfDay,
+        'category_id': categoryId,
+        'notes': notes,
+      };
+
+  factory SpendingPattern.fromJson(Map<String, dynamic> json) {
+    return SpendingPattern(
+      id: json['id'] as String,
+      type: PatternType.values[json['type'] as int],
+      merchant: json['merchant'] as String?,
+      frequencyCount: json['frequency_count'] as int,
+      averageAmount: json['average_amount'] as int,
+      confidence: (json['confidence'] as num).toDouble(),
+      weekday: json['weekday'] as int?,
+      hourOfDay: json['hour_of_day'] as int?,
+      categoryId: json['category_id'] as String?,
+      notes: json['notes'] as String?,
+    );
+  }
 }
 
 /// Comprehensive spending intelligence
@@ -222,6 +294,28 @@ class SpendingIntelligence {
 
   List<SpendingPattern> get strongPatterns =>
       patterns.where((p) => p.isWorthSurfacing).toList();
+
+  Map<String, dynamic> toJson() => {
+        'user_id': userId,
+        'average_daily': averageDaily,
+        'patterns': patterns.map((p) => p.toJson()).toList(),
+        'top_categories': topCategories,
+        'peak_days': peakDays,
+        'computed_at': computedAt.toIso8601String(),
+      };
+
+  factory SpendingIntelligence.fromJson(Map<String, dynamic> json) {
+    return SpendingIntelligence(
+      userId: json['user_id'] as String,
+      averageDaily: (json['average_daily'] as num).toDouble(),
+      patterns: (json['patterns'] as List)
+          .map((e) => SpendingPattern.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      topCategories: Map<String, int>.from(json['top_categories'] as Map),
+      peakDays: List<int>.from(json['peak_days'] as List),
+      computedAt: DateTime.parse(json['computed_at'] as String),
+    );
+  }
 }
 
 // ============================================================

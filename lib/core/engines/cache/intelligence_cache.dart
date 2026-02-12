@@ -3,7 +3,12 @@
 library;
 
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+typedef Serializer<T> = Map<String, dynamic> Function(T value);
+typedef Deserializer<T> = T Function(Map<String, dynamic> json);
 
 /// Cache entry with expiry
 class _CacheEntry<T> {
@@ -43,6 +48,8 @@ class IntelligenceCache {
   int _hits = 0;
   int _misses = 0;
   int _evictions = 0;
+  
+  SharedPreferences? _prefs;
 
   /// Default TTL
   static const defaultTTL = Duration(minutes: 5);
@@ -55,6 +62,13 @@ class IntelligenceCache {
   DateTime _now() => DateTime.now();
 
   /// Check if cache has valid entry
+
+
+  Future<void> initialize({SharedPreferences? prefs}) async {
+    _prefs = prefs ?? await SharedPreferences.getInstance();
+  }
+
+  /// Check if cache has valid entry (memory only)
   bool has(String key) {
     final entry = _store[key];
     if (entry == null) return false;
@@ -69,36 +83,88 @@ class IntelligenceCache {
   }
 
   /// Get value from cache
-  T? get<T>(String key) {
+  /// Get value from cache (memory first, then disk)
+  Future<T?> get<T>(String key, {
+    Deserializer<T>? deserializer,
+    String? modelVersion,
+  }) async {
+    // 1. Check Memory (ignore modelVersion for memory? Or store it in entry?)
+    // For simplicity, memory cache is assumed valid for current session.
+    // Ideally _CacheEntry should store modelVersion too.
     final entry = _store[key];
-    if (entry == null || entry.isExpired) {
-      if (entry != null) {
-        _store.remove(key);
-        _evictions++;
+    if (entry != null && !entry.isExpired) {
+      if (entry.valueType != T) {
+        if (kDebugMode) {
+          debugPrint(
+            '[IntelligenceCache] Type mismatch for key "$key". '
+            'Expected $T but found ${entry.valueType}',
+          );
+        }
+        _misses++;
+        return null;
       }
-      _misses++;
-      return null;
+
+      entry.markHit();
+      _keyHits[key] = (_keyHits[key] ?? 0) + 1;
+      _hits++;
+      return entry.value as T;
+    }
+    
+    // 2. Check Disk (if Deserializer provided)
+    if (_prefs != null && deserializer != null) {
+      try {
+        final cachedStr = _prefs!.getString('cache_$key');
+        if (cachedStr != null) {
+          final cached = jsonDecode(cachedStr) as Map<String, dynamic>;
+          
+          // Check expiry
+          final expiry = DateTime.parse(cached['expiry'] as String);
+          if (DateTime.now().isAfter(expiry)) {
+            await _prefs!.remove('cache_$key');
+            _misses++;
+            return null;
+          }
+
+          // Check model version
+          if (modelVersion != null && cached['model_version'] != modelVersion) {
+            await _prefs!.remove('cache_$key');
+             _misses++;
+            return null;
+          }
+          
+          final value = deserializer(cached['data'] as Map<String, dynamic>);
+          
+          // Hydrate memory cache
+          _store[key] = _CacheEntry<T>(
+            value: value,
+            expiry: expiry,
+            cost: cached['cost'] as int? ?? 1,
+          );
+          
+          _hits++; // Count disk hit as hit?
+          return value;
+        }
+      } catch (e) {
+        debugPrint('[IntelligenceCache] Disk read error: $e');
+      }
     }
 
-    if (entry.valueType != T) {
-      if (kDebugMode) {
-        debugPrint(
-          '[IntelligenceCache] Type mismatch for key "$key". '
-          'Expected $T but found ${entry.valueType}',
-        );
-      }
-      _misses++;
-      return null;
+    if (entry != null) {
+         _store.remove(key);
+         _evictions++;
     }
-
-    entry.markHit();
-    _keyHits[key] = (_keyHits[key] ?? 0) + 1;
-    _hits++;
-    return entry.value as T;
+    _misses++;
+    return null;
   }
 
   /// Set value in cache
-  void set<T>(String key, T value, {Duration? ttl, int cost = 1}) {
+  /// Set value in cache
+  Future<void> set<T>(String key, T value, {
+    Duration? ttl, 
+    int cost = 1,
+    Serializer<T>? serializer,
+    String? modelVersion,
+  }) async {
     // Proactive small batch cleanup
     _cleanupExpiredBatch(limit: 5);
 
@@ -106,17 +172,40 @@ class IntelligenceCache {
       _evictLRU();
     }
 
+    final expiry = _now().add(ttl ?? defaultTTL);
+
     _store[key] = _CacheEntry<T>(
       value: value,
-      expiry: _now().add(ttl ?? defaultTTL),
+      expiry: expiry,
       cost: cost,
     );
+    
+    // Persist if serializer provided
+    if (_prefs != null && serializer != null) {
+      try {
+        final data = serializer(value);
+        final entry = {
+          'data': data,
+          'expiry': expiry.toIso8601String(),
+          'cost': cost,
+          'model_version': modelVersion,
+          // 'type': T.toString(), // Optional type check support
+        };
+        await _prefs!.setString('cache_$key', jsonEncode(entry));
+      } catch (e) {
+        debugPrint('[IntelligenceCache] Disk write error: $e');
+      }
+    }
   }
 
-  /// Invalidate specific key
-  void invalidate(String key) {
+  /// Invalidate specific key (memory and disk)
+  Future<void> invalidate(String key) async {
     if (_store.remove(key) != null) {
       _evictions++;
+    }
+    
+    if (_prefs != null) {
+      await _prefs!.remove('cache_$key');
     }
   }
 

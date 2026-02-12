@@ -4,15 +4,14 @@ import 'base_sync_manager.dart';
 import '../../../data/drift/app_database.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/device_info_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cashpilot/features/sync/services/sync_checkpoint_service.dart';
 
 class AccountSyncManager implements BaseSyncManager<Account> {
   final AppDatabase db;
   final AuthService authService;
-  final SharedPreferences prefs;
-  static const _syncKey = 'last_accounts_sync_iso';
-
-  AccountSyncManager(this.db, this.authService, this.prefs);
+  final SyncCheckpointService checkpointService;
+  
+  AccountSyncManager(this.db, this.authService, this.checkpointService);
 
   @override
   Future<void> syncUp(String id) async {
@@ -92,7 +91,8 @@ class AccountSyncManager implements BaseSyncManager<Account> {
     
     int count = 0;
     try {
-      final lastSyncStr = prefs.getString(_syncKey);
+      final checkpoint = await checkpointService.getCheckpoint('accounts');
+      final lastSyncAt = checkpoint.lastSyncAt;
       
       var query = authService.client
           .from('accounts')
@@ -100,8 +100,8 @@ class AccountSyncManager implements BaseSyncManager<Account> {
           .eq('user_id', userId);
       
       // Incremental sync: only fetch changes since last sync
-      if (lastSyncStr != null) {
-        query = query.gt('updated_at', lastSyncStr);
+      if (lastSyncAt != null) {
+        query = query.gt('updated_at', lastSyncAt.toIso8601String());
       }
           
       final remoteAccounts = await query;
@@ -123,7 +123,7 @@ class AccountSyncManager implements BaseSyncManager<Account> {
       
       // Save checkpoint if we received data
       if (maxUpdated != null) {
-        await prefs.setString(_syncKey, maxUpdated.toIso8601String());
+        await checkpointService.updateCheckpoint('accounts', lastSyncAt: maxUpdated);
       }
       
       debugPrint('[AccountSyncManager] Account sync: Pulled $count accounts');

@@ -4,12 +4,10 @@ library;
 
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'package:drift/drift.dart';
 
 import '../../data/drift/app_database.dart';
-import '../../core/providers/app_providers.dart';
 
 /// Entity types that can have conflicts
 enum ConflictEntityType {
@@ -46,12 +44,10 @@ class ConflictDiff {
 
 /// Service for managing sync conflicts
 class ConflictService {
-  final Ref ref;
+  final AppDatabase _db;
   final _uuid = const Uuid();
 
-  ConflictService(this.ref);
-
-  AppDatabase get _db => ref.read(databaseProvider);
+  ConflictService(this._db);
 
   /// Create a new conflict record
   Future<String> createConflict({
@@ -79,7 +75,7 @@ class ConflictService {
   }
 
   /// Get all open conflicts
-  Future<List<Conflict>> getOpenConflicts() async {
+  Future<List<ConflictData>> getOpenConflicts() async {
     final rows = await (_db.select(_db.conflicts)
       ..where((c) => c.status.equals('open'))
       ..orderBy([(c) => OrderingTerm.desc(c.createdAt)])
@@ -87,12 +83,21 @@ class ConflictService {
     return rows;
   }
 
-  /// Get open conflict count
+  /// Get open conflict count stream
   Stream<int> watchOpenConflictCount() {
     return (_db.selectOnly(_db.conflicts)
       ..addColumns([_db.conflicts.id.count()])
       ..where(_db.conflicts.status.equals('open'))
     ).watchSingle().map((row) => row.read(_db.conflicts.id.count()) ?? 0);
+  }
+
+  /// Get current conflict count
+  Future<int> getConflictCount() async {
+    final result = await (_db.selectOnly(_db.conflicts)
+      ..addColumns([_db.conflicts.id.count()])
+      ..where(_db.conflicts.status.equals('open'))
+    ).getSingle();
+    return result.read(_db.conflicts.id.count()) ?? 0;
   }
 
   /// Resolve a conflict with the chosen action
@@ -142,7 +147,7 @@ class ConflictService {
   }
 
   /// Apply local version to remote (push override)
-  Future<void> _applyLocalVersion(Conflict conflict) async {
+  Future<void> _applyLocalVersion(ConflictData conflict) async {
     final localData = jsonDecode(conflict.localJson) as Map<String, dynamic>;
     final entityType = ConflictEntityType.values.firstWhere(
       (e) => e.name == conflict.entityType,
@@ -172,7 +177,7 @@ class ConflictService {
   }
 
   /// Apply remote version locally (discard local changes)
-  Future<void> _applyRemoteVersion(Conflict conflict) async {
+  Future<void> _applyRemoteVersion(ConflictData conflict) async {
     final remoteData = jsonDecode(conflict.remoteJson) as Map<String, dynamic>;
     final entityType = ConflictEntityType.values.firstWhere(
       (e) => e.name == conflict.entityType,
@@ -192,44 +197,64 @@ class ConflictService {
   }
 
   /// Create duplicate (for expenses: keep both versions)
-  Future<void> _duplicateAsNew(Conflict conflict) async {
+  Future<void> _duplicateAsNew(ConflictData conflict) async {
     final localData = jsonDecode(conflict.localJson) as Map<String, dynamic>;
     
-    // Only supported for expenses
-    if (conflict.entityType != 'expense') {
-      debugPrint('[ConflictService] Duplicate only supported for expenses');
+    // Only supported for expenses and budgets
+    if (conflict.entityType != 'expense' && conflict.entityType != 'budget') {
+      debugPrint('[ConflictService] Duplicate only supported for expenses and budgets');
       return;
     }
 
-    // Create new expense with new ID from local data
-    final newId = _uuid.v4();
-    localData['id'] = newId;
-    localData['syncState'] = 'dirty';
-    localData['revision'] = 1;
-    
-    // Insert as new expense - use correct schema (title not description)
-    await _db.into(_db.expenses).insert(
-      ExpensesCompanion.insert(
-        id: newId,
-        budgetId: localData['budgetId'] as String? ?? '',
-        semiBudgetId: Value(localData['semiBudgetId'] as String?),
-        title: localData['title'] as String? ?? '',
-        amount: (localData['amount'] as num?)?.toInt() ?? 0,
-        currency: Value(localData['currency'] as String? ?? 'USD'),
-        date: DateTime.tryParse(localData['date'] as String? ?? '') ?? DateTime.now(),
-        categoryId: Value(localData['categoryId'] as String?),
-        accountId: Value(localData['accountId'] as String?),
-        enteredBy: localData['enteredBy'] as String? ?? '',
-        tags: Value(localData['tags'] as String?),
-        syncState: const Value('dirty'),
-      ),
-    );
+    if (conflict.entityType == 'expense') {
+      final newId = _uuid.v4();
+      localData['id'] = newId;
+      localData['syncState'] = 'dirty';
+      localData['revision'] = 1;
 
-    debugPrint('[ConflictService] Created duplicate expense: $newId');
+      // Insert as new expense
+      await _db.into(_db.expenses).insert(
+        ExpensesCompanion.insert(
+          id: newId,
+          budgetId: localData['budgetId'] as String? ?? '',
+          semiBudgetId: Value(localData['semiBudgetId'] as String?),
+          title: localData['title'] as String? ?? '',
+          amount: (localData['amount'] as num?)?.toInt() ?? 0,
+          currency: Value(localData['currency'] as String? ?? 'USD'),
+          date: DateTime.tryParse(localData['date'] as String? ?? '') ?? DateTime.now(),
+          categoryId: Value(localData['categoryId'] as String?),
+          accountId: Value(localData['accountId'] as String?),
+          enteredBy: localData['enteredBy'] as String? ?? '',
+          tags: Value(localData['tags'] as String?),
+          syncState: const Value('dirty'),
+        ),
+      );
+      debugPrint('[ConflictService] Created duplicate expense: $newId');
+    } else if (conflict.entityType == 'budget') {
+      final newId = _uuid.v4();
+      localData['id'] = newId;
+
+      await _db.into(_db.budgets).insert(
+        BudgetsCompanion.insert(
+          id: newId,
+          title: localData['title'] as String? ?? '',
+          description: Value(localData['description'] as String?),
+          type: localData['type'] as String? ?? 'monthly',
+          totalLimit: Value((localData['total_limit'] as num?)?.toInt() ?? 0),
+          currency: Value(localData['currency'] as String? ?? 'USD'),
+          startDate: DateTime.tryParse(localData['start_date'] as String? ?? '') ?? DateTime.now(),
+          endDate: DateTime.tryParse(localData['end_date'] as String? ?? '') ?? DateTime.now(),
+          ownerId: localData['owner_id'] as String? ?? localData['user_id'] as String? ?? '',
+          syncState: const Value('dirty'),
+          revision: const Value(1),
+        ),
+      );
+      debugPrint('[ConflictService] Created duplicate budget: $newId');
+    }
   }
 
   /// Apply merged data
-  Future<void> _applyMergedVersion(Conflict conflict, Map<String, dynamic> mergedData) async {
+  Future<void> _applyMergedVersion(ConflictData conflict, Map<String, dynamic> mergedData) async {
     final entityType = ConflictEntityType.values.firstWhere(
       (e) => e.name == conflict.entityType,
     );
@@ -302,7 +327,7 @@ class ConflictService {
   }
 
   /// Parse diffs from conflict record
-  List<ConflictDiff> parseDiffs(Conflict conflict) {
+  List<ConflictDiff> parseDiffs(ConflictData conflict) {
     if (conflict.diffJson == null) return [];
     
     try {
@@ -319,14 +344,4 @@ class ConflictService {
 }
 
 // Providers
-final conflictServiceProvider = Provider<ConflictService>((ref) {
-  return ConflictService(ref);
-});
 
-final openConflictsProvider = StreamProvider<int>((ref) {
-  return ref.watch(conflictServiceProvider).watchOpenConflictCount();
-});
-
-final conflictListProvider = FutureProvider<List<Conflict>>((ref) {
-  return ref.watch(conflictServiceProvider).getOpenConflicts();
-});

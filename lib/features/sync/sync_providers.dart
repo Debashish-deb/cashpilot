@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/app_providers.dart';
 import '../../services/auth_service.dart';
 import '../../services/device_info_service.dart';
+import 'services/data_repair_service.dart';
 import 'orchestrator/sync_orchestrator.dart';
 
 // Export SyncReason for use by all sync triggers
@@ -16,6 +17,7 @@ export 'orchestrator/sync_orchestrator.dart' show SyncReason, SyncOrchestratorRe
 final syncOrchestratorProvider = Provider<SyncOrchestrator>((ref) {
   final db = ref.watch(databaseProvider);
   final prefs = ref.watch(sharedPreferencesProvider);
+  final secureStorage = ref.watch(secureStorageProvider);
   
   final orchestrator = SyncOrchestrator(
     ref: ref,
@@ -23,6 +25,7 @@ final syncOrchestratorProvider = Provider<SyncOrchestrator>((ref) {
     authService: AuthService(),
     deviceInfoService: DeviceInfoService(),
     prefs: prefs,
+    secureStorage: secureStorage,
   );
   
   // NOTE: Initialization is handled by SyncEngine or manually when needed
@@ -47,4 +50,10 @@ final requestSyncProvider = FutureProvider.family<SyncOrchestratorResult, SyncRe
 final performSyncProvider = FutureProvider<SyncOrchestratorResult>((ref) async {
   final orchestrator = ref.watch(syncOrchestratorProvider);
   return await orchestrator.performFullSync();
+});
+
+/// Provider for the DataRepairService
+final dataRepairServiceProvider = Provider<DataRepairService>((ref) {
+  final db = ref.watch(databaseProvider);
+  return DataRepairService(db);
 });

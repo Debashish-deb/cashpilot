@@ -4,19 +4,22 @@ library;
 
 import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../data/drift/app_database.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/logging/logger.dart';
 import '../../../core/services/error_reporter.dart';
-import '../../receipt/services/duplicate_detector.dart';
-import '../../sync/services/outbox_service.dart';
-import '../../sync/sync_providers.dart' show syncOrchestratorProvider;
-import '../../sync/orchestrator/sync_orchestrator.dart' show SyncReason;
+import '../../../features/receipt/models/receipt_data.dart';
+import '../../../features/receipt/services/duplicate_detector.dart';
+import '../../sync/sync_providers.dart';
 
-const _uuid = Uuid();
+import '../../../domain/usecases/expenses/create_expense_usecase.dart';
+import '../../../domain/usecases/expenses/update_expense_usecase.dart';
+import '../../../domain/usecases/expenses/delete_expense_usecase.dart';
+import 'expense_repository_provider.dart';
+
+
 
 // ============================================================
 // EXPENSE LIST PROVIDERS
@@ -361,7 +364,7 @@ final dailySpendingHistoryProvider = FutureProvider.family<List<int>, String>((r
 
 /// Expenses in a date range - derived from recentExpenses for consistency
 final expensesInRangeProvider = Provider.family<List<Expense>, ({DateTime start, DateTime end})>((ref, range) {
-  // FIXED: Use allExpensesProvider (limit 10k) instead of recentExpensesProvider (limit 50)
+  // Use allExpensesProvider (limit 10k) instead of recentExpensesProvider (limit 50)
   final allExpenses = ref.watch(allExpensesProvider);
   
   return allExpenses.when(
@@ -384,43 +387,25 @@ final expenseControllerProvider = Provider((ref) {
   return ExpenseController(ref);
 });
 
-
-
-// ============================================================
-// RECURRING EXPENSE PROVIDERS
-// ============================================================
-
-/// Upcoming bills (Recurring Expenses ordered by due date)
-final upcomingBillsProvider = StreamProvider<List<RecurringExpense>>((ref) {
-  final db = ref.watch(databaseProvider);
-  final userId = ref.watch(currentUserIdProvider);
-  
-  if (userId == null) return Stream.value([]);
-  
-  return db.watchRecurringExpenses(userId);
-});
-
-// ... (existing imports)
-
 class ExpenseController {
   final Ref _ref;
   final Logger _logger = Loggers.expense;
-  
-  ExpenseController(this._ref);
-  
-  AppDatabase get _db => _ref.read(databaseProvider);
-  String? get _userId => _ref.read(currentUserIdProvider);
-  
-  // Phase 1: Outbox service for offline-safe writes
-  OutboxService get _outbox => OutboxService(_db);
+
+  final CreateExpenseUseCase _createExpenseUseCase;
+  final UpdateExpenseUseCase _updateExpenseUseCase;
+  final DeleteExpenseUseCase _deleteExpenseUseCase;
+
+  ExpenseController(this._ref)
+      : _createExpenseUseCase = CreateExpenseUseCase(_ref.read(expenseRepositoryProvider)),
+        _updateExpenseUseCase = UpdateExpenseUseCase(_ref.read(expenseRepositoryProvider)),
+        _deleteExpenseUseCase = DeleteExpenseUseCase(_ref.read(expenseRepositoryProvider));
 
   /// Create expense with DUPLICATE DETECTION
-  /// Returns expense ID on success, throws if duplicate detected
-  /// Set skipDuplicateCheck=true to force creation (e.g., user confirmed)
   Future<String> createExpense({
     required String budgetId,
     String? semiBudgetId,
     String? categoryId,
+    String? subCategoryId,
     required String title,
     required int amount,
     String currency = 'EUR',
@@ -436,103 +421,80 @@ class ExpenseController {
     String? tags,
     bool skipDuplicateCheck = false,
   }) async {
-    if (_userId == null) throw Exception('User not logged in');
-    
+    final userId = _ref.read(currentUserIdProvider);
+    if (userId == null) throw Exception('User not logged in');
+
     _logger.info('Creating expense', context: {
       'title': title,
       'amount': amount,
       'merchant': merchantName,
     });
-    
-    // DUPLICATE DETECTION: Check for similar recent expenses
+
     if (!skipDuplicateCheck) {
-      final duplicateResult = await DuplicateDetector.checkDuplicate(
-        getRecentExpenses: () async {
-          final expenses = await _db.getRecentExpensesMaps(_userId!, limit: 50);
-          return expenses;
-        },
-        merchant: merchantName ?? title,
-        total: amount / 100.0,
-        date: date,
-        currency: currency,
-        category: categoryId,
-        budgetId: budgetId,
-      );
+      final db = _ref.read(databaseProvider);
+      final recentExpenses = await db.getRecentExpenses(userId, limit: 50);
       
+      // Convert history to ReceiptData model
+      final history = recentExpenses.map((e) => ReceiptData(
+        total: e.amount / 100.0,
+        merchantName: e.merchantName,
+        date: e.date,
+        currencyCode: e.currency,
+      )).toList();
+
+      // Convert current attempt to ReceiptData
+      final current = ReceiptData(
+        total: amount / 100.0,
+        merchantName: merchantName ?? title,
+        date: date,
+        currencyCode: currency,
+      );
+
+      final duplicateResult = DuplicateDetector.detect(
+        current: current,
+        history: history,
+      );
+
       if (duplicateResult.isDuplicate) {
         _logger.warning('Duplicate expense detected', context: {
           'confidence': duplicateResult.confidence,
-          'reason': duplicateResult.reason,
-          'duplicateId': duplicateResult.duplicateId,
+          'existingId': duplicateResult.matchedReceiptId,
         });
-        
-        errorReporter.addBreadcrumb('Duplicate expense blocked', category: 'expense', data: {
-          'confidence': duplicateResult.confidence,
-          'reason': duplicateResult.reason,
-        });
-        
-        // Throw exception to let UI handle (show confirmation dialog)
         throw DuplicateExpenseException(
           confidence: duplicateResult.confidence,
-          reason: duplicateResult.reason ?? 'Similar expense found',
-          existingExpenseId: duplicateResult.duplicateId,
+          reason: duplicateResult.reason,
+          existingExpenseId: duplicateResult.matchedReceiptId,
         );
       }
     }
-    
-    final id = _uuid.v4();
-    
-    await _db.insertExpense(ExpensesCompanion.insert(
-      id: id,
+
+    final params = CreateExpenseParams(
       budgetId: budgetId,
-      semiBudgetId: Value(semiBudgetId),
-      categoryId: Value(categoryId),
-      enteredBy: _userId!,
+      semiBudgetId: semiBudgetId,
+      categoryId: categoryId,
+      subCategoryId: subCategoryId,
       title: title,
       amount: amount,
-      currency: Value(currency),
+      currency: currency,
       date: date,
-      notes: Value(notes),
-      paymentMethod: Value(paymentMethod),
-      accountId: Value(accountId),
-      receiptUrl: Value(receiptUrl),
-      barcodeValue: Value(barcodeValue),
-      ocrText: Value(ocrText),
-      merchantName: Value(merchantName),
-      locationName: Value(location),
-      tags: Value(tags),
-      syncState: const Value('dirty'),
-      createdAt: Value(DateTime.now()), 
-      updatedAt: Value(DateTime.now()),
-    ));
-    
-    // Phase 1: Queue for sync via outbox
-    try {
-      await _outbox.queueEvent(
-        entityType: 'expense',
-        entityId: id,
-        operation: 'create',
-        payload: {
-          'budgetId': budgetId,
-          'semiBudgetId': semiBudgetId,
-          'categoryId': categoryId,
-          'title': title,
-          'amount': amount,
-          'currency': currency,
-          'date': date.toIso8601String(),
-          'notes': notes,
-          'paymentMethod': paymentMethod,
-          'merchantName': merchantName,
-        },
-        baseRevision: 0,
-      );
-    } catch (e) {
-      _logger.warning('Outbox queue failed', context: {'error': e.toString()}); 
-    }
-    
+      enteredBy: userId,
+      notes: notes,
+      paymentMethod: paymentMethod,
+      accountId: accountId,
+      receiptUrl: receiptUrl,
+      barcodeValue: barcodeValue,
+      merchantName: merchantName,
+      locationName: location,
+      tags: tags,
+      ocrText: ocrText,
+      skipDuplicateCheck: skipDuplicateCheck,
+    );
+
+    final id = await _createExpenseUseCase.execute(params);
+
     // Invalidate providers to force UI update
     _ref.invalidate(recentExpensesProvider);
-    
+
     // Trigger sync immediately
     try {
       _ref.read(syncOrchestratorProvider).requestSync(SyncReason.manualUserAction);
@@ -542,7 +504,7 @@ class ExpenseController {
     
     _logger.info('Expense created successfully', context: {'id': id});
     errorReporter.addBreadcrumb('Expense created', category: 'expense', data: {'id': id});
-    
+
     return id;
   }
 
@@ -551,6 +513,7 @@ class ExpenseController {
     String? budgetId,
     String? semiBudgetId,
     String? categoryId,
+    String? subCategoryId,
     String? title,
     int? amount,
     String? currency,
@@ -562,94 +525,50 @@ class ExpenseController {
     String? location,
     String? tags,
   }) async {
-    // PERFORMANCE FIX: Direct O(1) lookup instead of fetching 1000 expenses
-    final existing = await _db.getExpenseById(id);
-    if (existing == null) {
-      throw Exception('Expense not found: $id');
-    }
-    
-    await _db.updateExpense(ExpensesCompanion(
-      id: Value(id),
-      budgetId: Value(budgetId ?? existing.budgetId),
-      semiBudgetId: Value(semiBudgetId ?? existing.semiBudgetId),
-      categoryId: Value(categoryId ?? existing.categoryId),
-      enteredBy: Value(existing.enteredBy),
-      title: Value(title ?? existing.title),
-      amount: Value(amount ?? existing.amount),
-      currency: Value(currency ?? existing.currency),
-      date: Value(date ?? existing.date),
-      notes: Value(notes ?? existing.notes),
-      paymentMethod: Value(paymentMethod ?? existing.paymentMethod),
-      accountId: Value(accountId ?? existing.accountId),
-      merchantName: Value(merchantName ?? existing.merchantName),
-      locationName: Value(location ?? existing.locationName),
-      tags: Value(tags ?? existing.tags),
-      receiptUrl: Value(existing.receiptUrl),
-      barcodeValue: Value(existing.barcodeValue),
-      ocrText: Value(existing.ocrText),
-      isRecurring: Value(existing.isRecurring),
-      recurringId: Value(existing.recurringId),
-      createdAt: Value(existing.createdAt),
-      updatedAt: Value(DateTime.now()),
-      revision: Value(existing.revision + 1),
-      isDeleted: Value(existing.isDeleted),
-      syncState: const Value('dirty'), // Mark as dirty for sync
+    await _updateExpenseUseCase.execute(UpdateExpenseParams(
+      id: id,
+      budgetId: budgetId,
+      categoryId: categoryId,
+      subCategoryId: subCategoryId,
+      semiBudgetId: semiBudgetId,
+      title: title,
+      amount: amount,
+      currency: currency,
+      date: date,
+      notes: notes,
+      paymentMethod: paymentMethod,
+      merchantName: merchantName,
+      tags: tags,
     ));
 
-    // Phase 1: Queue for sync via outbox
-    try {
-      await _outbox.queueEvent(
-        entityType: 'expense',
-        entityId: id,
-        operation: 'update',
-        payload: {
-          if (title != null) 'title': title,
-          if (amount != null) 'amount': amount,
-          if (notes != null) 'notes': notes,
-          if (merchantName != null) 'merchantName': merchantName,
-        },
-        baseRevision: existing.revision, // Track revision for conflict detection
-      );
-    } catch (e) {
-      print('Outbox queue failed: $e');
-    }
-    
-    // Invalidate providers to force UI update
     _ref.invalidate(recentExpensesProvider);
-    
-    // Trigger sync immediately after expense update
+
     try {
       _ref.read(syncOrchestratorProvider).requestSync(SyncReason.manualUserAction);
     } catch (e) {
-      print('[ExpenseController] Sync trigger failed: $e');
+      _logger.warning('Sync trigger failed: $e');
     }
   }
 
   Future<void> deleteExpense(String id) async {
-    // Get existing for revision
-    final existing = await _db.getExpenseById(id);
-    if (existing == null) return;
-    
-    // Mark as deleted in local DB
-    await _db.deleteExpense(id);
-    
-    // Phase 1: Queue deletion via outbox
-    try {
-      await _outbox.queueEvent(
-        entityType: 'expense',
-        entityId: id,
-        operation: 'delete',
-        payload: {'deletedAt': DateTime.now().toIso8601String()},
-        baseRevision: existing.revision,
-      );
-    } catch (e) {
-       print('Outbox queue failed: $e');
-    }
-    
-    // Invalidate providers to force UI update
+    await _deleteExpenseUseCase.execute(id);
     _ref.invalidate(recentExpensesProvider);
   }
 }
+
+// ============================================================
+// RECURRING EXPENSE PROVIDERS
+// ============================================================
+
+/// Upcoming bills (Recurring Expenses ordered by due date)
+final upcomingBillsProvider = StreamProvider<List<RecurringExpense>>((ref) {
+  final db = ref.watch(databaseProvider);
+  final userId = ref.watch(currentUserIdProvider);
+  
+  if (userId == null) return Stream.value([]);
+  
+  return db.watchRecurringExpenses(userId);
+});
 
 // ============================================================
 // DUPLICATE EXPENSE EXCEPTION

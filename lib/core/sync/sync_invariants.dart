@@ -1,16 +1,18 @@
 import 'package:flutter/foundation.dart';
 
-/// Enforces the 6 non-negotiable sync invariants
+/// Enforces the non-negotiable sync invariants defined in technical_contract.md
 class SyncInvariants {
+  
   /// 1. Monotonic server revision
-  /// Never accept update that moves revision backwards
+  /// Never accept update that moves revision backwards or stays same (unless idempotent)
+  /// Returns TRUE if incoming > current
   static bool validateMonotonicRevision({
     required int currentRevision,
     required int incomingRevision,
   }) {
-    if (incomingRevision < currentRevision) {
-      debugPrint('[SyncInvariants] VIOLATION: Revision going backwards! '
-          'current=$currentRevision incoming=$incomingRevision');
+    if (incomingRevision <= currentRevision) {
+      // Idempotency check should be handled by caller (if ==, it's a dupe/no-op)
+      // But for "New Data", this is a violation/staleness
       return false;
     }
     return true;
@@ -48,19 +50,7 @@ class SyncInvariants {
   
   /// 5. Transactional apply
   /// Applying remote batch must be atomic per entity group
-  static Future<bool> applyAtomically({
-    required Function() applyFn,
-    required String entityGroup,
-  }) async {
-    try {
-      // This would wrap in DB transaction
-      await applyFn();
-      return true;
-    } catch (e) {
-      debugPrint('[SyncInvariants] VIOLATION: Atomic apply failed for $entityGroup: $e');
-      return false;
-    }
-  }
+  /// usage: await db.transaction(() async { ... });
   
   /// 6. Account boundary isolation
   /// Switching accounts = separate DB namespace or full wipe
@@ -68,7 +58,7 @@ class SyncInvariants {
     required String? currentUserId,
     required String incomingUserId,
   }) {
-    if (currentUserId != null && currentUserId != incomingUserId) {
+    if (currentUserId != null && currentUserId.isNotEmpty && currentUserId != incomingUserId) {
       debugPrint('[SyncInvariants] VIOLATION: Account boundary crossed! '
           'current=$currentUserId incoming=$incomingUserId');
       return false;
@@ -87,18 +77,12 @@ class SyncInvariants {
   }) {
     final violations = <String>[];
     
-    if (!validateMonotonicRevision(
-      currentRevision: currentRevision,
-      incomingRevision: incomingRevision,
-    )) {
-      violations.add('Revision going backwards');
-    }
-    
-    if (!hasValidBaseRevision(
-      baseRevision: baseRevision,
-      isDirty: isDirty,
-    )) {
-      violations.add('Missing base_revision for dirty record');
+    // Strict revision check for INGEST
+    // If incoming <= current, it's stale or duplicate. 
+    // We don't "fail" validation as in "error", but we signal it's not applicable.
+    // However, for purposes of "Is this a valid NEW update?", it is false.
+    if (incomingRevision <= currentRevision) {
+       violations.add('Stale revision: incoming($incomingRevision) <= current($currentRevision)');
     }
     
     if (!validateAccountBoundary(

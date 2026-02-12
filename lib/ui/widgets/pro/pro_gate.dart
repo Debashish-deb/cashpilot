@@ -8,7 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_routes.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/tokens.g.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../features/subscription/providers/subscription_providers.dart';
 
@@ -41,7 +41,7 @@ class ProBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = isProPlus ? 'PRO+' : 'PRO';
-    final color = isProPlus ? AppColors.gold : const Color(0xFF6366F1);
+    final color = isProPlus ? AppTokens.brandSecondary : const Color(0xFF6366F1);
 
     switch (style) {
       case ProBadgeStyle.inline:
@@ -57,9 +57,7 @@ class ProBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [color, color.withValues(alpha: 0.8)],
-        ),
+        color: color,
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
@@ -80,17 +78,8 @@ class ProBadge extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [color, color.withValues(alpha: 0.85)],
-          ),
+          color: color,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -118,19 +107,8 @@ class ProBadge extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [color, color.withValues(alpha: 0.75)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: color,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.4),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -214,13 +192,6 @@ class ProLockedOverlay extends ConsumerWidget {
                       decoration: BoxDecoration(
                         color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -229,7 +200,7 @@ class ProLockedOverlay extends ConsumerWidget {
                             Icons.lock_outline,
                             size: 32,
                             color: requiresProPlus
-                                ? AppColors.gold
+                                ? AppTokens.brandSecondary
                                 : const Color(0xFF6366F1),
                           ),
                           const SizedBox(height: 12),
@@ -265,7 +236,7 @@ class ProLockedOverlay extends ConsumerWidget {
                             'Tap to upgrade',
                             style: AppTypography.labelSmall.copyWith(
                               color: requiresProPlus
-                                  ? AppColors.gold
+                                  ? AppTokens.brandSecondary
                                   : const Color(0xFF6366F1),
                               fontWeight: FontWeight.w600,
                             ),
@@ -304,7 +275,7 @@ class ProUpgradeBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isProPlus ? AppColors.gold : const Color(0xFF6366F1);
+    final color = isProPlus ? AppTokens.brandSecondary : const Color(0xFF6366F1);
 
     return Container(
       margin: compact
@@ -314,14 +285,7 @@ class ProUpgradeBanner extends StatelessWidget {
           ? const EdgeInsets.all(12)
           : const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            color.withValues(alpha: 0.15),
-            color.withValues(alpha: 0.05),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(compact ? 12 : 20),
         border: Border.all(
           color: color.withValues(alpha: 0.3),
@@ -446,7 +410,7 @@ class ProFeatureRow extends ConsumerWidget {
     final isPaid = ref.watch(isPaidProvider);
     final isProPlus = ref.watch(isProPlusProvider);
     final hasAccess = requiresProPlus ? isProPlus : isPaid;
-    final color = requiresProPlus ? AppColors.gold : const Color(0xFF6366F1);
+    final color = requiresProPlus ? AppTokens.brandSecondary : const Color(0xFF6366F1);
 
     return ListTile(
       leading: Container(

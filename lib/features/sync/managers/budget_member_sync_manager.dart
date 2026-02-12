@@ -1,18 +1,18 @@
+import 'package:cashpilot/features/sync/services/sync_checkpoint_service.dart' show SyncCheckpointService;
 import 'package:flutter/foundation.dart';
 import 'package:drift/drift.dart';
 import 'base_sync_manager.dart';
 import '../../../data/drift/app_database.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/device_info_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cashpilot/features/sync/services/sync_checkpoint_service.dart';
 
 class BudgetMemberSyncManager implements BaseSyncManager<BudgetMember> {
   final AppDatabase db;
   final AuthService authService;
-  final SharedPreferences prefs;
-  static const _syncKey = 'last_budget_members_sync_iso';
+  final SyncCheckpointService checkpointService;
 
-  BudgetMemberSyncManager(this.db, this.authService, this.prefs);
+  BudgetMemberSyncManager(this.db, this.authService, this.checkpointService);
 
   @override
   Future<void> syncUp(String id) async {
@@ -75,11 +75,12 @@ class BudgetMemberSyncManager implements BaseSyncManager<BudgetMember> {
   @override
   Future<int> pullChanges() async {
     try {
-      final lastSyncIso = prefs.getString(_syncKey);
+      final checkpoint = await checkpointService.getCheckpoint('budget_members');
+      final lastSyncAt = checkpoint.lastSyncAt;
       var query = authService.client.from('budget_members').select();
       
-      if (lastSyncIso != null) {
-        query = query.gt('updated_at', lastSyncIso);
+      if (lastSyncAt != null) {
+        query = query.gt('updated_at', lastSyncAt.toIso8601String());
       }
       
       final remote = await query;
@@ -104,10 +105,10 @@ class BudgetMemberSyncManager implements BaseSyncManager<BudgetMember> {
       
       // Save checkpoint if we received data
       if (maxUpdatedAt != null) {
-        await prefs.setString(_syncKey, maxUpdatedAt.toIso8601String());
-      } else if (remote.isNotEmpty && lastSyncIso == null) {
+        await checkpointService.updateCheckpoint('budget_members', lastSyncAt: maxUpdatedAt);
+      } else if (remote.isNotEmpty && lastSyncAt == null) {
         // Initial sync fallback: save now if no updated_at column or parsing failed
-        await prefs.setString(_syncKey, DateTime.now().toIso8601String());
+        await checkpointService.updateCheckpoint('budget_members', lastSyncAt: DateTime.now());
       }
       
       if (count > 0) {

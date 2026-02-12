@@ -2,10 +2,11 @@
 /// Platform-optimized reusable components for Apple & Android
 library;
 
+import 'package:cashpilot/l10n/app_localizations.dart' show AppLocalizations;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/tokens.g.dart';
 import '../../../core/theme/app_typography.dart';
 
 // ============================================================
@@ -147,7 +148,7 @@ class EnhancedButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final buttonColor = color ?? AppColors.primaryGreen;
+    final buttonColor = color ?? AppTokens.brandPrimary;
 
     if (isOutlined) {
       return SizedBox(
@@ -280,14 +281,14 @@ class EnhancedTextField extends StatelessWidget {
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: BorderSide(
-                color: AppColors.primaryGreen,
+                color: AppTokens.brandPrimary,
                 width: 2,
               ),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: BorderSide(
-                color: AppColors.danger,
+                color: AppTokens.semanticDanger,
               ),
             ),
             contentPadding: const EdgeInsets.symmetric(
@@ -339,12 +340,12 @@ class EnhancedListTile extends StatelessWidget {
           ? Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: (iconColor ?? AppColors.primaryGreen).withValues(alpha: 0.12),
+                color: (iconColor ?? AppTokens.brandPrimary).withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 leadingIcon,
-                color: iconColor ?? AppColors.primaryGreen,
+                color: iconColor ?? AppTokens.brandPrimary,
                 size: 22,
               ),
             )
@@ -405,15 +406,10 @@ class EnhancedEmptyState extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.primaryGreen.withValues(alpha: 0.15),
-                    AppColors.primaryGreen.withValues(alpha: 0.05),
-                  ],
-                ),
+                color: AppTokens.brandPrimary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, size: 48, color: AppColors.primaryGreen),
+              child: Icon(icon, size: 48, color: AppTokens.brandPrimary),
             ),
             const SizedBox(height: 24),
             Text(
@@ -492,7 +488,7 @@ class SectionHeader extends StatelessWidget {
               child: Text(
                 action!,
                 style: AppTypography.labelMedium.copyWith(
-                  color: AppColors.primaryGreen,
+                  color: AppTokens.brandPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -507,9 +503,10 @@ class SectionHeader extends StatelessWidget {
 // FORMATTED CURRENCY
 // ============================================================
 
-String formatCurrency(int cents, {String currency = 'EUR'}) {
+String formatCurrency(BuildContext context, int cents, {String currency = 'EUR'}) {
   final amount = cents / 100;
   return NumberFormat.currency(
+    locale: AppLocalizations.of(context)!.localeName,
     symbol: currency == 'EUR' ? '€' : currency,
     decimalDigits: 2,
   ).format(amount);
@@ -519,7 +516,7 @@ String formatCurrency(int cents, {String currency = 'EUR'}) {
 // RELATIVE TIME
 // ============================================================
 
-String formatRelativeTime(DateTime date) {
+String formatRelativeTime(BuildContext context, DateTime date) {
   final now = DateTime.now();
   final diff = now.difference(date);
 
@@ -528,7 +525,8 @@ String formatRelativeTime(DateTime date) {
   if (diff.inHours < 24) return '${diff.inHours}h ago';
   if (diff.inDays < 7) return '${diff.inDays}d ago';
   if (diff.inDays < 30) return '${(diff.inDays / 7).floor()}w ago';
-  return DateFormat('MMM d').format(date);
+  final locale = AppLocalizations.of(context)?.localeName;
+  return DateFormat('MMM d', locale).format(date);
 }
 // ============================================================
 // FEATURE BADGE
@@ -549,8 +547,8 @@ class FeatureBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final badgeColor = color ?? (isProPlus ? const Color(0xFFFFD700) : AppColors.primaryGreen);
-    final textColor = isProPlus ? Colors.black : Colors.white;
+    final badgeColor = color ?? (isProPlus ? AppTokens.brandGold : AppTokens.brandPrimary);
+    final textColor = isProPlus ? AppTokens.themeLightTextPrimary : AppTokens.neutralWhite;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),

@@ -12,6 +12,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../data/drift/app_database.dart';
+import '../../../l10n/app_localizations.dart';
 
 const _uuid = Uuid();
 
@@ -28,79 +29,91 @@ class RecurringExpensesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final recurringAsync = ref.watch(recurringExpensesProvider);
     final currency = ref.watch(currencyProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Recurring Expenses'),
+        title: Text(
+          l10n.recurringRecurringExpenses,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.5,
+              ),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        scrolledUnderElevation: 0,
       ),
-      body: recurringAsync.when(
-        data: (expenses) {
-          if (expenses.isEmpty) {
-            return _buildEmptyState(context);
-          }
-
-          // Separate active and inactive
-          final active = expenses.where((e) => e.isActive).toList();
-          final inactive = expenses.where((e) => !e.isActive).toList();
-
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final horizontalPadding = constraints.maxWidth < 360 ? 12.0 : 16.0;
-              return ListView(
-                padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 20),
-            children: [
-              // Monthly total
-              _buildMonthlyTotal(context, active, currency),
-
-              const SizedBox(height: 20),
-
-              // Active recurring
-              if (active.isNotEmpty) ...[
-                Text(
-                  'Active (${active.length})',
-                  style: AppTypography.titleMedium.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ...active.map((e) => _RecurringCard(
-                      expense: e,
-                      currency: currency,
-                    )),
-              ],
-
-              // Inactive/Paused
-              if (inactive.isNotEmpty) ...[
+      body: SafeArea(
+        child: recurringAsync.when(
+          data: (expenses) {
+            if (expenses.isEmpty) {
+              return _buildEmptyState(context);
+            }
+    
+            // Separate active and inactive
+            final active = expenses.where((e) => e.isActive).toList();
+            final inactive = expenses.where((e) => !e.isActive).toList();
+    
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final horizontalPadding = constraints.maxWidth < 360 ? 12.0 : 16.0;
+                return ListView(
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 20),
+              children: [
+                // Monthly total
+                _buildMonthlyTotal(context, active, currency),
+    
                 const SizedBox(height: 20),
-                Text(
-                  'Paused (${inactive.length})',
-                  style: AppTypography.titleMedium.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+    
+                // Active recurring
+                if (active.isNotEmpty) ...[
+                  Text(
+                    'Active (${active.length})',
+                    style: AppTypography.titleMedium.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                ...inactive.map((e) => _RecurringCard(
-                      expense: e,
-                      currency: currency,
-                      isPaused: true,
-                    )),
+                  const SizedBox(height: 12),
+                  ...active.map((e) => _RecurringCard(
+                        expense: e,
+                        currency: currency,
+                      )),
+                ],
+    
+                // Inactive/Paused
+                if (inactive.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  Text(
+                    'Paused (${inactive.length})',
+                    style: AppTypography.titleMedium.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ...inactive.map((e) => _RecurringCard(
+                        expense: e,
+                        currency: currency,
+                        isPaused: true,
+                      )),
+                ],
+                
+                const SizedBox(height: 32), // Bottom padding for FAB
               ],
-              
-              const SizedBox(height: 100), // Bottom padding for FAB
-            ],
-          );
-            },
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+            );
+              },
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text(AppLocalizations.of(context)!.commonErrorMessage(e.toString()))),
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddRecurringSheet(context, ref),
         icon: const Icon(Icons.add_rounded),
-        label: const Text('Add Recurring'),
+        label: Text(l10n.recurringAddRecurring),
       ),
     );
   }
@@ -170,14 +183,7 @@ class RecurringExpensesScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).primaryColor,
-            Theme.of(context).primaryColor.withValues(alpha: 0.8),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: Theme.of(context).primaryColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -310,16 +316,14 @@ class _RecurringCard extends StatelessWidget {
                         ),
                         child: Text(
                           _getFrequencyLabel(expense.frequency),
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: color,
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Next: ${_formatNextDue(expense.nextDueDate)}',
+                        'Next: ${_formatNextDue(context, expense.nextDueDate)}',
                         style: AppTypography.bodySmall.copyWith(
                           color: Theme.of(context)
                               .colorScheme
@@ -423,7 +427,7 @@ class _RecurringCard extends StatelessWidget {
     }
   }
 
-  String _formatNextDue(DateTime date) {
+  String _formatNextDue(BuildContext context, DateTime date) {
     final now = DateTime.now();
     final diff = date.difference(now).inDays;
 
@@ -431,7 +435,7 @@ class _RecurringCard extends StatelessWidget {
     if (diff == 1) return 'Tomorrow';
     if (diff < 7) return 'in $diff days';
 
-    return DateFormat('MMM d').format(date);
+    return DateFormat('MMM d', AppLocalizations.of(context)!.localeName).format(date);
   }
 
   String _formatCurrency(int amountInCents) {
@@ -481,6 +485,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: EdgeInsets.only(
         left: 24,
@@ -493,11 +498,11 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Add Recurring Expense', style: AppTypography.titleLarge),
+            Text(l10n.recurringAddTitle, style: AppTypography.titleLarge),
             const SizedBox(height: 24),
 
             // Title
-            Text('Title', style: AppTypography.labelLarge),
+            Text(l10n.recurringTitleLabel, style: AppTypography.labelLarge),
             const SizedBox(height: 8),
             TextField(
               controller: _titleController,
@@ -509,7 +514,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
             const SizedBox(height: 20),
 
             // Amount
-            Text('Amount', style: AppTypography.labelLarge),
+            Text(l10n.recurringAmountLabel, style: AppTypography.labelLarge),
             const SizedBox(height: 8),
             TextField(
               controller: _amountController,
@@ -523,7 +528,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
             const SizedBox(height: 20),
 
             // Frequency
-            Text('Frequency', style: AppTypography.labelLarge),
+            Text(l10n.recurringFrequencyLabel, style: AppTypography.labelLarge),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -543,7 +548,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
             const SizedBox(height: 20),
 
             // Category
-            Text('Category', style: AppTypography.labelLarge),
+            Text(l10n.recurringCategoryLabel, style: AppTypography.labelLarge),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -597,7 +602,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
 
             // Day of month (for monthly)
             if (_frequency == 'monthly') ...[
-              Text('Day of Month', style: AppTypography.labelLarge),
+              Text(l10n.recurringDayOfMonthLabel, style: AppTypography.labelLarge),
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -643,7 +648,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                           strokeWidth: 2,
                         ),
                       )
-                    : const Text('Add Recurring'),
+                    : Text(l10n.recurringAddRecurring),
               ),
             ),
           ],
@@ -653,9 +658,10 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
   }
 
   Future<void> _addRecurring() async {
+    final l10n = AppLocalizations.of(context)!;
     if (_titleController.text.isEmpty || _amountController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all required fields')),
+        SnackBar(content: Text(l10n.errFillRequiredFields)),
       );
       return;
     }
@@ -709,15 +715,15 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
 
       navigator.pop();
       scaffoldMessenger.showSnackBar(
-        const SnackBar(
-          content: Text('Recurring expense added!'),
+        SnackBar(
+          content: Text(l10n.recurringAdded),
           backgroundColor: AppColors.success,
         ),
       );
     } catch (e) {
       scaffoldMessenger.showSnackBar(
         SnackBar(
-          content: Text('Error: $e'),
+          content: Text(AppLocalizations.of(context)!.commonErrorMessage(e.toString())),
           backgroundColor: AppColors.danger,
         ),
       );

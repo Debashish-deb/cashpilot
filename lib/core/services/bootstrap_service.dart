@@ -71,7 +71,7 @@ class BootstrapService {
           // Initialize app manager
           final sharedPreferences = await AppManager.instance.initialize();
 
-          // Initialize Stripe (will run in mock mode if no API key)
+          // Initialize Stripe (STUBBED)
           await stripeService.initialize();
 
           // Image cache tuning
@@ -89,6 +89,20 @@ class BootstrapService {
           );
         },
         (error, stackTrace) {
+          // Filter out noisy offline errors from logs and crash reporting
+          final sError = error.toString();
+          final isOffline = sError.contains('SocketException') || 
+                           sError.contains('Failed host lookup') ||
+                           sError.contains('Network is unreachable') ||
+                           sError.contains('AuthRetryableFetchException'); // Supabase Auth retry noise
+
+          if (isOffline) {
+            if (kDebugMode) {
+              debugPrint('⚠️ [Bootstrap] Suppressed offline error (expected): $error');
+            }
+            return; // Don't report to Crashlytics/Sentry or print full stack trace
+          }
+
           // Report to both old and new error reporting systems
           try {
             crashReporter.reportError(error, stackTrace);

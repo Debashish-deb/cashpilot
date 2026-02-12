@@ -1,6 +1,7 @@
 import 'package:cashpilot/data/drift/app_database.dart' show Budget;
+import 'package:cashpilot/l10n/app_localizations.dart' show AppLocalizations;
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/tokens.g.dart';
 import 'package:intl/intl.dart';
 
 /// Overspend Forecast Bar
@@ -56,19 +57,19 @@ class OverspendForecastBar extends StatelessWidget {
       icon = Icons.trending_up;
 
       if (totalSpent > totalLimit) {
-        color = AppColors.danger;
+        color = AppTokens.semanticDanger;
         message =
-            "Budget exceeded by ${_formatMoney((totalSpent - totalLimit).toInt())}";
+            "Budget exceeded by ${_formatMoney(context, (totalSpent - totalLimit).toInt())}";
       } else {
-        color = AppColors.warning;
+        color = AppTokens.semanticWarning;
         message =
-            "On pace to exceed by ${_formatMoney(projectedDelta.round())}";
+            "On pace to exceed by ${_formatMoney(context, projectedDelta.round())}";
       }
     } else {
       icon = Icons.trending_flat;
-      color = AppColors.success;
+      color = AppTokens.semanticSuccess;
       message =
-          "On track to save ${_formatMoney(projectedDelta.abs().round())}";
+          "On track to save ${_formatMoney(context, projectedDelta.abs().round())}";
     }
 
     return Container(
@@ -97,11 +98,12 @@ class OverspendForecastBar extends StatelessWidget {
     );
   }
 
-  String _formatMoney(int amount) {
-    final formatted = NumberFormat.currency(
+  String _formatMoney(BuildContext context, int amount) {
+    final format = NumberFormat.currency(
+      locale: AppLocalizations.of(context)!.localeName,
       symbol: currency,
       decimalDigits: 0,
     ).format(amount / 100.0);
-    return formatted;
+    return format;
   }
 }

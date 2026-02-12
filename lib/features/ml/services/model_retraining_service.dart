@@ -1,5 +1,11 @@
+import 'dart:convert';
+import 'package:cross_file/cross_file.dart';
+
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../data/drift/app_database.dart';
+import 'naive_bayes_classifier.dart';
 
 /// Model Version Information
 class ModelVersion {
@@ -248,7 +254,7 @@ class ModelRetrainingService {
           .select('id')
           .count(CountOption.exact);
 
-      return response.count ?? 0;
+      return response.count;
     } catch (e) {
       debugPrint('[Retraining] Failed to get learning data count: $e');
       return 0;
@@ -265,4 +271,70 @@ class ModelRetrainingService {
     }
     return 'v1.1';
   }
+  // ... (existing code)
+
+  /// Perform On-Device Retraining
+  /// Trains a Naive Bayes classifier on local verified expenses and saves it to storage.
+  /// Perform On-Device Retraining
+  /// Trains a Naive Bayes classifier on local verified expenses and saves it to storage.
+  Future<String> retrainOnDevice({
+    required AppDatabase db,
+    required String modelName, // e.g. 'expense_classifier'
+  }) async {
+    if (kIsWeb) {
+      debugPrint('[Retraining] On-device training not supported on Web');
+      return '';
+    }
+
+    try {
+      debugPrint('[Retraining] Starting On-Device training for $modelName...');
+
+      // 1. Fetch Verified Data
+      final expenses = await (db.select(db.expenses)
+        ..where((t) => t.categoryId.isNotNull())
+        ..where((t) => t.isVerified.equals(true))
+      ).get();
+
+      if (expenses.length < 10) {
+        throw Exception('Insufficient data for training. Need at least 10 verified expenses.');
+      }
+
+      // 2. Train Model
+      final classifier = NaiveBayesClassifier();
+      final samples = expenses.map((e) => (
+        text: e.merchantName ?? e.title, 
+        category: e.categoryId!
+      )).toList();
+      
+      classifier.trainBatch(samples);
+
+      // 3. Serialize & Save
+      // We avoid dart:io File here to prevent web compilation issues if this code is included.
+      // But we are in a block guarded by !kIsWeb. 
+      // However, dart:io imports are fatal.
+      // We should use XFile or a platform abstraction.
+      
+      final directory = await getApplicationDocumentsDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final version = 'v_local_$timestamp';
+      final path = '${directory.path}/ml_models/${modelName}_$version.json';
+      
+      // Use XFile to save? XFile.saveTo works.
+      final jsonContent = jsonEncode(classifier.toJson());
+      final file = XFile.fromData(utf8.encode(jsonContent), name: 'model.json');
+      await file.saveTo(path);
+
+      debugPrint('[Retraining] Model saved to $path');
+
+      // 4. Update Version Tracking (Local-only or Sync to Supabase)
+      // For now, we return the path so the orchestrator can load it.
+      return path;
+
+    } catch (e) {
+      debugPrint('[Retraining] Failed on-device training: $e');
+      rethrow;
+    }
+  }
+
+  // ... (rest of class)
 }

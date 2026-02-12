@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_stripe/flutter_stripe.dart' hide Card;
+// import 'package:flutter_stripe/flutter_stripe.dart' hide Card;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cashpilot/features/ml/services/confidence_optimizer.dart';
 
-import '../../core/config/stripe_config.dart';
+// import '../../core/config/stripe_config.dart';
 import '../../services/auth_service.dart';
 import '../../services/encryption_service.dart';
 import '../../services/crash_reporting_service.dart';
@@ -56,8 +56,8 @@ class AppManager {
 
       _setupErrorHandling();
 
-      // Stripe key setup (must be done before any Stripe usage)
-      Stripe.publishableKey = StripeConfig.publishableKey;
+      // Stripe key setup (STUBBED/REMOVED)
+      // Stripe.publishableKey = StripeConfig.publishableKey;
 
       // PHASE 2: Parallel initialization
 

@@ -117,21 +117,23 @@ class BudgetDomain {
   
   /// Get maximum budgets for tier
   static int _getMaxBudgets(String tier) {
-    return switch (tier.toLowerCase()) {
+    final normalized = tier.toLowerCase().replaceAll('_', '').replaceAll(' ', '');
+    return switch (normalized) {
       'free' => BudgetLimits.freeBudgetLimit,
       'pro' => BudgetLimits.proBudgetLimit,
-      'pro_plus' => BudgetLimits.proPlusBudgetLimit,
-      _ => BudgetLimits.freeBudgetLimit,
+      'proplus' => BudgetLimits.proPlusBudgetLimit,
+      _ => BudgetLimits.freeBudgetLimit, // Default to free if unrecognized
     };
   }
   
   /// Get maximum categories for tier
   static int _getMaxCategories(String tier) {
-    return switch (tier.toLowerCase()) {
+    final normalized = tier.toLowerCase().replaceAll('_', '').replaceAll(' ', '');
+    return switch (normalized) {
       'free' => BudgetLimits.freeCategoryLimit,
       'pro' => BudgetLimits.proCategoryLimit,
-      'pro_plus' => BudgetLimits.proPlusCategoryLimit,
-      _ => BudgetLimits.freeCategoryLimit,
+      'proplus' => BudgetLimits.proPlusCategoryLimit,
+      _ => BudgetLimits.freeCategoryLimit, // Default to free if unrecognized
     };
   }
   

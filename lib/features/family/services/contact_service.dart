@@ -1,5 +1,6 @@
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/providers/app_providers.dart';
 
 final contactServiceProvider = Provider<ContactService>((ref) {
   return ContactService();
@@ -8,6 +9,18 @@ final contactServiceProvider = Provider<ContactService>((ref) {
 final contactsProvider = FutureProvider.autoDispose.family<List<Contact>, String>((ref, query) async {
   final service = ref.watch(contactServiceProvider);
   return service.getContacts(query: query);
+});
+
+final aiSuggestedFamilyProvider = FutureProvider.autoDispose<List<Contact>>((ref) async {
+  final service = ref.watch(contactServiceProvider);
+  final inference = ref.watch(relationshipInferenceServiceProvider);
+  
+  final allContacts = await service.getContacts();
+  
+  return allContacts.where((c) {
+    final inferred = inference.inferTypeFromName(c.displayName);
+    return inferred != null;
+  }).toList();
 });
 
 class ContactService {

@@ -4,7 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/tokens.g.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/managers/auth_manager.dart';
@@ -239,17 +239,18 @@ class _LockScreenState extends ConsumerState<LockScreen>
         child: Semantics(
           label: 'App locked. Authentication required.',
           child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildLockIcon(theme),
-                  const SizedBox(height: 40),
-                  _buildTitle(theme),
-                  const SizedBox(height: 12),
-                  _buildSubtitle(theme),
-                  const SizedBox(height: 48),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildLockIcon(theme),
+                    const SizedBox(height: 40),
+                    _buildTitle(theme),
+                    const SizedBox(height: 12),
+                    _buildSubtitle(theme),
+                    const SizedBox(height: 48),
                     if (_errorMessage != null) ...[
                       _buildError(theme),
                       const SizedBox(height: 24),
@@ -259,7 +260,8 @@ class _LockScreenState extends ConsumerState<LockScreen>
                     _buildFallbackButton(theme),
                     const SizedBox(height: 24),
                     _buildHint(theme),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -274,20 +276,8 @@ class _LockScreenState extends ConsumerState<LockScreen>
       width: 120,
       height: 120,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            theme.primaryColor,
-            theme.primaryColor.withValues(alpha: 0.75),
-          ],
-        ),
+        color: theme.primaryColor,
         shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: theme.primaryColor.withValues(alpha: 0.35),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
-          ),
-        ],
       ),
       child: const Icon(
         Icons.lock_outline_rounded,
@@ -321,20 +311,20 @@ class _LockScreenState extends ConsumerState<LockScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.danger.withValues(alpha: 0.1),
+        color: AppTokens.semanticDanger.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
+        border: Border.all(color: AppTokens.semanticDanger.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.error_outline, color: AppColors.danger, size: 20),
+          const Icon(Icons.error_outline, color: AppTokens.semanticDanger, size: 20),
           const SizedBox(width: 8),
           Flexible(
             child: Text(
               _errorMessage!,
               style: AppTypography.bodySmall.copyWith(
-                color: AppColors.danger,
+                color: AppTokens.semanticDanger,
               ),
             ),
           ),

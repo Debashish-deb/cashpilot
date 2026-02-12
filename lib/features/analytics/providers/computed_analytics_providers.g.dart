@@ -86,10 +86,9 @@ class BudgetStatisticsProvider
         (ref) => budgetStatistics(ref as BudgetStatisticsRef, budgetId),
         from: budgetStatisticsProvider,
         name: r'budgetStatisticsProvider',
-        debugGetCreateSourceHash:
-            const bool.fromEnvironment('dart.vm.product')
-                ? null
-                : _$budgetStatisticsHash,
+        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+            ? null
+            : _$budgetStatisticsHash,
         dependencies: BudgetStatisticsFamily._dependencies,
         allTransitiveDependencies:
             BudgetStatisticsFamily._allTransitiveDependencies,
@@ -221,10 +220,9 @@ class CategoryBreakdownProvider
         (ref) => categoryBreakdown(ref as CategoryBreakdownRef, budgetId),
         from: categoryBreakdownProvider,
         name: r'categoryBreakdownProvider',
-        debugGetCreateSourceHash:
-            const bool.fromEnvironment('dart.vm.product')
-                ? null
-                : _$categoryBreakdownHash,
+        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+            ? null
+            : _$categoryBreakdownHash,
         dependencies: CategoryBreakdownFamily._dependencies,
         allTransitiveDependencies:
             CategoryBreakdownFamily._allTransitiveDependencies,
@@ -298,7 +296,7 @@ class _CategoryBreakdownProviderElement
   String get budgetId => (origin as CategoryBreakdownProvider).budgetId;
 }
 
-String _$healthScoreHash() => r'33a84938f377f6def13dc078150cd02a6603429a';
+String _$healthScoreHash() => r'4ce683c5ad2eabb900ce9ec959aa6d221785f5ad';
 
 /// Health Score Provider - Calculated from real data
 ///
@@ -356,10 +354,9 @@ class HealthScoreProvider extends AutoDisposeFutureProvider<HealthScoreData> {
         (ref) => healthScore(ref as HealthScoreRef, budgetId),
         from: healthScoreProvider,
         name: r'healthScoreProvider',
-        debugGetCreateSourceHash:
-            const bool.fromEnvironment('dart.vm.product')
-                ? null
-                : _$healthScoreHash,
+        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+            ? null
+            : _$healthScoreHash,
         dependencies: HealthScoreFamily._dependencies,
         allTransitiveDependencies: HealthScoreFamily._allTransitiveDependencies,
         budgetId: budgetId,

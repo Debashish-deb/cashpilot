@@ -1,9 +1,13 @@
+import 'package:cashpilot/features/settings/viewmodels/security_view_model.dart' show SecurityViewState, securityViewModelProvider;
+import 'package:cashpilot/ui/widgets/settings/settings_selection_button.dart' show SettingsSelectionButton;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_typography.dart';
-import '../../../../features/settings/viewmodels/security_view_model.dart';
+
+
 import '../../../../l10n/app_localizations.dart';
-import '../settings_tiles.dart';
+import '../../../widgets/settings/settings_group_card.dart';
+import '../../../widgets/settings/settings_selection_button.dart';
+
 
 class SecuritySection extends ConsumerWidget {
   const SecuritySection({super.key});
@@ -13,109 +17,66 @@ class SecuritySection extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final securityState = ref.watch(securityViewModelProvider);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+    return SettingsGroupCard(
+      title: "PRIVACY", // Localize later
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+      child: securityState.when(
+        data: (state) => _buildContent(context, ref, state, l10n),
+        loading: () => const Padding(
+          padding: EdgeInsets.all(24),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+        error: (err, _) => Padding(
+          padding: const EdgeInsets.all(16),
           child: Text(
-            l10n.settingsSecurity,
-            style: AppTypography.titleSmall.copyWith(
-              color: Theme.of(context).primaryColor,
-              fontWeight: FontWeight.w600,
-            ),
+            l10n.commonErrorMessage(err.toString()),
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
         ),
-        securityState.when(
-          data: (state) => _buildContent(context, ref, state, l10n),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, stack) => Center(child: Text('Error: $err')),
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _buildContent(BuildContext context, WidgetRef ref, SecurityViewState state, AppLocalizations l10n) {
-    return Card(
-      elevation: 0,
-      color: Theme.of(context).colorScheme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
-        ),
-      ),
-      child: Column(
+  Widget _buildContent(
+    BuildContext context,
+    WidgetRef ref,
+    SecurityViewState state,
+    AppLocalizations l10n,
+  ) {
+    return IntrinsicHeight(
+      child: Row(
         children: [
-          SettingsTile(
-            icon: Icons.fingerprint,
-            title: state.biometricTypeDescription,
-            subtitle: state.biometricEnabled ? 'Enabled' : 'Disabled',
-            trailing: state.isLoading 
-              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-              : Switch(
-                  value: state.biometricEnabled,
-                  onChanged: state.isBiometricHardwareAvailable 
-                    ? (value) async {
-                        final result = await ref.read(securityViewModelProvider.notifier).toggleBiometric(value);
-                        if (!result.isSuccess && context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(result.message ?? l10n.commonError)),
-                          );
-                        }
-                      }
-                    : null,
-                ),
+          // Biometric Toggle
+          SettingsSelectionButton(
+            label: "Privacy", 
+            icon: Icons.fingerprint_rounded,
+            isSelected: state.biometricEnabled,
+            onTap: state.isBiometricHardwareAvailable
+                ? () => ref
+                    .read(securityViewModelProvider.notifier)
+                    .toggleBiometric(!state.biometricEnabled)
+                : () {},
+            showLock: !state.isBiometricHardwareAvailable,
           ),
-          const Divider(height: 1, indent: 56),
-          SettingsTile(
-            icon: Icons.lock_outline,
-            title: l10n.settingsAppLock,
-            subtitle: state.appLockEnabled ? 'Lock on app exit' : 'Never lock',
-            trailing: Switch(
-              value: state.appLockEnabled,
-              onChanged: (value) async {
-                final result = await ref.read(securityViewModelProvider.notifier).toggleAppLock(value);
-                if (!result.isSuccess && context.mounted) {
-                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(result.message ?? l10n.commonError)),
-                  );
-                }
-              },
-            ),
+          
+          VerticalDivider(
+            width: 1, 
+            thickness: 1, 
+            color: Theme.of(context).dividerColor.withOpacity(0.1), 
+            indent: 6, 
+            endIndent: 6,
           ),
-          if (state.appLockEnabled) ...[
-            const Divider(height: 1, indent: 56),
-            SettingsTile(
-              icon: Icons.timer_outlined,
-              title: 'Auto-lock timeout',
-              subtitle: '${state.autoLockTimeoutSeconds} seconds',
-              onTap: () => _showTimeoutPicker(context, ref, state.autoLockTimeoutSeconds),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
 
-  void _showTimeoutPicker(BuildContext context, WidgetRef ref, int current) {
-    showDialog(
-      context: context,
-      builder: (context) => SimpleDialog(
-        title: const Text('Auto-lock timeout'),
-        children: [15, 30, 60, 120, 300].map((s) {
-          return RadioListTile<int>(
-            title: Text('$s seconds'),
-            value: s,
-            groupValue: current,
-            onChanged: (val) {
-              if (val != null) {
-                ref.read(securityViewModelProvider.notifier).setAutoLockTimeout(val);
-                Navigator.pop(context);
-              }
-            },
-          );
-        }).toList(),
+          // App Lock
+          SettingsSelectionButton(
+            label: l10n.settingsAppLock,
+            icon: Icons.lock_outline_rounded,
+            isSelected: state.appLockEnabled,
+            onTap: () => ref
+                .read(securityViewModelProvider.notifier)
+                .toggleAppLock(!state.appLockEnabled),
+          ),
+        ],
       ),
     );
   }

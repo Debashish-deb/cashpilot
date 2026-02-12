@@ -8,7 +8,7 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/foundation.dart';
-import 'package:sqlite3/sqlite3.dart'; 
+ 
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/open.dart';
@@ -128,29 +128,7 @@ class EncryptedDatabaseExecutor {
 
 
 
-  /// Verifies if the database file is valid and encrypted with the specific key
-  static bool _checkDatabaseIntegrity(File file, String? key) {
-    if (key == null) return false;
-    
-    // Open simply with sqlite3
-    final db = sqlite3.open(file.path);
-    try {
-      // SECURITY: Validate key format before using
-      if (!_isValidEncryptionKey(key)) {
-        return false;
-      }
-      // Use passphrase format (same as database creation)
-      db.execute("PRAGMA key = '$key';");
-      db.execute('SELECT count(*) FROM sqlite_master;');
-      return true;
-    } catch (e) {
-      // Code 26: file is not a database (HMAC check failed)
-      debugPrint('[EncryptedDB] Integrity check failed: $e');
-      return false;
-    } finally {
-      db.dispose();
-    }
-  }
+
 }
 
 /// Helper to get encryption key from KeyManager as hex string

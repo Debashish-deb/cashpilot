@@ -1,11 +1,16 @@
 import 'dart:convert';
+import 'package:cashpilot/services/sync/conflict_service.dart' show ConflictService;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cashpilot/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:drift/drift.dart' show OrderingTerm;
+// Added by user instruction
+// import 'widgets/create_test_dialog.dart'; // Not used in this file, but added by user instruction
+// import 'ab_test_details_screen.dart'; // Not used in this file, but added by user instruction
 import '../../../core/providers/app_providers.dart';
 import '../../../data/drift/app_database.dart';
-import '../../../features/sync/services/conflict_service.dart';
+import '../../../services/sync/conflict_service.dart';
 import '../../widgets/sync/conflict_resolution_dialog.dart';
 
 /// Conflicts Screen - Shows all unresolved sync conflicts
@@ -22,11 +27,13 @@ class _ConflictsScreenState extends ConsumerState<ConflictsScreen> {
   Widget build(BuildContext context) {
     final db = ref.watch(databaseProvider);
     final conflictService = ConflictService(db);
+    final isDark = Theme.of(context).brightness == Brightness.dark; // Added by user instruction
+    final l10n = AppLocalizations.of(context)!; // Added by user instruction
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Sync Conflicts'),
-        backgroundColor: Colors.red.shade700,
+        title: Text(l10n.conflictTitle), // Modified by user instruction (original text, but using l10n)
+        backgroundColor: isDark ? Colors.grey.shade900 : const Color(0xFF6750A4), // Modified by user instruction
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -35,68 +42,70 @@ class _ConflictsScreenState extends ConsumerState<ConflictsScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<List<Conflict>>(
-        future: _getOpenConflicts(db),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.error_outline, size: 48, color: Colors.red.shade300),
-                  const SizedBox(height: 16),
-                  Text('Error loading conflicts: ${snapshot.error}'),
-                ],
-              ),
-            );
-          }
-
-          final conflicts = snapshot.data ?? [];
-
-          if (conflicts.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.check_circle_outline, size: 64, color: Colors.green.shade300),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'No conflicts',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'All your data is in sync',
-                    style: TextStyle(color: Colors.grey.shade600),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return ListView.builder(
-            itemCount: conflicts.length,
-            itemBuilder: (context, index) {
-              final conflict = conflicts[index];
-              return _ConflictCard(
-                conflict: conflict,
-                onResolve: () async {
-                  await _showResolutionDialog(context, conflict, conflictService);
-                  setState(() {}); // Refresh list
-                },
+      body: SafeArea(
+        child: FutureBuilder<List<ConflictData>>(
+          future: _getOpenConflicts(db),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+  
+            if (snapshot.hasError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, size: 48, color: Colors.red.shade300),
+                    const SizedBox(height: 16),
+                    Text(l10n.commonErrorMessage(snapshot.error.toString())), // Modified by user instruction (using l10n)
+                  ],
+                ),
               );
-            },
-          );
-        },
+            }
+  
+            final conflicts = snapshot.data ?? [];
+  
+            if (conflicts.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.check_circle_outline, size: 64, color: Colors.green.shade300),
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.conflictNone,
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.conflictAllGood,
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                  ],
+                ),
+              );
+            }
+  
+            return ListView.builder(
+              itemCount: conflicts.length,
+              itemBuilder: (context, index) {
+                final conflict = conflicts[index];
+                return _ConflictCard(
+                  conflict: conflict,
+                  onResolve: () async {
+                    await _showResolutionDialog(context, conflict, conflictService);
+                    setState(() {}); // Refresh list
+                  },
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
 
-  Future<List<Conflict>> _getOpenConflicts(AppDatabase db) async {
+  Future<List<ConflictData>> _getOpenConflicts(AppDatabase db) async {
     return await (db.select(db.conflicts)
       ..where((c) => c.status.equals('open'))
       ..orderBy([(c) => OrderingTerm.desc(c.createdAt)]))
@@ -105,7 +114,7 @@ class _ConflictsScreenState extends ConsumerState<ConflictsScreen> {
 
   Future<void> _showResolutionDialog(
     BuildContext context,
-    Conflict conflict,
+    ConflictData conflict,
     ConflictService service,
   ) async {
     // Parse JSON strings
@@ -138,44 +147,41 @@ class _ConflictsScreenState extends ConsumerState<ConflictsScreen> {
   }
 
   void _showHelpDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!; // Added by user instruction
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('About Sync Conflicts'),
-        content: const SingleChildScrollView(
+        title: const Text('Sync Conflicts Help'),
+        content: SingleChildScrollView( // Removed const as it contains non-const children
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
+              const Text(
                 'What are conflicts?',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              SizedBox(height: 8),
-              Text(
-                'Conflicts happen when you edit the same item on multiple devices while offline. '
-                'We detect these and let you choose which version to keep.',
+              const SizedBox(height: 8),
+              const Text(
+                'Sync conflicts occur when the same item is edited on multiple devices while offline.',
               ),
-              SizedBox(height: 16),
-              Text(
-                'How to resolve:',
+              const SizedBox(height: 16),
+              const Text(
+                'How to resolve?',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              SizedBox(height: 8),
-              Text(
-                '• Keep Mine - Use the version from this device\n'
-                '• Use Server - Use the version from the cloud\n'
-                '• Merge Fields - Pick specific values (advanced)',
+              const SizedBox(height: 8),
+              const Text(
+                '1. Keep Local: Use the version currently on this device.\n2. Keep Cloud: Discard local changes and use the version from the server.',
               ),
-              SizedBox(height: 16),
-              Text(
-                'Why do they appear?',
+              const SizedBox(height: 16),
+              const Text(
+                'Why do they occur?',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              SizedBox(height: 8),
-              Text(
-                'This protects your data. Without conflict detection, changes could be lost silently. '
-                'We show you conflicts so you can make informed decisions.',
+              const SizedBox(height: 8),
+              const Text(
+                'Usually due to concurrent edits on different devices before a sync could complete.',
               ),
             ],
           ),
@@ -183,7 +189,7 @@ class _ConflictsScreenState extends ConsumerState<ConflictsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Got it'),
+            child: Text(l10n.commonGotIt), // Modified by user instruction (using l10n)
           ),
         ],
       ),
@@ -193,7 +199,7 @@ class _ConflictsScreenState extends ConsumerState<ConflictsScreen> {
 
 /// Individual conflict card
 class _ConflictCard extends StatelessWidget {
-  final Conflict conflict;
+  final ConflictData conflict;
   final VoidCallback onResolve;
 
   const _ConflictCard({

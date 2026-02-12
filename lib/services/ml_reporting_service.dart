@@ -6,7 +6,7 @@ import 'email_service.dart';
 /// ML Reporting Service - Sends weekly email reports
 /// Now wired to emailService (Supabase Edge Function + Resend)
 class MLReportingService {
-  final _supabase = Supabase.instance.client;
+
   
   /// Send weekly ML performance report
   /// 

@@ -1,11 +1,10 @@
-library;
-
 import 'dart:convert';
-import 'dart:io';
+
+import 'package:cross_file/cross_file.dart';
+
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 
 import '../../../data/drift/app_database.dart';
@@ -27,6 +26,7 @@ class BackupRestoreController with ErrorHandlerMixin {
     try {
       final db = ref.read(databaseProvider);
       final userId = ref.read(currentUserIdProvider);
+      final backupService = ref.read(backupServiceProvider);
       
       debugPrint('[Backup] Creating backup (scope: ${scope.name})...');
 
@@ -69,15 +69,16 @@ class BackupRestoreController with ErrorHandlerMixin {
         'data': data,
       };
 
-      // Write to file
-      final dir = await getApplicationDocumentsDirectory();
+      // Write to file (platform abstraction)
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final filePath = '${dir.path}/cashpilot_backup_$timestamp.json';
-      final file = File(filePath);
-      await file.writeAsString(jsonEncode(backup));
+      final fileName = 'cashpilot_backup_$timestamp.json';
+      final backupJson = jsonEncode(backup);
+      
+      final filePath = await backupService.createBackupFile(backupJson, fileName);
 
       final itemCount = _countItems(data);
-      final sizeBytes = await file.length();
+      // Size estimation (approximate for web)
+      final sizeBytes = utf8.encode(backupJson).length;
 
       debugPrint('[Backup] ✅ Created backup: $itemCount items, ${sizeBytes ~/ 1024}KB');
       
@@ -99,9 +100,10 @@ class BackupRestoreController with ErrorHandlerMixin {
   }
 
   /// Analyze a backup file before restoring
-  Future<BackupFileResult> analyzeBackup(File file) async {
+  Future<BackupFileResult> analyzeBackup(XFile file) async {
     try {
       final content = await file.readAsString();
+      
       final backup = jsonDecode(content) as Map<String, dynamic>;
       final manifest = backup['manifest'] as Map<String, dynamic>;
       final data = backup['data'] as Map<String, dynamic>;
@@ -134,7 +136,7 @@ class BackupRestoreController with ErrorHandlerMixin {
   }
 
   /// Restore from backup file
-  Future<RestoreResult> restoreBackup(File file, RestoreMode mode) async {
+  Future<RestoreResult> restoreBackup(XFile file, RestoreMode mode) async {
     try {
       final db = ref.read(databaseProvider);
       
@@ -242,7 +244,7 @@ class BackupRestoreController with ErrorHandlerMixin {
     return count;
   }
 
-  Future<int> _restoreCategories(AppDatabase db, List data, ) async {
+  Future<int> _restoreCategories(AppDatabase db, List data) async {
     // Categories are usually seeded, so we typically skip restore
     return 0;
   }
@@ -285,7 +287,7 @@ class BackupRestoreController with ErrorHandlerMixin {
 
   /// Perform integrity check after restore  
   Future<IntegrityReport> performIntegrityCheck() async {
-    // Temporarily disabled - needs migration from deprec ated Drift customSelect
+    // Temporarily disabled - needs migration from deprecated Drift customSelect
     // This will be reimplemented using AppDatabase helper methods
     debugPrint('[Integrity] Skipping integrity check (under migration)');
     
@@ -295,103 +297,6 @@ class BackupRestoreController with ErrorHandlerMixin {
       invalidCurrencies: [],
       invalidDates: [],
     );
-    
-    /* ORIGINAL CODE - TO BE MIGRATED:
-    try {
-      final db = ref.read(databaseProvider);
-      
-      debugPrint('[Integrity] Running integrity checks...');
-      
-      // 1. Detect orphan expenses (missing budget or account)
-      final orphanExpenses = <OrphanIssue>[];
-      final expensesWithMissingBudget = await db.customSelect('''
-        SELECT e.id, e.title, e.budget_id FROM expenses e
-        LEFT JOIN budgets b ON e.budget_id = b.id
-        WHERE b.id IS NULL AND e.budget_id IS NOT NULL
-      ''').get();
-      
-      for (final row in expensesWithMissingBudget) {
-        orphanExpenses.add(OrphanIssue(
-          id: row.read<String>('id'),
-          title: row.read<String?>('title') ?? 'Untitled',
-          type: 'expense',
-          missingParentId: row.read<String?>('budget_id'),
-        ));
-      }
-      
-      // 2. Detect orphan semi-budgets (missing parent budget)
-      final orphanSemiBudgets = <OrphanIssue>[];
-      final semiBudgetsWithMissingParent = await db.customSelect('''
-        SELECT sb.id, sb.title, sb.parent_budget_id FROM semi_budgets sb
-        LEFT JOIN budgets b ON sb.parent_budget_id = b.id
-        WHERE b.id IS NULL
-      ''').get();
-      
-      for (final row in semiBudgetsWithMissingParent) {
-        orphanSemiBudgets.add(OrphanIssue(
-          id: row.read<String>('id'),
-          title: row.read<String?>('title') ?? 'Untitled',
-          type: 'semi_budget',
-          missingParentId: row.read<String?>('parent_budget_id'),
-        ));
-      }
-      
-      // 3. Detect invalid currencies (not in supported list)
-      final supportedCurrencies = ['EUR', 'USD', 'GBP', 'INR', 'FJD', 'JPY', 'CNY', 'AUD', 'CAD'];
-      final invalidCurrencies = <String>[];
-      
-      final budgetsWithInvalidCurrency = await db.customSelect(
-        '''
-        SELECT DISTINCT currency FROM budgets 
-        WHERE currency NOT IN (${supportedCurrencies.map((_) => '?').join(',')})
-        ''',
-        variables: supportedCurrencies.map((c) => Variable(c)).toList(),
-      ).get();
-      
-      for (final row in budgetsWithInvalidCurrency) {
-        invalidCurrencies.add(row.read<String>('currency'));
-      }
-      
-      // 4. Detect date inconsistencies (end date before start date)
-      final invalidDates = <DateIssue>[];
-      final budgetsWithInvalidDates = await db.customSelect('''
-        SELECT id, title, start_date, end_date FROM budgets
-        WHERE end_date < start_date
-      ''').get();
-      
-      for (final row in budgetsWithInvalidDates) {
-        invalidDates.add(DateIssue(
-          budgetId: row.read<String>('id'),
-          budgetTitle: row.read<String?>('title') ?? 'Untitled',
-          startDate: DateTime.parse(row.read<String>('start_date')),
-          endDate: DateTime.parse(row.read<String>('end_date')),
-        ));
-      }
-      
-      final report = IntegrityReport(
-        orphanExpenses: orphanExpenses,
-        orphanSemiBudgets: orphanSemiBudgets,
-        invalidCurrencies: invalidCurrencies,
-        invalidDates: invalidDates,
-      );
-      
-      if (report.hasIssues) {
-        debugPrint('[Integrity] ⚠️ Found ${report.totalIssues} issue(s)');
-      } else {
-        debugPrint('[Integrity] ✅ No issues found');
-      }
-      
-      return report;
-    } catch (e) {
-      debugPrint('[Integrity] Error during check: $e');
-      return IntegrityReport(
-        orphanExpenses: [],
-        orphanSemiBudgets: [],
-        invalidCurrencies: [],
-        invalidDates: [],
-      );
-    }
-    */
   }
 }
 

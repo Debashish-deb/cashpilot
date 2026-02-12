@@ -12,7 +12,6 @@ import '../../../core/providers/app_providers.dart';
 import '../../../core/logging/logger.dart';
 import '../../../core/services/error_reporter.dart';
 import '../../../domain/budget/budget_domain.dart';
-import '../../sync/services/outbox_service.dart';
 import '../../../services/sync_engine.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/subscription_service.dart';
@@ -420,6 +419,53 @@ class BudgetWithSemiBudgets {
     if (budget.totalLimit == null) return 0;
     return budget.totalLimit! - totalSpent;
   }
+
+  /// Groups semi-budgets by parent ID.
+  /// Key: Parent SemiBudget, Value: List of child SemiBudgets
+  Map<SemiBudget, List<SemiBudget>> get groupedSemiBudgets {
+    final roots = semiBudgets.where((s) => s.parentCategoryId == null).toList();
+    final Map<SemiBudget, List<SemiBudget>> grouped = {};
+    
+    for (final root in roots) {
+      grouped[root] = semiBudgets.where((s) => s.parentCategoryId == root.id).toList();
+    }
+    
+    return grouped;
+  }
+
+  /// Gets total spent for a category including all its subcategories
+  int getAggregatedSpending(String categoryId) {
+    int total = semiBudgetSpending[categoryId] ?? 0;
+    
+    // Find children
+    final children = semiBudgets.where((s) => s.parentCategoryId == categoryId);
+    for (final child in children) {
+      total += semiBudgetSpending[child.id] ?? 0;
+    }
+    
+    return total;
+  }
+
+  /// Gets total limit for a category including all its subcategories
+  int getAggregatedLimit(String categoryId) {
+    final parent = semiBudgets.firstWhere((s) => s.id == categoryId);
+    int total = parent.limitAmount;
+    
+    // In some systems, subcategory limits might be "parts" of the parent limit
+    // or additional. Usually they are parts. 
+    // If the user set a parent limit of 1000 and sub limits totaling 800, 
+    // the parent limit is the source of truth.
+    // If parent limit is 0, we sum sub limits.
+    
+    if (total == 0) {
+      final children = semiBudgets.where((s) => s.parentCategoryId == categoryId);
+      for (final child in children) {
+        total += child.limitAmount;
+      }
+    }
+    
+    return total;
+  }
 }
 
 // ============================================================
@@ -455,7 +501,7 @@ class BudgetController extends StateNotifier<BudgetState> {
   String? get _userId => _ref.read(currentUserIdProvider);
   
   // Phase 1: Outbox service for offline-safe writes
-  OutboxService get _outbox => OutboxService(_db);
+  // OutboxService usage removed in favor of DataBatchSync (Drift/DB)
 
   Future<String> createBudget({
     required String title,
@@ -512,30 +558,7 @@ class BudgetController extends StateNotifier<BudgetState> {
         syncState: const Value('dirty'),
       ));
       
-      // Phase 1: Queue for sync via outbox
-      try {
-        await _outbox.queueEvent(
-          entityType: 'budget',
-          entityId: id,
-          operation: 'create',
-          payload: {
-            'ownerId': _userId!,
-            'title': title,
-            'type': type,
-            'startDate': startDate.toIso8601String(),
-            'endDate': endDate.toIso8601String(),
-            'currency': currency,
-            'totalLimit': totalLimit,
-            'notes': notes,
-            'tags': tags,
-            'status': status,
-            'isShared': isShared,
-          },
-          baseRevision: 0,
-        );
-      } catch (e) {
-        _logger.warning('Outbox queue failed', context: {'error': e.toString()});
-      }
+      // Sync handled by DataBatchSync (dirty flag set above)
       
       _logger.info('Budget created successfully', context: {'id': id, 'title': title});
       errorReporter.addBreadcrumb('Budget created', category: 'budget', data: {'id': id});
@@ -600,26 +623,7 @@ class BudgetController extends StateNotifier<BudgetState> {
         syncState: const Value('dirty'),
       ));
 
-      // Phase 1: Queue for sync via outbox
-      try {
-        await _outbox.queueEvent(
-          entityType: 'budget',
-          entityId: id,
-          operation: 'update',
-          payload: {
-            if (title != null) 'title': title,
-            if (type != null) 'type': type,
-            if (startDate != null) 'startDate': startDate.toIso8601String(),
-            if (endDate != null) 'endDate': endDate.toIso8601String(),
-            if (totalLimit != null) 'totalLimit': totalLimit,
-            if (status != null) 'status': status,
-            if (isShared != null) 'isShared': isShared,
-          },
-          baseRevision: existing.revision,
-        );
-      } catch (e) {
-        print('Outbox queue failed: $e');
-      }
+      // Sync handled by DataBatchSync (dirty flag)
       
       state = state.copyWith(
         isLoading: false, 
@@ -662,10 +666,13 @@ class BudgetController extends StateNotifier<BudgetState> {
     int priority = 3,
     String? iconName,
     String? colorHex,
+    String? parentCategoryId,
+    String? masterCategoryId, // Links to Categories table for proper expense filtering
   }) async {
     state = state.copyWith(isLoading: true, lastOperation: const AsyncValue.loading());
     try {
       final id = _uuid.v4();
+      final isSubcategory = parentCategoryId != null;
       
       await _db.insertSemiBudget(SemiBudgetsCompanion(
         id: Value(id),
@@ -675,27 +682,13 @@ class BudgetController extends StateNotifier<BudgetState> {
         priority: Value(priority),
         iconName: Value(iconName),
         colorHex: Value(colorHex),
+        parentCategoryId: Value(parentCategoryId),
+        isSubcategory: Value(isSubcategory),
+        masterCategoryId: Value(masterCategoryId),
         syncState: const Value('dirty'), 
       ));
       
-      try {
-        await _outbox.queueEvent(
-          entityType: 'semi_budget',
-          entityId: id,
-          operation: 'create',
-          payload: {
-            'budgetId': budgetId,
-            'name': name,
-            'limitAmount': limitAmount,
-            'priority': priority,
-            'iconName': iconName,
-            'colorHex': colorHex,
-          },
-          baseRevision: 0,
-        );
-      } catch (e) {
-        print('Outbox queue failed: $e');
-      }
+      // Sync handled by DataBatchSync
       
       state = state.copyWith(
         isLoading: false,
@@ -718,12 +711,16 @@ class BudgetController extends StateNotifier<BudgetState> {
     int? priority,
     String? iconName,
     String? colorHex,
+    String? parentCategoryId,
+    String? masterCategoryId,
   }) async {
     state = state.copyWith(isLoading: true, lastOperation: const AsyncValue.loading());
     try {
       final existing = await _db.getSemiBudgetById(id);
       if (existing == null) throw Exception('Semi-budget not found');
       
+      final isSubcategory = parentCategoryId != null;
+
       await _db.updateSemiBudget(SemiBudgetsCompanion(
         id: Value(id),
         budgetId: Value(existing.budgetId),
@@ -732,28 +729,16 @@ class BudgetController extends StateNotifier<BudgetState> {
         priority: Value(priority ?? existing.priority),
         iconName: Value(iconName ?? existing.iconName),
         colorHex: Value(colorHex ?? existing.colorHex),
+        parentCategoryId: Value(parentCategoryId), // Allow setting/unsetting
+        isSubcategory: Value(isSubcategory),
+        masterCategoryId: Value(masterCategoryId ?? existing.masterCategoryId),
         createdAt: Value(existing.createdAt),
         updatedAt: Value(DateTime.now()),
         revision: Value(existing.revision + 1),
         isDeleted: Value(existing.isDeleted),
       ));
 
-      try {
-        await _outbox.queueEvent(
-          entityType: 'semi_budget',
-          entityId: id,
-          operation: 'update',
-          payload: {
-            if (name != null) 'name': name,
-            if (limitAmount != null) 'limitAmount': limitAmount,
-            if (iconName != null) 'iconName': iconName,
-            if (colorHex != null) 'colorHex': colorHex,
-          },
-          baseRevision: existing.revision,
-        );
-      } catch (e) {
-        print('Outbox queue failed: $e');
-      }
+      // Sync handled by DataBatchSync (dirty flag)
       
       state = state.copyWith(isLoading: false, lastOperation: const AsyncValue.data(null));
     } catch (e, st) {
@@ -776,17 +761,7 @@ class BudgetController extends StateNotifier<BudgetState> {
         revision: Value(existing.revision + 1), 
       ));
       
-      try {
-        await _outbox.queueEvent(
-          entityType: 'semi_budget',
-          entityId: id,
-          operation: 'delete',
-          payload: {'deletedAt': DateTime.now().toIso8601String()},
-          baseRevision: existing.revision,
-        );
-      } catch (e) {
-         print('Outbox queue failed: $e');
-      }
+      // Sync handled by DataBatchSync (dirty flag)
       
       state = state.copyWith(isLoading: false, lastOperation: const AsyncValue.data(null));
     } catch (e, st) {

@@ -1,16 +1,18 @@
+import 'package:cashpilot/l10n/app_localizations.dart' show AppLocalizations;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cashpilot/core/theme/app_typography.dart';
 import 'package:cashpilot/features/notifications/models/app_notification.dart';
 import 'package:cashpilot/features/notifications/providers/notification_providers.dart';
 import 'package:cashpilot/ui/widgets/common/glass_card.dart';
-import 'package:cashpilot/core/theme/app_colors.dart';
+import 'package:cashpilot/core/theme/tokens.g.dart';
 
 class NotificationDialog extends ConsumerWidget {
   const NotificationDialog({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final notificationsAsync = ref.watch(notificationsProvider);
 
     return Dialog(
@@ -27,7 +29,7 @@ class NotificationDialog extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Notifications', style: AppTypography.titleLarge),
+                Text(l10n.notifTitle, style: AppTypography.titleLarge),
                 IconButton(
                   icon: const Icon(Icons.close),
                   onPressed: () => Navigator.pop(context),
@@ -50,7 +52,7 @@ class NotificationDialog extends ConsumerWidget {
                           children: [
                             Icon(Icons.notifications_none, size: 48, color: Theme.of(context).hintColor),
                             const SizedBox(height: 16),
-                            const Text('No new notifications', textAlign: TextAlign.center),
+                            Text(l10n.notifEmpty, textAlign: TextAlign.center),
                           ],
                         ),
                       );
@@ -65,7 +67,7 @@ class NotificationDialog extends ConsumerWidget {
                     );
                   },
                   loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (e, st) => Center(child: Text('Error: $e')),
+                  error: (e, st) => Center(child: Text(AppLocalizations.of(context)!.commonError)),
                 ),
               ),
             ),
@@ -84,6 +86,7 @@ class _NotificationItem extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isInvite = notification.type == 'budget_invite';
+    final l10n = AppLocalizations.of(context)!;
     final accentColor = Theme.of(context).primaryColor;
 
     return Container(
@@ -105,7 +108,7 @@ class _NotificationItem extends ConsumerWidget {
               Icon(
                 isInvite ? Icons.mail_outline_rounded : Icons.info_outline_rounded,
                 size: 20,
-                color: isInvite ? AppColors.primaryGold : accentColor,
+                color: isInvite ? AppTokens.brandSecondary : accentColor,
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -117,7 +120,7 @@ class _NotificationItem extends ConsumerWidget {
               if (!notification.isRead)
                 Container(
                   width: 8, height: 8,
-                  decoration: BoxDecoration(color: AppColors.danger, shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: AppTokens.semanticDanger, shape: BoxShape.circle),
                 ),
             ],
           ),
@@ -136,13 +139,13 @@ class _NotificationItem extends ConsumerWidget {
                       await NotificationActions.declineBudgetInvite(budgetId);
                       await NotificationActions.markAsRead(notification.id);
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invitation declined')));
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.notifInvitationDeclined)));
                       }
                     } catch (e) {
                       debugPrint('Error declining: $e');
                     }
                   },
-                  child: const Text('Decline', style: TextStyle(color: AppColors.danger)),
+                  child: Text(l10n.notifDecline, style: const TextStyle(color: AppTokens.semanticDanger)),
                 ),
                 const SizedBox(width: 8),
                 FilledButton(
@@ -152,18 +155,18 @@ class _NotificationItem extends ConsumerWidget {
                       await NotificationActions.acceptBudgetInvite(budgetId);
                       await NotificationActions.markAsRead(notification.id);
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Welcome to the budget!')));
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.notifWelcomeToBudget)));
                         Navigator.pop(context);
                       }
                     } catch (e) {
                       debugPrint('Error accepting: $e');
                       if (context.mounted) {
-                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.commonError)));
                       }
                     }
                   },
                   style: FilledButton.styleFrom(backgroundColor: accentColor, visualDensity: VisualDensity.compact),
-                  child: const Text('Accept'),
+                  child: Text(l10n.notifAccept),
                 ),
               ],
             ),

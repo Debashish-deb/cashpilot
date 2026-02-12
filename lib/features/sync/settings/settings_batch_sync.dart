@@ -15,12 +15,9 @@ import '../../../services/subscription_service.dart';
 class SyncableSettings {
   // User preferences
   final String? experienceMode;  // beginner/expert
-  final String? themeMode;       // light/dark/system
-  final String? accentColor;     // hex color
-  final String? currency;        // EUR, USD, etc
-  final String? language;        // en, de, etc
   final String? dateFormat;      // DD/MM/YYYY, etc
   final String? timezone;        // UTC, etc
+  final String? language;        // en, bn, etc
   
   // Security settings
   final bool? biometricEnabled;
@@ -34,10 +31,6 @@ class SyncableSettings {
   
   SyncableSettings({
     this.experienceMode,
-    this.themeMode,
-    this.accentColor,
-    this.currency,
-    this.language,
     this.dateFormat,
     this.timezone,
     this.biometricEnabled,
@@ -46,6 +39,7 @@ class SyncableSettings {
     this.notificationsEnabled,
     this.dataSaverMode,
     this.defaultBudgetView,
+    this.language,
   });
   
   /// Convert to JSON for Supabase upsert
@@ -53,10 +47,6 @@ class SyncableSettings {
     final json = <String, dynamic>{};
     
     if (experienceMode != null) json['experience_mode'] = experienceMode;
-    if (themeMode != null) json['theme_mode'] = themeMode;
-    if (accentColor != null) json['accent_color'] = accentColor;
-    if (currency != null) json['currency'] = currency;
-    if (language != null) json['language'] = language;
     if (dateFormat != null) json['date_format'] = dateFormat;
     if (timezone != null) json['timezone'] = timezone;
     if (biometricEnabled != null) json['biometric_enabled'] = biometricEnabled;
@@ -65,6 +55,7 @@ class SyncableSettings {
     if (notificationsEnabled != null) json['notifications_enabled'] = notificationsEnabled;
     if (dataSaverMode != null) json['data_saver_mode'] = dataSaverMode;
     if (defaultBudgetView != null) json['default_budget_view'] = defaultBudgetView;
+    if (language != null) json['language'] = language;
     
     return json;
   }
@@ -73,10 +64,6 @@ class SyncableSettings {
   factory SyncableSettings.fromPrefs(SharedPreferences prefs) {
     return SyncableSettings(
       experienceMode: prefs.getString('user_mode'),
-      themeMode: prefs.getString('theme_mode'),
-      accentColor: prefs.getString('accent_color'),
-      currency: prefs.getString('currency'),
-      language: prefs.getString('language'),
       dateFormat: prefs.getString('date_format'),
       timezone: prefs.getString('timezone'),
       biometricEnabled: prefs.getBool('biometric_enabled'),
@@ -85,6 +72,7 @@ class SyncableSettings {
       notificationsEnabled: prefs.getBool('notifications_enabled'),
       dataSaverMode: prefs.getBool('data_saver_mode'),
       defaultBudgetView: prefs.getString('default_budget_view'),
+      language: prefs.getString('language'),
     );
   }
   
@@ -92,10 +80,6 @@ class SyncableSettings {
   factory SyncableSettings.fromSupabase(Map<String, dynamic> data) {
     return SyncableSettings(
       experienceMode: data['experience_mode'] as String?,
-      themeMode: data['theme_mode'] as String?,
-      accentColor: data['accent_color'] as String?,
-      currency: data['currency'] as String?,
-      language: data['language'] as String?,
       dateFormat: data['date_format'] as String?,
       timezone: data['timezone'] as String?,
       biometricEnabled: data['biometric_enabled'] as bool?,
@@ -104,16 +88,13 @@ class SyncableSettings {
       notificationsEnabled: data['notifications_enabled'] as bool?,
       dataSaverMode: data['data_saver_mode'] as bool?,
       defaultBudgetView: data['default_budget_view'] as String?,
+      language: data['language'] as String?,
     );
   }
   
   /// Apply settings to SharedPreferences
   Future<void> applyToPrefs(SharedPreferences prefs) async {
     if (experienceMode != null) await prefs.setString('user_mode', experienceMode!);
-    if (themeMode != null) await prefs.setString('theme_mode', themeMode!);
-    if (accentColor != null) await prefs.setString('accent_color', accentColor!);
-    if (currency != null) await prefs.setString('currency', currency!);
-    if (language != null) await prefs.setString('language', language!);
     if (dateFormat != null) await prefs.setString('date_format', dateFormat!);
     if (timezone != null) await prefs.setString('timezone', timezone!);
     if (biometricEnabled != null) await prefs.setBool('biometric_enabled', biometricEnabled!);
@@ -122,15 +103,12 @@ class SyncableSettings {
     if (notificationsEnabled != null) await prefs.setBool('notifications_enabled', notificationsEnabled!);
     if (dataSaverMode != null) await prefs.setBool('data_saver_mode', dataSaverMode!);
     if (defaultBudgetView != null) await prefs.setString('default_budget_view', defaultBudgetView!);
+    if (language != null) await prefs.setString('language', language!);
   }
   
   int get settingsCount {
     int count = 0;
     if (experienceMode != null) count++;
-    if (themeMode != null) count++;
-    if (accentColor != null) count++;
-    if (currency != null) count++;
-    if (language != null) count++;
     if (dateFormat != null) count++;
     if (timezone != null) count++;
     if (biometricEnabled != null) count++;
@@ -178,11 +156,8 @@ class SettingsBatchSync {
       if (settings.language != null) profilePayload['language_preference'] = settings.language;
       // Other native fields...
       
-      // Mapped Metadata fields (Theme, Currency, Security)
+      // Mapped Metadata fields (Security & Display)
       final metadata = <String, dynamic>{};
-      if (settings.themeMode != null) metadata['theme_mode'] = settings.themeMode;
-      if (settings.accentColor != null) metadata['accent_color'] = settings.accentColor;
-      if (settings.currency != null) metadata['currency'] = settings.currency; // Currency often moved to metadata or native
       if (settings.dateFormat != null) metadata['date_format'] = settings.dateFormat;
       if (settings.timezone != null) metadata['timezone'] = settings.timezone;
       if (settings.biometricEnabled != null) metadata['biometric_enabled'] = settings.biometricEnabled;

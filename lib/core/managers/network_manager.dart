@@ -8,7 +8,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '/features/sync/orchestrator/sync_orchestrator.dart';
+import 'package:cashpilot/features/sync/orchestrator/sync_orchestrator.dart';
 
 /// Provider for NetworkManager
 final networkManagerProvider = Provider<NetworkManager>((ref) {

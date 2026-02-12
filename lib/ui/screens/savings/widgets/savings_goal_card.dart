@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../data/drift/app_database.dart';
+import 'package:intl/intl.dart';
+import 'package:cashpilot/l10n/app_localizations.dart';
+import 'contribute_dialog.dart';
+import 'withdraw_dialog.dart';
+import '../../../../features/savings_goals/domain/entities/savings_goal.dart'; // Correct entity
 import '../../../../core/theme/app_typography.dart';
 import '../../../widgets/common/app_grade_icons.dart';
 import '../../../widgets/common/glass_card.dart';
@@ -18,6 +22,11 @@ class SavingsGoalCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final format = NumberFormat.currency(
+      locale: AppLocalizations.of(context)!.localeName, // Corrected line
+      symbol: goal.currency, // Added symbol for currency formatting
+      decimalDigits: 0, // Assuming whole numbers for currency display
+    );
     final percent = (goal.currentAmount / goal.targetAmount).clamp(0.0, 1.0);
     final color = goal.colorHex != null 
         ? Color(int.parse(goal.colorHex!.replaceFirst('#', '0xFF'))) 
@@ -65,15 +74,50 @@ class SavingsGoalCard extends ConsumerWidget {
             ],
           ),
           const Spacer(),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => showDialog(
+                    context: context,
+                    builder: (context) => ContributeDialog(goal: goal),
+                  ),
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Add Money'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: color,
+                    side: BorderSide(color: color),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => showDialog(
+                    context: context,
+                    builder: (context) => WithdrawDialog(goal: goal),
+                   ),
+                  icon: const Icon(Icons.remove, size: 16),
+                  label: const Text('Withdraw'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red.shade300,
+                    side: BorderSide(color: Colors.red.shade300),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                _formatCurrency(goal.currentAmount, goal.currency),
+                _formatCurrency(context, goal.currentAmount, goal.currency),
                 style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.bold, color: color),
               ),
               Text(
-                _formatCurrency(goal.targetAmount, goal.currency),
+                _formatCurrency(context, goal.targetAmount, goal.currency),
                 style: AppTypography.bodySmall.copyWith(color: Colors.grey),
               ),
             ],
@@ -97,7 +141,7 @@ class SavingsGoalCard extends ConsumerWidget {
     return '${date.day}/${date.month}/${date.year}';
   }
 
-  String _formatCurrency(int amountInCents, String currency) {
+  String _formatCurrency(BuildContext context, int amountInCents, String currency) {
     final amount = amountInCents / 100.0;
     // Basic formatting - in a real app use intl package
     return '${_getCurrencySymbol(currency)}${amount.toStringAsFixed(0)}';

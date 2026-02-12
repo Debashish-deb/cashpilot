@@ -2,19 +2,17 @@
 /// Displays expenses grouped by date with sticky headers
 library;
 
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
-import 'package:path/path.dart' show context;
 
 import '../../../core/constants/app_routes.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/tokens.g.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/drift/app_database.dart';
 import 'package:cashpilot/l10n/app_localizations.dart';
 import '../../../core/utils/date_formatter.dart';
+import '../../../core/helpers/localized_category_helper.dart';
 
 /// Types of date grouping for expenses
 enum DateGroupType {
@@ -245,23 +243,18 @@ class GroupedExpenseList extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(top: 16, bottom: 8),
-      child: ClipRRect(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark 
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.black.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(12),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: isDark 
-                  ? Colors.white.withValues(alpha: 0.06)
-                  : Colors.black.withValues(alpha: 0.04),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isDark 
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : Colors.black.withValues(alpha: 0.06),
-              ),
-            ),
+        border: Border.all(
+          color: isDark 
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.black.withValues(alpha: 0.05),
+        ),
+      ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -303,15 +296,12 @@ class GroupedExpenseList extends StatelessWidget {
                   '$currency${total.toStringAsFixed(2)}',
                   style: AppTypography.labelMedium.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: AppColors.danger,
+                    color: AppTokens.semanticDanger,
                     letterSpacing: -0.3,
                   ),
                 ),
               ],
             ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -332,10 +322,10 @@ class GroupedExpenseList extends StatelessWidget {
         padding: const EdgeInsets.only(right: 20),
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: AppColors.danger.withValues(alpha: 0.1),
+          color: AppTokens.semanticDanger.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(14),
         ),
-        child: const Icon(Icons.delete_outline, color: AppColors.danger),
+        child: const Icon(Icons.delete_outline, color: AppTokens.semanticDanger),
       ),
       confirmDismiss: (_) async {
         HapticFeedback.mediumImpact();
@@ -371,11 +361,12 @@ class GroupedExpenseList extends StatelessWidget {
           child: Row(
             children: [
               // Category icon
+              // Category icon
               Container(
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: categoryColor.withValues(alpha: 0.12),
+                  color: categoryColor, 
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
@@ -395,17 +386,31 @@ class GroupedExpenseList extends StatelessWidget {
                     Text(
                       expense.title,
                       style: AppTypography.bodyMedium.copyWith(
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                         letterSpacing: -0.2,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 1),
+                    Text(
+                      LocalizedCategoryHelper.getLocalizedHierarchy(
+                        context, 
+                        expense.categoryId, 
+                        expense.subCategoryId
+                      ),
+                      style: AppTypography.labelSmall.copyWith(
+                        color: theme.colorScheme.primary.withOpacity(0.8),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
                     Text(
                       _formatTime(expense.date, context),
                       style: AppTypography.labelSmall.copyWith(
                         color: isDark ? Colors.white54 : Colors.black45,
+                        fontSize: 9,
                         letterSpacing: -0.1,
                       ),
                     ),

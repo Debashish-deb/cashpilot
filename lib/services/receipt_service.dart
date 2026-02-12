@@ -1,7 +1,6 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:mime/mime.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/utils/validators.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -25,7 +24,7 @@ class ReceiptUploader {
   /// Returns a public URL of the uploaded file.
   /// Throws a controlled [Exception] if upload fails.
   Future<String> uploadReceipt({
-    required File file,
+    required XFile file,
     required String expenseId,
     required String budgetId,
   }) async {
@@ -34,10 +33,7 @@ class ReceiptUploader {
       throw Exception('User not authenticated');
     }
 
-    if (!file.existsSync()) {
-      throw Exception('Receipt file not found');
-    }
-
+    // XFile doesn't have existsSync(), relying on length check or read error
     final fileSize = await file.length();
     if (fileSize <= 0) {
       throw Exception('Receipt file is empty');
@@ -48,7 +44,13 @@ class ReceiptUploader {
     }
 
     // Validate MIME type (security)
-    final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
+    // On web, file.path is a blob URL, so lookupMimeType might fail or return null.
+    // Try file.mimeType first (if available from picker).
+    String? mimeType = file.mimeType;
+    if (mimeType == null || mimeType.isEmpty) {
+       mimeType = lookupMimeType(file.name) ?? 'application/octet-stream';
+    }
+    
     if (!Validators.isValidReceiptMimeType(mimeType)) {
       throw Exception(
         'Invalid file type. Allowed: ${Validators.getAllowedReceiptExtensions().join(", ")}',
@@ -56,7 +58,7 @@ class ReceiptUploader {
     }
 
     final userId = user.id;
-    final fileExtension = _safeFileExtension(file.path);
+    final fileExtension = _safeFileExtension(file.name); // Use file.name for web safety
     final contentType = _contentTypeForExtension(fileExtension);
     final uniqueId = _uuid.v4();
 
@@ -98,8 +100,6 @@ class ReceiptUploader {
     } on StorageException catch (e, stack) {
       debugPrint('StorageException: ${e.message}\n$stack');
       throw Exception('Receipt upload failed (storage error)');
-    } on FileSystemException catch (e) {
-      throw Exception('Receipt file access error: ${e.message}');
     } catch (e, stack) {
       debugPrint('Receipt upload error: $e\n$stack');
       throw Exception('Receipt upload failed');

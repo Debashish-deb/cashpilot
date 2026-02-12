@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cashpilot/l10n/app_localizations.dart';
 import '../../../core/providers/sync_providers.dart';
+import '../../../services/sync/conflict_service.dart';
 
 /// Conflict Resolution Dialog
 /// Allows users to resolve sync conflicts with three strategies:
@@ -28,6 +30,7 @@ class ConflictResolutionDialog extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final conflictService = ref.read(conflictServiceProvider);
+    final l10n = AppLocalizations.of(context)!;
     
     return AlertDialog(
       title: Row(
@@ -60,11 +63,11 @@ class ConflictResolutionDialog extends ConsumerWidget {
         // Keep Local
         TextButton.icon(
           icon: const Icon(Icons.phone_android),
-          label: const Text('Keep My Changes'),
+          label: Text(l10n.conflictKeepLocal),
           onPressed: () async {
             await conflictService.resolveConflict(
               conflictId: conflictId,
-              resolution: 'keep_local',
+              resolution: ConflictResolution.keepLocal,
             );
             if (context.mounted) Navigator.of(context).pop('local');
           },
@@ -72,11 +75,11 @@ class ConflictResolutionDialog extends ConsumerWidget {
         // Use Server
         TextButton.icon(
           icon: const Icon(Icons.cloud),
-          label: const Text('Use Server Version'),
+          label: Text(l10n.conflictKeepCloud),
           onPressed: () async {
             await conflictService.resolveConflict(
               conflictId: conflictId,
-              resolution: 'use_server',
+              resolution: ConflictResolution.keepRemote,
             );
             if (context.mounted) Navigator.of(context).pop('server');
           },

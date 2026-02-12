@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../features/expenses/providers/expense_providers.dart';
+import '../../../../core/theme/tokens.g.dart';
+import 'package:cashpilot/features/auth/providers/auth_provider.dart';
+import '../../../../core/providers/intelligence_providers.dart';
+import '../../../../core/engines/generators/insight_generator.dart';
+import '../../../../core/engines/models/intelligence_models.dart';
 import '../../../../features/budgets/providers/budget_providers.dart';
+import '../../../../features/expenses/providers/expense_providers.dart';
 
 class InsightStory {
   final String id;
@@ -33,39 +37,68 @@ class StoryPage {
     this.chartData,
     required this.bigValue,
     this.backgroundGradient,
+    this.suggestedTopic,
   });
+
+  final String? suggestedTopic;
 }
 
-class SpendingStoriesList extends ConsumerWidget {
+class SpendingStoriesList extends ConsumerStatefulWidget {
   const SpendingStoriesList({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // We compute stories reactively from providers
+  ConsumerState<SpendingStoriesList> createState() => _SpendingStoriesListState();
+}
+
+class _SpendingStoriesListState extends ConsumerState<SpendingStoriesList> {
+  List<InsightStory> _cachedStories = [];
+
+  @override
+  Widget build(BuildContext context) {
+    // Watch providers
     final expensesAsync = ref.watch(recentExpensesProvider);
     final budgetsAsync = ref.watch(activeBudgetsProvider);
     final monthSpendingAsync = ref.watch(thisMonthSpendingProvider);
     final budgetStats = ref.watch(budgetStatisticsProvider);
 
+    // If any data is available, try to generate stories
     final expenses = expensesAsync.value ?? [];
-    final budgets = budgetsAsync.value ?? [];
-    final monthSpent = monthSpendingAsync.value ?? 0;
+    
+    // NEW: Pull Behavioral Intelligence
+    final user = ref.watch(currentUserProvider);
+    final intelligenceAsync = user != null 
+        ? ref.watch(spendingIntelligenceProvider(SpendingParams(userId: user.id)))
+        : const AsyncValue<SpendingIntelligence>.loading();
 
-    // Always show something if data exists, or mocked placeholders for "Day 1" vibe
-    if (expenses.isEmpty) return const SizedBox.shrink(); 
-
-    final stories = _generateStories(expenses, budgets, monthSpent, budgetStats);
+    // Logic: If we have data, generate and update cache.
+    if (expenses.isNotEmpty) {
+       final budgets = budgetsAsync.value ?? [];
+       final monthSpent = monthSpendingAsync.value ?? 0;
+       final intelligence = intelligenceAsync.value;
+       
+       _cachedStories = _generateStories(
+         expenses, 
+         budgets, 
+         monthSpent, 
+         budgetStats,
+         intelligence,
+       );
+    }
+    
+    // If cache is still empty (first load), and we are loading, return nothing/shimmer.
+    // If we have cache, show it even if currently reloading.
+    if (_cachedStories.isEmpty) return const SizedBox.shrink();
 
     return SizedBox(
-      height: 125, // Increased from 110 to prevent bottom overflow
+      height: 125, 
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-        itemCount: stories.length,
+        itemCount: _cachedStories.length,
         separatorBuilder: (_, __) => const SizedBox(width: 16),
         itemBuilder: (context, index) {
-          final story = stories[index];
-          return _StoryBubble(story: story);
+          final story = _cachedStories[index];
+          return _StoryBubble(key: ValueKey('story_${story.id}'), story: story);
         },
       ),
     );
@@ -75,73 +108,106 @@ class SpendingStoriesList extends ConsumerWidget {
       List<dynamic> expenses, 
       List<dynamic> budgets, 
       int monthSpent,
-      BudgetStatistics stats
+      BudgetStatistics stats,
+      SpendingIntelligence? intelligence,
   ) {
+    final stories = <InsightStory>[];
+
     // 1. Weekly Recap
     final weeklySpend = expenses.fold(0.0, (sum, e) => sum + (e.amount as int)); 
-    
+    stories.add(InsightStory(
+      id: 'weekly',
+      title: 'Recap',
+      icon: '📊',
+      color: Colors.purple,
+      pages: [
+        StoryPage(
+          text: 'This Week',
+          bigValue: '€${(weeklySpend / 100).toStringAsFixed(0)}',
+          subtext: 'Total spent recently.',
+        ),
+      ],
+    ));
+
     // 2. Forecast Logic
     final now = DateTime.now();
     final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
     final dailyAvg = monthSpent / now.day;
-    final projected = dailyAvg * daysInMonth; // Projected total for month
-    final totalBudget = stats.totalBudget; // Total limit of all active budgets
+    final projected = dailyAvg * daysInMonth; 
+    final totalBudget = stats.totalBudget; 
     
     String forecastStatus = "Stable";
     String forecastSubtext = "You are spending at a normal pace.";
-    Color forecastColor = AppColors.primaryGreen;
+    Color forecastColor = AppTokens.semanticSuccess;
 
     if (totalBudget > 0) {
       if (projected > totalBudget) {
         forecastStatus = "Tight";
         forecastSubtext = "Pacing to exceed budget by €${((projected - totalBudget) / 100).toStringAsFixed(0)}.";
-        forecastColor = AppColors.warning;
+        forecastColor = AppTokens.semanticWarning;
       } else if (projected < totalBudget * 0.8) {
          forecastStatus = "Great";
          forecastSubtext = "On track to save ~€${((totalBudget - projected) / 100).toStringAsFixed(0)}!";
       }
     }
 
-    return [
-      InsightStory(
-        id: 'weekly',
-        title: 'Recap',
-        icon: '📊',
-        color: Colors.purple,
-        pages: [
-          StoryPage(
-            text: 'This Week',
-            bigValue: '€${(weeklySpend / 100).toStringAsFixed(0)}',
-            subtext: 'Total spent recently.',
-          ),
-        ],
-      ),
-      InsightStory(
-        id: 'forecast',
-        title: 'Forecast',
-        icon: '🔮',
-        color: forecastColor,
-        pages: [
-          StoryPage(
-            text: 'Projection',
-            bigValue: forecastStatus,
-            subtext: forecastSubtext,
-            backgroundGradient: forecastStatus == "Tight" 
-                ? AppColors.sunsetOrangeGradient 
-                : AppColors.greenGradient,
-          ),
-           StoryPage(
-            text: 'Month End',
-            bigValue: '€${(projected / 100).toStringAsFixed(0)}',
-            subtext: 'Estimated total if you keep this up.',
-          ),
-        ],
-      ),
-       InsightStory(
-        id: 'tips',
+    stories.add(InsightStory(
+      id: 'forecast',
+      title: 'Forecast',
+      icon: '🔮',
+      color: forecastColor,
+      pages: [
+        StoryPage(
+          text: 'Projection',
+          bigValue: forecastStatus,
+          subtext: forecastSubtext,
+          backgroundGradient: forecastStatus == "Tight" 
+              ? LinearGradient(colors: AppTokens.dangerGradient) 
+              : LinearGradient(colors: AppTokens.successGradient),
+        ),
+         StoryPage(
+          text: 'Month End',
+          bigValue: '€${(projected / 100).toStringAsFixed(0)}',
+          subtext: 'Estimated total if you keep this up.',
+        ),
+      ],
+    ));
+
+    // 3. Behavioral Insights (Phase B)
+    if (intelligence != null) {
+      final generatedInsights = InsightGenerator.generateInsights(intelligence);
+      
+      for (final insight in generatedInsights) {
+        stories.add(InsightStory(
+          id: 'behavioral_${insight.suggestedTopic ?? insight.title}',
+          title: 'Insight',
+          icon: _getIconForInsightType(insight.type),
+          color: _getColorForImpact(insight.impact),
+          pages: [
+            StoryPage(
+              text: insight.title,
+              bigValue: insight.type == InsightType.behavioral ? 'Mood Check' : 'Tip',
+              subtext: insight.narrative,
+              suggestedTopic: insight.suggestedTopic,
+            ),
+            StoryPage(
+              text: 'Pro Tip',
+              bigValue: 'Action',
+              subtext: insight.actionableAdvice,
+              suggestedTopic: insight.suggestedTopic,
+            ),
+          ],
+        ));
+      }
+    }
+
+    // 4. Default Insight if none from behavioral (fallback)
+    if (stories.length < 3) {
+      stories.add(InsightStory(
+        id: 'default_tip',
         title: 'Insights',
         icon: '✨',
-        color: AppColors.primaryGold,
+        color: AppTokens.brandSecondary,
         pages: [
           StoryPage(
             text: 'Little Win',
@@ -149,14 +215,33 @@ class SpendingStoriesList extends ConsumerWidget {
             subtext: 'Skipping one treat today keeps you green.',
           ),
         ],
-      ),
-    ];
+      ));
+    }
+
+    return stories;
+  }
+
+  Color _getColorForImpact(InsightImpact impact) {
+    switch (impact) {
+      case InsightImpact.high: return AppTokens.semanticWarning;
+      case InsightImpact.medium: return AppTokens.brandSecondary;
+      case InsightImpact.low: return AppTokens.semanticSuccess;
+    }
+  }
+
+  String _getIconForInsightType(InsightType type) {
+    switch (type) {
+      case InsightType.behavioral: return '🧠';
+      case InsightType.savings: return '💰';
+      case InsightType.trend: return '📈';
+      case InsightType.warning: return '⚠️';
+    }
   }
 }
 
 class _StoryBubble extends StatelessWidget {
   final InsightStory story;
-  const _StoryBubble({required this.story});
+  const _StoryBubble({super.key, required this.story});
 
   @override
   Widget build(BuildContext context) {
@@ -174,19 +259,8 @@ class _StoryBubble extends StatelessWidget {
             height: 70,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [story.color, story.color.withValues(alpha: 0.6)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              border: Border.all(color: AppColors.primaryGold, width: 2), // Ring status
-              boxShadow: [
-                BoxShadow(
-                  color: story.color.withValues(alpha: 0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                )
-              ],
+              color: story.color,
+              border: Border.all(color: AppTokens.brandSecondary, width: 2), // Ring status
             ),
             alignment: Alignment.center,
             child: Text(story.icon, style: const TextStyle(fontSize: 30)),
@@ -339,12 +413,32 @@ class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStat
                         Text(
                           p.subtext!,
                           textAlign: TextAlign.center,
-                            style: const TextStyle(
+                          style: const TextStyle(
                             fontSize: 18,
                             color: Colors.white54,
                           ),
                         ),
-                      ]
+                      ],
+                      if (p.suggestedTopic != null) ...[
+                        const SizedBox(height: 30),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                             Navigator.of(context).pop();
+                             ScaffoldMessenger.of(context).showSnackBar(
+                               SnackBar(content: Text('Exploring topic: ${p.suggestedTopic}')),
+                             );
+                          },
+                          icon: const Icon(Icons.auto_stories_rounded),
+                          label: const Text('Practice this skill'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white.withValues(alpha: 0.2),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 );

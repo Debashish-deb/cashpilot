@@ -345,7 +345,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
             .from('profiles')
             .select('subscription_tier, subscription_expires_at, ocr_usage_count')
             .eq('id', user.id)
-            .single();
+            .single()
+            .timeout(const Duration(seconds: 5));
         
         subscriptionTier = profile['subscription_tier'] ?? 'free';
         if (profile['subscription_expires_at'] != null) {

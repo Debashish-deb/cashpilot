@@ -350,7 +350,7 @@ class CategoryIntelligenceModule {
       
       if (allTxs.isEmpty) return 0.0;
       
-      final total = allTxs.fold(0, (sum, row) => sum + (row.read<int>('amount') ?? 0));
+      final total = allTxs.fold(0, (sum, row) => sum + row.read<int>('amount'));
       final avg = total / 3; // Average per month
       
       if (avg == 0) return 0.0;

@@ -358,18 +358,19 @@ class _UserAgreementScreenState extends State<UserAgreementScreen> {
                       ],
                     ),
 
-                  Row(
-                    children: [
-                      Icon(
-                        _nearEnd ? Icons.verified_user_outlined : Icons.info_outline,
-                        size: 20,
-                        color: _nearEnd
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.onSurface.withValues(alpha: 0.55),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        Icon(
+                          _nearEnd ? Icons.verified_user_outlined : Icons.info_outline,
+                          size: 20,
+                          color: _nearEnd
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
                           widget.requireScrollToEnd && !_nearEnd
                               ? l10n.legalScrollToEnable
                               : l10n.legalByContinuing,
@@ -377,47 +378,48 @@ class _UserAgreementScreenState extends State<UserAgreementScreen> {
                             color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-
-                      // Decline (optional but recommended for compliance)
-                      TextButton(
-                        onPressed: _loadingPrefs ? null : _decline,
-                        child: Text(l10n.legalDecline),
-                      ),
-                      const SizedBox(width: 6),
-
-                      FilledButton(
-                        onPressed: _canAccept ? _accept : _scrollToBottom,
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 18,
-                            vertical: 12,
+                        const SizedBox(width: 24),
+                  
+                        // Decline (optional but recommended for compliance)
+                        TextButton(
+                          onPressed: _loadingPrefs ? null : _decline,
+                          child: Text(l10n.legalDecline, maxLines: 1),
+                        ),
+                        const SizedBox(width: 6),
+                  
+                        FilledButton(
+                          onPressed: _canAccept ? _accept : _scrollToBottom,
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                          child: AnimatedSwitcher(
+                            duration: reduceMotion
+                                ? Duration.zero
+                                : const Duration(milliseconds: 180),
+                            child: _loadingPrefs
+                                ? const SizedBox(
+                                    key: ValueKey('loading'),
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : Text(
+                                    _alreadyAccepted 
+                                        ? l10n.commonClose
+                                        : (_canAccept ? l10n.legalAccept : l10n.legalReadMore),
+                                    key: ValueKey(_alreadyAccepted ? 'close' : (_canAccept ? 'accept' : 'read')),
+                                    maxLines: 1,
+                                  ),
                           ),
                         ),
-                        child: AnimatedSwitcher(
-                          duration: reduceMotion
-                              ? Duration.zero
-                              : const Duration(milliseconds: 180),
-                          child: _loadingPrefs
-                              ? const SizedBox(
-                                  key: ValueKey('loading'),
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : Text(
-                                  _alreadyAccepted 
-                                      ? l10n.commonClose
-                                      : (_canAccept ? l10n.legalAccept : l10n.legalReadMore),
-                                  key: ValueKey(_alreadyAccepted ? 'close' : (_canAccept ? 'accept' : 'read')),
-                                ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),

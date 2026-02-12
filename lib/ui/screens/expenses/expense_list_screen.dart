@@ -26,11 +26,12 @@ class ExpenseListScreen extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
     
     return Scaffold(
-      backgroundColor: isDark ? Colors.black : theme.scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)!.expensesTitle),
         centerTitle: true,
         elevation: 0,
+        scrolledUnderElevation: 0,
         actions: [
           IconButton(
             icon: Container(
@@ -51,55 +52,57 @@ class ExpenseListScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return Column(
-            children: [
-              // Filter bar
-              ExpenseFilterBar(
-            showBudgetTypeFilter: false, // We're already in a specific budget
-            onCustomDateTap: () => _showDateRangePicker(context, ref),
-          ),
-          
-          // Expenses list
-          Expanded(
-            child: StreamBuilder<List<Expense>>(
-              stream: db.watchExpensesByBudgetId(budgetId),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                        const SizedBox(height: 16),
-                        Text('Error: ${snapshot.error}'),
-                      ],
-                    ),
-                  );
-                }
-                
-                final allExpenses = snapshot.data ?? [];
-                
-                // Apply time filter
-                final filteredExpenses = _filterExpenses(allExpenses, filter);
-                
-                return GroupedExpenseList(
-                  expenses: filteredExpenses,
-                  onDismiss: (expense) async {
-                    await db.deleteExpense(expense.id);
-                  },
-                );
-              },
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return Column(
+              children: [
+                // Filter bar
+                ExpenseFilterBar(
+              showBudgetTypeFilter: false, // We're already in a specific budget
+              onCustomDateTap: () => _showDateRangePicker(context, ref),
             ),
-          ),
-            ],
-          );
-        },
+            
+            // Expenses list
+            Expanded(
+              child: StreamBuilder<List<Expense>>(
+                stream: db.watchExpensesByBudgetId(budgetId),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                          const SizedBox(height: 16),
+                          Text(AppLocalizations.of(context)!.commonErrorMessage(snapshot.error.toString())),
+                        ],
+                      ),
+                    );
+                  }
+                  
+                  final allExpenses = snapshot.data ?? [];
+                  
+                  // Apply time filter
+                  final filteredExpenses = _filterExpenses(allExpenses, filter);
+                  
+                  return GroupedExpenseList(
+                    expenses: filteredExpenses,
+                    onDismiss: (expense) async {
+                      await db.deleteExpense(expense.id);
+                    },
+                  );
+                },
+              ),
+            ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

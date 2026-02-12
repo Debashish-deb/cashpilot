@@ -55,7 +55,7 @@ class InsightCardWidget extends StatelessWidget {
                   message,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     height: 1.4,
-                    color: theme.colorScheme.onSurface.withOpacity(0.75),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
                   ),
                 ),
                 if (onAction != null) ...[
@@ -76,7 +76,7 @@ class InsightCardWidget extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.12),
+            color: color.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: color, size: 20),
@@ -94,7 +94,7 @@ class InsightCardWidget extends StatelessWidget {
           IconButton(
             tooltip: 'Dismiss insight',
             icon: const Icon(Icons.close, size: 20),
-            color: theme.colorScheme.onSurface.withOpacity(0.6),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             onPressed: onDismiss,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),

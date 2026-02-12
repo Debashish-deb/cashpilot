@@ -66,6 +66,9 @@ class AnalyticsManager {
 
     // Fire-and-forget background safety checks
     unawaited(_runStartupChecks());
+    
+    // Initialize Intelligence Engine (includes knowledge seeding)
+    unawaited(initializeIntelligenceEngine());
   }
 
   // STARTUP CHECKS

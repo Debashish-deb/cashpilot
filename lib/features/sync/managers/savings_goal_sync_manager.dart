@@ -1,18 +1,18 @@
+import 'package:cashpilot/features/sync/services/sync_checkpoint_service.dart' show SyncCheckpointService;
 import 'package:flutter/foundation.dart';
 import 'package:drift/drift.dart';
 import 'base_sync_manager.dart';
 import '../../../data/drift/app_database.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/device_info_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cashpilot/features/sync/services/sync_checkpoint_service.dart';
 
 class SavingsGoalSyncManager implements BaseSyncManager<SavingsGoal> {
   final AppDatabase db;
   final AuthService authService;
-  final SharedPreferences prefs;
-  static const _syncKey = 'last_savings_goals_sync_iso';
+  final SyncCheckpointService checkpointService;
 
-  SavingsGoalSyncManager(this.db, this.authService, this.prefs);
+  SavingsGoalSyncManager(this.db, this.authService, this.checkpointService);
 
   @override
   Future<void> syncUp(String id) async {
@@ -103,15 +103,16 @@ class SavingsGoalSyncManager implements BaseSyncManager<SavingsGoal> {
 
     int count = 0;
     try {
-      final lastSyncStr = prefs.getString(_syncKey);
+      final checkpoint = await checkpointService.getCheckpoint('savings_goals');
+      final lastSyncAt = checkpoint.lastSyncAt;
       
       var query = authService.client
           .from('savings_goals')
           .select()
           .eq('user_id', userId);
       
-      if (lastSyncStr != null) {
-        query = query.gt('updated_at', lastSyncStr);
+      if (lastSyncAt != null) {
+        query = query.gt('updated_at', lastSyncAt.toIso8601String());
       }
 
       final remoteGoals = await query;
@@ -132,7 +133,7 @@ class SavingsGoalSyncManager implements BaseSyncManager<SavingsGoal> {
       }
       
       if (maxUpdated != null) {
-        await prefs.setString(_syncKey, maxUpdated.toIso8601String());
+        await checkpointService.updateCheckpoint('savings_goals', lastSyncAt: maxUpdated);
       }
       
       if (count > 0) {

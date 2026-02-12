@@ -184,6 +184,7 @@ class BudgetMembersSection extends ConsumerWidget {
   }
   
   void _showInviteDialog(BuildContext context, WidgetRef ref) {
+    final parentContext = context;
     final emailController = TextEditingController();
     String role = 'editor';
     bool sendEmail = true;
@@ -259,7 +260,7 @@ class BudgetMembersSection extends ConsumerWidget {
                 if (email.isEmpty) return;
                 
                 Navigator.pop(context);
-                await _inviteMember(context, ref, email, role, sendEmail);
+                await _inviteMember(parentContext, ref, email, role, sendEmail);
               },
               child: const Text('Send Invite'),
             ),
@@ -281,7 +282,7 @@ class BudgetMembersSection extends ConsumerWidget {
         memberEmail: email,
         role: role,
         status: const Value('pending'),
-        invitedBy: const Value('me'),
+        invitedBy: Value(ref.read(currentUserIdProvider)!),
         invitedAt: Value(DateTime.now()),
       ));
       

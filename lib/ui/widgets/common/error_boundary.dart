@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/tokens.g.dart';
 import '../../../core/services/error_reporter.dart';
+import '../../../l10n/app_localizations.dart';
 import 'cp_app_icon.dart';
 
 /// A global error boundary that catches exceptions in its child's widget tree.
@@ -107,6 +108,7 @@ class ProductionErrorUI extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -118,10 +120,10 @@ class ProductionErrorUI extends StatelessWidget {
             children: [
               CPAppIcon(
                 icon: Icons.error_outline_rounded,
-                color: AppColors.error,
+                color: AppTokens.semanticDanger,
                 size: 80,
                 iconSize: 40,
-                useGradient: true,
+                useGradient: false,
               ),
               const SizedBox(height: 32),
               Text(
@@ -145,7 +147,7 @@ class ProductionErrorUI extends StatelessWidget {
                 child: FilledButton.icon(
                   onPressed: onRetry,
                   icon: const Icon(Icons.refresh_rounded),
-                  label: const Text('Try Again'),
+                  label: Text(l10n.commonTryAgain),
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.all(16),
                     shape: RoundedRectangleBorder(
@@ -159,7 +161,7 @@ class ProductionErrorUI extends StatelessWidget {
                 onPressed: () {
                   // Additional help or contact support logic
                 },
-                child: const Text('Contact Support'),
+                child: Text(AppLocalizations.of(context)!.commonContactSupport),
               ),
               if (true) // In debug or internal builds, show error details
                 Padding(

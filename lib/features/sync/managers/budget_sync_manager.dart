@@ -1,28 +1,28 @@
 import 'dart:convert';
 
+import 'package:cashpilot/features/sync/services/sync_checkpoint_service.dart' show SyncCheckpointService;
 import 'package:flutter/foundation.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'base_sync_manager.dart';
 import '../../../data/drift/app_database.dart';
 import '../../../services/auth_service.dart';
+import 'package:cashpilot/core/providers/sync_providers.dart';
 import '../../../services/device_info_service.dart';
 import '../../../services/sync/conflict_service.dart';
 import '../../../services/sync/hash_service.dart';
 import '../services/atomic_sync_state_service.dart';
 import '../../../core/mixins/error_handler_mixin.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class BudgetSyncManager with ErrorHandlerMixin implements BaseSyncManager<Budget> {
   final AppDatabase db;
   final AuthService authService;
-  final SharedPreferences prefs;
+  final SyncCheckpointService checkpointService;
   final Ref ref;
-  static const _syncKey = 'last_budgets_sync_iso';
   
   late final AtomicSyncStateService _atomicState;
 
-  BudgetSyncManager(this.db, this.authService, this.prefs, this.ref) {
+  BudgetSyncManager(this.db, this.authService, this.checkpointService, this.ref) {
     _atomicState = AtomicSyncStateService(db);
   }
 
@@ -265,17 +265,18 @@ class BudgetSyncManager with ErrorHandlerMixin implements BaseSyncManager<Budget
 
     int count = 0;
     try {
-      final lastSyncStr = prefs.getString(_syncKey);
+      final checkpoint = await checkpointService.getCheckpoint('budgets');
+      final lastSyncAt = checkpoint.lastSyncAt;
       
       var query = authService.client
           .from('budgets')
-          .select()
-          .eq('is_deleted', false); // CRITICAL: Don't pull deleted budgets
+          .select();
+          // REMOVED .eq('is_deleted', false) to allow pulling deletion tombstones
           // REMOVED .eq('owner_id', userId) to allow fetching shared budgets via RLS
       
       // Incremental sync: only fetch changes since last sync
-      if (lastSyncStr != null) {
-        query = query.gt('updated_at', lastSyncStr);
+      if (lastSyncAt != null) {
+        query = query.gt('updated_at', lastSyncAt.toIso8601String());
       }
 
       final remoteBudgets = await query;
@@ -297,7 +298,7 @@ class BudgetSyncManager with ErrorHandlerMixin implements BaseSyncManager<Budget
       
       // Save checkpoint if we received data
       if (maxUpdated != null) {
-        await prefs.setString(_syncKey, maxUpdated.toIso8601String());
+        await checkpointService.updateCheckpoint('budgets', lastSyncAt: maxUpdated);
       }
       
       debugPrint('[BudgetSyncManager] Budget sync: Pulled $count budgets');
@@ -420,7 +421,7 @@ class BudgetSyncManager with ErrorHandlerMixin implements BaseSyncManager<Budget
       createdAt: DateTime.tryParse(data['created_at'] as String? ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(data['updated_at'] as String? ?? '') ?? DateTime.now(),
       lastModifiedByDeviceId: data['last_modified_by_device_id'] as String?,
-      metadata: data['metadata'] as Map<String, dynamic>?,
+      metadata: data['metadata'] as Map<String, dynamic>?, lamportClock: 0,
     );
     
     return HashService.generateBudgetHash(tempBudget);

@@ -1,10 +1,12 @@
 /// Application-wide constants for CashPilot
 library;
 
+import 'dart:math' as math;
+
+// APP CONSTANTS
+
 class AppConstants {
-  // ---------------------------------------------------------------------------
   // APP INFO
-  // ---------------------------------------------------------------------------
 
   static const String appName = 'CashPilot';
 
@@ -17,14 +19,19 @@ class AppConstants {
   static const String appVersion =
       '$appVersionMajor.$appVersionMinor.$appVersionPatch';
 
-  // ---------------------------------------------------------------------------
+  /// Structured version tuple (safe for comparisons)
+  static const List<int> appVersionTuple = [
+    appVersionMajor,
+    appVersionMinor,
+    appVersionPatch,
+  ];
+
   // SYNC SETTINGS
-  // ---------------------------------------------------------------------------
 
   /// Maximum retry attempts for failed sync
   static const int maxSyncRetry = 3;
 
-  /// Sync interval in seconds (keep conservative for battery + network)
+  /// Sync interval in seconds (battery + network safe)
   static const int syncIntervalSeconds = 15;
 
   /// Offline threshold in days before warning user
@@ -37,51 +44,65 @@ class AppConstants {
   static Duration get offlineThreshold =>
       Duration(days: offlineThresholdDays);
 
-  // ---------------------------------------------------------------------------
+  /// Defensive sync validation
+  static bool isValidSyncInterval(int seconds) =>
+      seconds >= 10 && seconds <= 300;
+
   // CURRENCY
-  // ---------------------------------------------------------------------------
+
 
   static const String defaultCurrency = 'EUR';
 
-  // ---------------------------------------------------------------------------
+  
   // BUDGET THRESHOLDS
-  // Order matters: SAFE < CAUTION < WARNING
-  // ---------------------------------------------------------------------------
 
-  static const double safeThreshold = 0.60;     // 0–60%  = Green
-  static const double cautionThreshold = 0.85;  // 61–85% = Yellow
-  static const double warningThreshold = 1.0;   // 86–100% = Orange
+
+  static const double safeThreshold = 0.60;     // Green
+  static const double cautionThreshold = 0.85;  // Yellow
+  static const double warningThreshold = 1.0;   // Orange
   // > 100% = Red
 
-  /// Derived helpers (non-breaking)
-  static bool isSafe(double ratio) => ratio <= safeThreshold;
+  /// Defensive ratio normalization
+  static double clampRatio(double ratio) =>
+      ratio.isNaN ? 0.0 : ratio.clamp(0.0, 10.0);
 
-  static bool isCaution(double ratio) =>
-      ratio > safeThreshold && ratio <= cautionThreshold;
+  static bool isSafe(double ratio) =>
+      clampRatio(ratio) <= safeThreshold;
 
-  static bool isWarning(double ratio) =>
-      ratio > cautionThreshold && ratio <= warningThreshold;
+  static bool isCaution(double ratio) {
+    final r = clampRatio(ratio);
+    return r > safeThreshold && r <= cautionThreshold;
+  }
 
-  static bool isOverLimit(double ratio) => ratio > warningThreshold;
+  static bool isWarning(double ratio) {
+    final r = clampRatio(ratio);
+    return r > cautionThreshold && r <= warningThreshold;
+  }
 
-  // ---------------------------------------------------------------------------
+  static bool isOverLimit(double ratio) =>
+      clampRatio(ratio) > warningThreshold;
+
   // OCR SETTINGS
-  // ---------------------------------------------------------------------------
 
   /// Minimum confidence required to auto-accept OCR results
   static const double ocrConfidenceThreshold = 0.65;
 
-  /// Max OCR processing time (guard against UI blocking)
+  /// Max OCR processing time (prevent UI blocking)
   static const int ocrMaxProcessingTimeMs = 1200;
 
   static Duration get ocrTimeout =>
       Duration(milliseconds: ocrMaxProcessingTimeMs);
 
-  // ---------------------------------------------------------------------------
-  // UI / UX SETTINGS
-  // ---------------------------------------------------------------------------
+  static bool isValidOcrConfidence(double value) =>
+      value >= 0.0 && value <= 1.0;
 
-  /// Minimum tappable target size (Material + iOS HIG compliant)
+  static bool shouldAutoAcceptOcr(double confidence) =>
+      isValidOcrConfidence(confidence) &&
+      confidence >= ocrConfidenceThreshold;
+
+  // UI / UX SETTINGS
+
+  /// Minimum tappable target size (Material + iOS HIG)
   static const double minTapTarget = 44.0;
 
   /// Default animation duration
@@ -90,49 +111,53 @@ class AppConstants {
   static Duration get animationDuration =>
       Duration(milliseconds: animationDurationMs);
 
-  // ---------------------------------------------------------------------------
+  static Duration get animationFast =>
+      const Duration(milliseconds: 180);
+
+  static Duration get animationSlow =>
+      const Duration(milliseconds: 450);
+
   // DATABASE
-  // ---------------------------------------------------------------------------
 
   static const String databaseName = 'cashpilot.db';
 
-  /// V8: Added state machine columns (base_revision, operation_id)
-  static const int databaseVersion = 9; // v9: Added sync state tables
+  /// V21: Fintech-Grade Evolution (Canonical Ledger, Consents, Ingestion Logs)
+  static const int databaseVersion = 21;
 
-  // ---------------------------------------------------------------------------
   // PAGINATION
-  // ---------------------------------------------------------------------------
 
   static const int defaultPageSize = 20;
 
-  // ---------------------------------------------------------------------------
-  // DATE FORMATS (for intl)
-  // ---------------------------------------------------------------------------
+  static int clampPageSize(int requested) =>
+      math.max(1, math.min(requested, 100));
+
+  // DATE FORMATS (intl)
 
   static const String dateFormatShort = 'MMM d';
   static const String dateFormatLong = 'MMMM d, yyyy';
   static const String dateFormatFull = 'EEEE, MMMM d, yyyy';
 
-  // ---------------------------------------------------------------------------
-  // SAFETY VALIDATION (DEBUG ONLY)
-  // ---------------------------------------------------------------------------
+  // FEATURE FLAGS
 
-  /// Debug-only sanity checks for critical constants
+  static const bool enableExperimentalOcr = false;
+  static const bool enableRealtimeSync = true;
+  static const bool enableBudgetHealthSnapshots = true;
+
+  // DEBUG VALIDATION
+
   static void debugValidate() {
     assert(safeThreshold < cautionThreshold);
     assert(cautionThreshold < warningThreshold);
     assert(defaultPageSize > 0);
-    assert(syncIntervalSeconds >= 10); // protect battery
+    assert(syncIntervalSeconds >= 10);
     assert(minTapTarget >= 44.0);
     assert(databaseVersion > 0);
+    assert(isValidOcrConfidence(ocrConfidenceThreshold));
   }
 }
 
-// =============================================================================
 // ENUMS
-// =============================================================================
 
-/// Supported budget types
 enum BudgetType {
   monthly('monthly'),
   weekly('weekly'),
@@ -154,7 +179,17 @@ enum BudgetType {
   }
 }
 
-/// Payment methods
+extension BudgetTypeX on BudgetType {
+  bool get isRecurring =>
+      this == BudgetType.monthly ||
+      this == BudgetType.weekly ||
+      this == BudgetType.annual;
+
+  bool get isSavings => this == BudgetType.savings;
+}
+
+// ---------------------------------------------------------------------------
+
 enum PaymentMethod {
   cash('cash'),
   card('card'),
@@ -174,7 +209,15 @@ enum PaymentMethod {
   }
 }
 
-/// Account types
+extension PaymentMethodX on PaymentMethod {
+  bool get isDigital =>
+      this == PaymentMethod.card ||
+      this == PaymentMethod.bank ||
+      this == PaymentMethod.wallet;
+}
+
+// ---------------------------------------------------------------------------
+
 enum AccountType {
   cash('cash'),
   bank('bank'),
@@ -194,7 +237,12 @@ enum AccountType {
   }
 }
 
-/// Family member roles
+extension AccountTypeX on AccountType {
+  bool get isLiquid => this != AccountType.card;
+}
+
+// ---------------------------------------------------------------------------
+
 enum MemberRole {
   owner('owner'),
   editor('editor'),
@@ -213,7 +261,15 @@ enum MemberRole {
   }
 }
 
-/// Supported languages
+extension MemberRoleX on MemberRole {
+  bool get canEdit =>
+      this == MemberRole.owner || this == MemberRole.editor;
+
+  bool get isOwner => this == MemberRole.owner;
+}
+
+// ---------------------------------------------------------------------------
+
 enum AppLanguage {
   english('en', 'English'),
   bengali('bn', 'বাংলা'),
@@ -233,7 +289,12 @@ enum AppLanguage {
   }
 }
 
-/// Theme modes
+extension AppLanguageX on AppLanguage {
+  bool get isRtl => false; // future-proof
+}
+
+// ---------------------------------------------------------------------------
+
 enum AppThemeMode {
   light('light'),
   dark('dark');
@@ -249,4 +310,8 @@ enum AppThemeMode {
       orElse: () => AppThemeMode.light,
     );
   }
+}
+
+extension AppThemeModeX on AppThemeMode {
+  bool get isDark => this == AppThemeMode.dark;
 }

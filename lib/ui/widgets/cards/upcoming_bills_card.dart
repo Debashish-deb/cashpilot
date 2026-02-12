@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/tokens.g.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/constants/app_routes.dart';
 // for RecurringExpense
@@ -98,10 +98,10 @@ class UpcomingBillsCard extends ConsumerWidget {
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: (daysLeft <= 3 && !isOverdue) 
-                                    ? AppColors.warning.withValues(alpha: 0.2) 
+                                    ? AppTokens.semanticWarning.withValues(alpha: 0.2) 
                                     : isOverdue 
-                                        ? AppColors.error.withValues(alpha: 0.2)
-                                        : AppColors.success.withValues(alpha: 0.2),
+                                        ? AppTokens.semanticDanger.withValues(alpha: 0.2)
+                                        : AppTokens.semanticSuccess.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
@@ -110,10 +110,10 @@ class UpcomingBillsCard extends ConsumerWidget {
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                   color: (daysLeft <= 3 && !isOverdue)
-                                      ? AppColors.warning
+                                      ? AppTokens.semanticWarning
                                       : isOverdue 
-                                          ? AppColors.error
-                                          : AppColors.success,
+                                          ? AppTokens.semanticDanger
+                                          : AppTokens.semanticSuccess,
                                 ),
                               ),
                             ),

@@ -44,7 +44,7 @@ class PendingInvitesScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pending Invites'),
+        title: Text(l10n.notifPendingInvites),
         centerTitle: false,
       ),
       body: invitesAsync.when(
@@ -152,9 +152,10 @@ class PendingInvitesScreen extends ConsumerWidget {
       }
 
       if (context.mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Invite accepted! You can now access this budget.'),
+          SnackBar(
+            content: Text(l10n.notifInviteAcceptedMsg),
             backgroundColor: AppColors.success,
           ),
         );
@@ -172,21 +173,22 @@ class PendingInvitesScreen extends ConsumerWidget {
   }
 
   Future<void> _declineInvite(BuildContext context, WidgetRef ref, BudgetMember invite) async {
+    final l10n = AppLocalizations.of(context)!;
     // Show confirmation dialog
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Decline Invite?'),
-        content: const Text('Are you sure you want to decline this invitation? This cannot be undone.'),
+        title: Text(l10n.notifDeclineInviteTitle),
+        content: Text(l10n.notifDeclineInviteDesc),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Decline'),
+            child: Text(l10n.notifDecline),
           ),
         ],
       ),
@@ -216,7 +218,7 @@ class PendingInvitesScreen extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text(AppLocalizations.of(context)!.commonErrorMessage(e.toString())),
             backgroundColor: AppColors.danger,
           ),
         );
@@ -238,6 +240,7 @@ class _InviteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -355,7 +358,7 @@ class _InviteCard extends StatelessWidget {
                       foregroundColor: AppColors.danger,
                       side: const BorderSide(color: AppColors.danger),
                     ),
-                    child: const Text('Decline'),
+                    child: Text(l10n.commonDecline),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -364,7 +367,7 @@ class _InviteCard extends StatelessWidget {
                   child: ElevatedButton.icon(
                     onPressed: onAccept,
                     icon: const Icon(Icons.check, size: 18),
-                    label: const Text('Accept'),
+                    label: Text(l10n.notifAccept),
                   ),
                 ),
               ],

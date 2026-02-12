@@ -1,7 +1,9 @@
 /// CashPilot Budget List Screen
 /// Displays all user budgets with enhanced filtering, search, and statistics
 library;
-import 'dart:io';
+
+import 'dart:io' show File;
+
 import 'package:cashpilot/data/drift/app_database.dart' show Budget;
 import 'package:cashpilot/ui/widgets/cards/budget_list_item.dart' show BudgetListItem;
 import 'package:flutter/material.dart';
@@ -33,7 +35,7 @@ class _BudgetListScreenState extends ConsumerState<BudgetListScreen>
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   late AnimationController _searchAnimationController;
-  double _scrollOffset = 0;
+  final double _scrollOffset = 0;
   bool _showSearchBar = false;
 
   @override
@@ -90,7 +92,7 @@ class _BudgetListScreenState extends ConsumerState<BudgetListScreen>
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -173,7 +175,7 @@ class _BudgetListScreenState extends ConsumerState<BudgetListScreen>
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurface.withOpacity(0.2),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -203,7 +205,7 @@ class _BudgetListScreenState extends ConsumerState<BudgetListScreen>
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryGreen.withOpacity(0.1),
+                  color: AppColors.primaryGreen.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -212,7 +214,7 @@ class _BudgetListScreenState extends ConsumerState<BudgetListScreen>
                     const Icon(Icons.account_balance_wallet_outlined, color: AppColors.primaryGreenDark),
                     const SizedBox(width: 12),
                     Text(
-                      '${l10n.budgetsTotalBudget}: ${NumberFormat.simpleCurrency(decimalDigits: 0).format(stats.totalBudget / 100)}',
+                      '${l10n.budgetsTotalBudget}: ${NumberFormat.simpleCurrency(locale: l10n.localeName, decimalDigits: 0).format(stats.totalBudget / 100)}',
                       style: AppTypography.titleMedium.copyWith(
                         fontWeight: FontWeight.w600,
                         color: AppColors.primaryGreenDark,
@@ -233,7 +235,7 @@ class _BudgetListScreenState extends ConsumerState<BudgetListScreen>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -250,7 +252,7 @@ class _BudgetListScreenState extends ConsumerState<BudgetListScreen>
           Text(
             label,
             style: AppTypography.bodySmall.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.7),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
             ),
           ),
         ],
@@ -278,278 +280,200 @@ class _BudgetListScreenState extends ConsumerState<BudgetListScreen>
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       // Removed: redundant FAB - the global FAB from main navigation is used
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [
-            SliverAppBar(
-              expandedHeight: 120,
-              floating: true,
-              pinned: true,
-              snap: true,
-              backgroundColor: theme.colorScheme.surface,
-              surfaceTintColor: theme.colorScheme.surfaceTint,
-              elevation: 4,
-              shadowColor: Colors.black.withOpacity(0.1),
-              forceElevated: innerBoxIsScrolled,
-              flexibleSpace: FlexibleSpaceBar(
-                background: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Theme.of(context).primaryColor.withOpacity(0.1),
-                        Theme.of(context).primaryColor.withOpacity(0.05),
-                      ],
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.only(
-                      left: 24,
-                      right: 24,
-                      top: 60,
-                      bottom: 16,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          l10n.budgetsTitle,
-                          style: AppTypography.headlineMedium.copyWith(
-                            color: theme.colorScheme.onSurface,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.5,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Consumer(
-                          builder: (context, ref, child) {
-                            final stats = ref.watch(budgetStatisticsProvider);
-                            return Text(
-                              '${stats.active} active • ${stats.total} total',
-                              style: AppTypography.titleMedium.copyWith(
-                                color: theme.colorScheme.onSurface
-                                    .withOpacity(0.7),
-                                fontWeight: FontWeight.w500,
-                              ),
-                              textAlign: TextAlign.center,
-                            );
-                          },
-                        ),
-                      ],
-                    ),
+      body: SafeArea(
+        top: false, // AppBar handles top
+        child: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return [
+              SliverAppBar(
+                title: Text(
+                  l10n.budgetsTitle,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.5,
                   ),
                 ),
-                titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
-                title: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 200),
-                  opacity: innerBoxIsScrolled ? 1.0 : 0.0,
-                  child: Text(
-                    l10n.budgetsTitle,
-                    style: AppTypography.titleLarge.copyWith(
-                      fontWeight: FontWeight.w600,
+                centerTitle: true,
+                floating: true,
+                pinned: true,
+                snap: true,
+                backgroundColor: theme.colorScheme.surface,
+                surfaceTintColor: theme.colorScheme.surfaceTint,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+                forceElevated: innerBoxIsScrolled,
+                actions: [
+                  IconButton(
+                    icon: Icon(
+                      _showSearchBar ? Icons.close : Icons.search_rounded,
+                      color: theme.colorScheme.onSurface,
                     ),
+                    onPressed: _toggleSearchBar,
+                    tooltip: _showSearchBar ? 'Close search' : 'Search budgets',
                   ),
-                ),
-              ),
-              actions: [
-                IconButton(
-                  icon: Icon(
-                    _showSearchBar ? Icons.close : Icons.search_rounded,
-                    color: theme.colorScheme.onSurface,
-                  ),
-                  onPressed: _toggleSearchBar,
-                  tooltip: _showSearchBar ? 'Close search' : 'Search budgets',
-                ),
-                PopupMenuButton<String>(
-                  icon: Icon(
-                    Icons.more_vert,
-                    color: theme.colorScheme.onSurface,
-                  ),
-                  tooltip: 'More options',
-                  onSelected: (value) {
-                    if (value == 'sort') {
-                      showSortOptions(context, ref);
-                    } else if (value == 'recurring') {
-                      context.push(AppRoutes.recurringExpenses);
-                    } else if (value == 'categories') {
-                      context.push(AppRoutes.categories);
-                    } else if (value == 'export') {
-                      _exportBudgets(context, ref);
-                    } else if (value == 'stats') {
-                      showBudgetStatistics(context, ref);
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 'sort',
-                      child: Row(
-                        children: [
-                          const Icon(Icons.sort, size: 20),
-                          const SizedBox(width: 12),
-                          Text(l10n.commonSort),
-                        ],
-                      ),
+                  PopupMenuButton<String>(
+                    icon: Icon(
+                      Icons.more_vert,
+                      color: theme.colorScheme.onSurface,
                     ),
-                    const PopupMenuDivider(),
-                    PopupMenuItem(
-                      value: 'recurring',
-                      child: Row(
-                        children: [
-                          const Icon(Icons.autorenew_rounded, size: 20),
-                          const SizedBox(width: 12),
-                          Text(l10n.expensesRecurring),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'categories',
-                      child: Row(
-                        children: [
-                          const Icon(Icons.category_outlined, size: 20),
-                          const SizedBox(width: 12),
-                          Text(l10n.commonCategories),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuDivider(),
-                    PopupMenuItem(
-                      value: 'export',
-                      child: Row(
-                        children: [
-                          const Icon(Icons.download_outlined, size: 20),
-                          const SizedBox(width: 12),
-                          Text(l10n.commonExport),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'stats',
-                      child: Row(
-                        children: [
-                          const Icon(Icons.insights_outlined, size: 20),
-                          const SizedBox(width: 12),
-                          Text(l10n.budgetsStatisticsTitle),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ];
-        },
-        body: Column(
-          children: [
-            // Animated Search Bar
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              height: _showSearchBar ? 60 : 0,
-              curve: Curves.easeInOut,
-              child: _showSearchBar ? _buildSearchBar(theme, l10n) : null,
-            ),
-
-            // Filter chips with shadow when scrolled
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                boxShadow: [
-                  if (_scrollOffset > 10)
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  _buildFilterChips(l10n, theme),
-                  const SizedBox(height: 8),
-                ],
-              ),
-            ),
-
-            // Budget list
-            Expanded(
-              child: NotificationListener<ScrollNotification>(
-                onNotification: (notification) {
-                  if (notification is ScrollUpdateNotification) {
-                    setState(() {
-                      _scrollOffset = notification.metrics.pixels;
-                    });
-                  }
-                  return false;
-                },
-                child: sortedBudgets.when(
-                  data: (budgetList) {
-                    if (budgetList.isEmpty) {
-                      String emptyTitle;
-                      String emptyMsg;
-                      String? btnLabel;
-                      VoidCallback? action;
-                      IconData icon;
-
-                      switch (typeFilter) {
-                        case 'active':
-                          emptyTitle = l10n.budgetsNoActive;
-                          emptyMsg = l10n.budgetsNoActiveMsg;
-                          btnLabel = l10n.budgetsCreateBudget;
-                          action = () => context.push(AppRoutes.budgetCreate);
-                          icon = Icons.play_circle_outline_rounded;
-                          break;
-                        case 'upcoming':
-                          emptyTitle = l10n.budgetsNoUpcoming;
-                          emptyMsg = l10n.budgetsNoUpcomingMsg;
-                          btnLabel = l10n.budgetsSchedule;
-                          action = () => context.push(AppRoutes.budgetCreate);
-                          icon = Icons.calendar_month_outlined;
-                          break;
-                        case 'completed': // "Past"
-                          emptyTitle = l10n.budgetsNoPast;
-                          emptyMsg = l10n.budgetsNoPastMsg;
-                          btnLabel = null; // No action needed for history
-                          action = null;
-                          icon = Icons.history_rounded;
-                          break;
-                        case 'family':
-                          emptyTitle = l10n.budgetsNoFamily;
-                          emptyMsg = l10n.budgetsNoFamilyMsg;
-                          btnLabel = l10n.budgetsCreateShared;
-                          action = () => context.push(AppRoutes.budgetCreate);
-                          icon = Icons.family_restroom_rounded;
-                          break;
-                        default: // 'all' or fallback
-                          emptyTitle = l10n.budgetsNoBudgets;
-                          emptyMsg = l10n.homeCreateFirstBudget;
-                          btnLabel = l10n.budgetsCreateBudget;
-                          action = () => context.push(AppRoutes.budgetCreate);
-                          icon = Icons.account_balance_wallet_outlined;
+                    tooltip: 'More options',
+                    onSelected: (value) {
+                      if (value == 'sort') {
+                        showSortOptions(context, ref);
+                      } else if (value == 'recurring') {
+                        context.push(AppRoutes.recurringExpenses);
+                      } else if (value == 'categories') {
+                        context.push(AppRoutes.categories);
+                      } else if (value == 'export') {
+                        _exportBudgets(context, ref);
+                      } else if (value == 'stats') {
+                        showBudgetStatistics(context, ref);
                       }
-
-                      return EmptyState(
-                        title: emptyTitle,
-                        message: emptyMsg,
-                        buttonLabel: btnLabel ?? '',
-                        onAction: action,
-                        icon: icon,
-                        useGlass: false,
-                      );
-                    }
-                    return _buildBudgetList(budgetList, l10n, theme);
-                  },
-                  loading: () => _buildLoadingState(theme),
-                  error: (error, _) => _buildErrorState(error, l10n, theme, ref),
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'sort',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.sort, size: 20),
+                            const SizedBox(width: 12),
+                            Text(l10n.commonSort),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuDivider(),
+                      PopupMenuItem(
+                        value: 'recurring',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.autorenew_rounded, size: 20),
+                            const SizedBox(width: 12),
+                            Text(l10n.expensesRecurring),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'categories',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.category_outlined, size: 20),
+                            const SizedBox(width: 12),
+                            Text(l10n.commonCategories),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuDivider(),
+                      PopupMenuItem(
+                        value: 'export',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.download_outlined, size: 20),
+                            const SizedBox(width: 12),
+                            Text(l10n.commonExport),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'stats',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.insights_outlined, size: 20),
+                            const SizedBox(width: 12),
+                            Text(l10n.budgetsStatisticsTitle),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              // Pinned Search Bar (if visible)
+              if (_showSearchBar)
+                SliverToBoxAdapter(
+                  child: _buildSearchBar(theme, l10n),
+                ),
+              // Pinned Filter Chips
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _SliverHeaderDelegate(
+                  height: MediaQuery.textScalerOf(context).scale(72).clamp(72.0, 110.0),
+                  child: Container(
+                    color: theme.colorScheme.surface,
+                    child: Column(
+                      children: [
+                        _buildFilterChips(l10n, theme),
+                        const SizedBox(height: 8),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ];
+          },
+          body: sortedBudgets.when(
+            data: (budgetList) {
+              if (budgetList.isEmpty) {
+                String emptyTitle;
+                String emptyMsg;
+                String? btnLabel;
+                VoidCallback? action;
+                IconData icon;
+    
+                switch (typeFilter) {
+                  case 'active':
+                    emptyTitle = l10n.budgetsNoActive;
+                    emptyMsg = l10n.budgetsNoActiveMsg;
+                    btnLabel = l10n.budgetsCreateBudget;
+                    action = () => context.push(AppRoutes.budgetCreate);
+                    icon = Icons.play_circle_outline_rounded;
+                    break;
+                  case 'upcoming':
+                    emptyTitle = l10n.budgetsNoUpcoming;
+                    emptyMsg = l10n.budgetsNoUpcomingMsg;
+                    btnLabel = l10n.budgetsSchedule;
+                    action = () => context.push(AppRoutes.budgetCreate);
+                    icon = Icons.calendar_month_outlined;
+                    break;
+                  case 'completed': // "Past"
+                    emptyTitle = l10n.budgetsNoPast;
+                    emptyMsg = l10n.budgetsNoPastMsg;
+                    btnLabel = null; // No action needed for history
+                    action = null;
+                    icon = Icons.history_rounded;
+                    break;
+                  case 'family':
+                    emptyTitle = l10n.budgetsNoFamily;
+                    emptyMsg = l10n.budgetsNoFamilyMsg;
+                    btnLabel = l10n.budgetsCreateShared;
+                    action = () => context.push(AppRoutes.budgetCreate);
+                    icon = Icons.family_restroom_rounded;
+                    break;
+                  default: // 'all' or fallback
+                    emptyTitle = l10n.budgetsNoBudgets;
+                    emptyMsg = l10n.homeCreateFirstBudget;
+                    btnLabel = l10n.budgetsCreateBudget;
+                    action = () => context.push(AppRoutes.budgetCreate);
+                    icon = Icons.account_balance_wallet_outlined;
+                }
+    
+                return EmptyState(
+                  title: emptyTitle,
+                  message: emptyMsg,
+                  buttonLabel: btnLabel ?? '',
+                  onAction: action,
+                  icon: icon,
+                  useGlass: false,
+                );
+              }
+              return _buildBudgetList(budgetList, l10n, theme);
+            },
+            loading: () => _buildLoadingState(theme),
+            error: (error, _) => _buildErrorState(error, l10n, theme, ref),
+          ),
         ),
       ),
     );
+
   }
 
   Widget _buildSearchBar(ThemeData theme, AppLocalizations l10n) {
@@ -568,13 +492,13 @@ class _BudgetListScreenState extends ConsumerState<BudgetListScreen>
             hintText: l10n.commonSearchBudgets,
             prefixIcon: Icon(
               Icons.search_rounded,
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
             suffixIcon: _searchController.text.isNotEmpty
                 ? IconButton(
                     icon: Icon(
                       Icons.clear,
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                     onPressed: () {
                       _searchController.clear();
@@ -630,13 +554,13 @@ class _BudgetListScreenState extends ConsumerState<BudgetListScreen>
                   border: Border.all(
                     color: isSelected
                         ? Theme.of(context).primaryColor
-                        : theme.colorScheme.outline.withOpacity(0.3),
+                        : theme.colorScheme.outline.withValues(alpha: 0.3),
                     width: 1,
                   ),
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: Theme.of(context).primaryColor.withOpacity(0.3),
+                            color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           ),
@@ -651,7 +575,7 @@ class _BudgetListScreenState extends ConsumerState<BudgetListScreen>
                       size: 16,
                       color: isSelected
                           ? Colors.white
-                          : theme.colorScheme.onSurface.withOpacity(0.7),
+                          : theme.colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                     const SizedBox(width: 6),
                     Text(
@@ -743,7 +667,7 @@ class _BudgetListScreenState extends ConsumerState<BudgetListScreen>
             color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: theme.colorScheme.outline.withOpacity(0.1),
+              color: theme.colorScheme.outline.withValues(alpha: 0.1),
             ),
           ),
           child: Column(
@@ -831,7 +755,7 @@ class _BudgetListScreenState extends ConsumerState<BudgetListScreen>
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.danger.withOpacity(0.1),
+                color: AppColors.danger.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Icon(
@@ -842,7 +766,7 @@ class _BudgetListScreenState extends ConsumerState<BudgetListScreen>
             ),
             const SizedBox(height: 24),
             Text(
-              l10n.commonError,
+              l10n.commonErrorMessage(''),
               style: AppTypography.titleLarge.copyWith(
                 color: theme.colorScheme.onSurface,
                 fontWeight: FontWeight.w600,
@@ -853,7 +777,7 @@ class _BudgetListScreenState extends ConsumerState<BudgetListScreen>
               error.toString(),
               textAlign: TextAlign.center,
               style: AppTypography.bodyMedium.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: 32),
@@ -908,8 +832,8 @@ class _BudgetListScreenState extends ConsumerState<BudgetListScreen>
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
             color: isActive
-                ? AppColors.success.withOpacity(0.1)
-                : AppColors.neutral60.withOpacity(0.1),
+                ? AppColors.success.withValues(alpha: 0.1)
+                : AppColors.neutral60.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
@@ -990,7 +914,7 @@ class _BudgetListScreenState extends ConsumerState<BudgetListScreen>
       // Write to file
       await file.writeAsString(csv);
       
-      // Share file
+      // Share file using Share.shareXFiles (Corrected from hallucinatory SharePlus call)
       await Share.shareXFiles(
         [XFile(file.path)],
         subject: 'CashPilot Budgets Export',
@@ -1167,6 +1091,7 @@ class _BudgetSearchDelegate extends SearchDelegate<Budget?> {
 
   Widget _buildSearchResults(BuildContext context) {
     final budgetsAsync = ref.watch(budgetsStreamProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return budgetsAsync.when(
       data: (budgets) {
@@ -1222,7 +1147,7 @@ class _BudgetSearchDelegate extends SearchDelegate<Budget?> {
                   children: [
                     const SizedBox(height: 4),
                     Text(
-                      '${DateFormat('MMM d').format(budget.startDate)} - ${DateFormat('MMM d, y').format(budget.endDate)}',
+                      '${DateFormat('MMM d', l10n.localeName).format(budget.startDate)} - ${DateFormat('MMM d, y', l10n.localeName).format(budget.endDate)}',
                       style: AppTypography.bodySmall,
                     ),
                     const SizedBox(height: 8),
@@ -1253,13 +1178,13 @@ class _BudgetSearchDelegate extends SearchDelegate<Budget?> {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => const Center(
+      error: (_, __) => Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, color: Colors.red, size: 48),
-            SizedBox(height: 16),
-            Text('Error loading budgets'),
+            const Icon(Icons.error_outline, color: Colors.red, size: 48),
+            const SizedBox(height: 16),
+            Text(l10n.commonErrorMessage('')),
           ],
         ),
       ),
@@ -1293,5 +1218,27 @@ class _BudgetSearchDelegate extends SearchDelegate<Budget?> {
         ],
       ),
     );
+  }
+}
+
+class _SliverHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  final double height;
+
+  _SliverHeaderDelegate({required this.child, required this.height});
+
+  @override
+  double get minExtent => height;
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return child;
+  }
+
+  @override
+  bool shouldRebuild(_SliverHeaderDelegate oldDelegate) {
+    return oldDelegate.child != child || oldDelegate.height != height;
   }
 }

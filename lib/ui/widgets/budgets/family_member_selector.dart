@@ -3,9 +3,10 @@
 /// Note: Full family member management requires Pro Plus subscription
 library;
 
+import 'package:cashpilot/data/drift/app_database.dart' show FamilyContact;
+import 'package:cashpilot/l10n/app_localizations.dart' show AppLocalizations;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import '../../../features/family/screens/contact_picker_screen.dart';
 
@@ -58,14 +59,14 @@ class _FamilyMemberSelectorState extends ConsumerState<FamilyMemberSelector> {
     final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     if (!emailRegex.hasMatch(email)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid email format')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.errInvalidEmail)),
       );
       return;
     }
 
     if (widget.inviteEmails.contains(email)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email already added')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.errEmailAlreadyAdded)),
       );
       return;
     }
@@ -82,16 +83,10 @@ class _FamilyMemberSelectorState extends ConsumerState<FamilyMemberSelector> {
 
   // Helper method to build the family members section
   Widget _buildFamilyMembersSection(BuildContext context, WidgetRef ref) {
-    // Load real family members from Supabase
-    final authService = ref.watch(authServiceProvider);
-    final currentUserId = authService.currentUser?.id;
+    final familyRepo = ref.watch(familyRepositoryProvider);
     
-    if (currentUserId == null) {
-      return const SizedBox.shrink();
-    }
-
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _loadFamilyMembers(authService.client, currentUserId),
+    return StreamBuilder<List<FamilyContact>>(
+      stream: familyRepo.watchFamilyContacts(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -116,17 +111,27 @@ class _FamilyMemberSelectorState extends ConsumerState<FamilyMemberSelector> {
               spacing: 8,
               runSpacing: 8,
               children: members.map((member) {
-                final memberName = member['name'] as String? ?? 'Unknown';
-                final memberEmail = member['email'] as String? ?? '';
-                final memberId = member['id'] as String;
-                final isSelected = widget.selectedMemberIds.contains(memberId); // Changed from selectedMembers
+                final memberName = member.name ?? 'Unknown';
+                final memberEmail = member.email ?? '';
+                final memberId = member.id;
+                final isSelected = widget.selectedMemberIds.contains(memberId);
 
                 return _MemberChip(
                   name: memberName,
                   email: memberEmail,
                   isSelected: isSelected,
                   onTap: () {
-                    _toggleMember(memberId); // Use existing _toggleMember method
+                    // Logic to toggle based on ID or email. 
+                    // Since the selector returns IDs, pass ID.
+                    _toggleMember(memberId);
+                    
+                    // Also auto-add email if selected
+                    if (!isSelected && memberEmail.isNotEmpty) {
+                       if (!widget.inviteEmails.contains(memberEmail)) {
+                         final newEmails = List<String>.from(widget.inviteEmails)..add(memberEmail);
+                         widget.onEmailsChanged(newEmails);
+                       }
+                    }
                   },
                 );
               }).toList(),
@@ -136,25 +141,8 @@ class _FamilyMemberSelectorState extends ConsumerState<FamilyMemberSelector> {
       },
     );
   }
-
-  /// Load family members from Supabase profiles table
-  Future<List<Map<String, dynamic>>> _loadFamilyMembers(
-    SupabaseClient client,
-    String currentUserId,
-  ) async {
-    try {
-      final response = await client
-          .from('profiles')
-          .select('id, name, email')
-          .eq('family_head_id', currentUserId)
-          .limit(10);
-
-      return List<Map<String, dynamic>>.from(response as List);
-    } catch (e) {
-      debugPrint('Error loading family members: $e');
-      return [];
-    }
-  }
+  
+  // _loadFamilyMembers method removed as it is replaced by repo stream
 
   @override
   Widget build(BuildContext context) {

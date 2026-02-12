@@ -1,9 +1,9 @@
-/// Budget Progress Bar Widget
+ /// Budget Progress Bar Widget
 /// Apple-grade progress indicators for budget spending
 library;
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/tokens.g.dart';
 
 class BudgetProgressBar extends StatelessWidget {
   final double progress;
@@ -25,7 +25,7 @@ class BudgetProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progressColor = color ?? AppColors.getProgressColor(progress);
+    final progressColor = color ?? getProgressColorToken(progress);
     final clampedProgress = progress.clamp(0.0, 1.0);
     final isOverBudget = progress > 1.0;
 
@@ -62,25 +62,9 @@ class BudgetProgressBar extends StatelessWidget {
               widthFactor: clampedProgress,
               child: Container(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      progressColor.withValues(alpha: 0.95),
-                      progressColor.withValues(alpha: 0.85),
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
+                  color: progressColor,
                   borderRadius: BorderRadius.circular(height / 2),
-                  boxShadow: clampedProgress > 0.05
-                      ? [
-                          BoxShadow(
-                            color:
-                                progressColor.withValues(alpha: 0.25), // Apple soft
-                            blurRadius: height * 0.9,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
+                  boxShadow: null,
                 ),
               ),
             ),
@@ -96,15 +80,8 @@ class BudgetProgressBar extends StatelessWidget {
                 width: height + 4,
                 height: height + 4,
                 decoration: BoxDecoration(
-                  color: AppColors.danger,
+                  color: AppTokens.semanticDanger,
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.danger.withValues(alpha: 0.35),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
                 ),
                 child: Icon(
                   Icons.priority_high_rounded,
@@ -135,7 +112,7 @@ class MiniProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progressColor = color ?? AppColors.getProgressColor(progress);
+    final progressColor = color ?? getProgressColorToken(progress);
     final clampedProgress = progress.clamp(0.0, 1.0);
 
     return Semantics(
@@ -151,12 +128,7 @@ class MiniProgressBar extends StatelessWidget {
           widthFactor: clampedProgress,
           child: Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  progressColor,
-                  progressColor.withValues(alpha: 0.85),
-                ],
-              ),
+              color: progressColor,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -186,7 +158,7 @@ class CircularBudgetProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progressColor = AppColors.getProgressColor(progress);
+    final progressColor = getProgressColorToken(progress);
     final clampedProgress = progress.clamp(0.0, 1.0);
 
     return Semantics(
@@ -226,4 +198,11 @@ class CircularBudgetProgress extends StatelessWidget {
       ),
     );
   }
+}
+
+Color getProgressColorToken(double percentage) {
+  if (percentage < 0.65) return AppTokens.semanticSuccess;
+  if (percentage < 0.85) return AppTokens.semanticCaution;
+  if (percentage < 1.0) return AppTokens.semanticWarning;
+  return AppTokens.semanticDanger;
 }

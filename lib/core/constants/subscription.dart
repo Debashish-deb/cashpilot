@@ -1,6 +1,4 @@
-/// Subscription Tier and Feature Gating
-/// Core constants for CashPilot monetization
-/// Based on: docs/payment plan.md
+
 library;
 
 /// Subscription tier levels (aligned with payment plan)
@@ -23,7 +21,7 @@ enum SubscriptionTier {
   String get displayName => switch (this) {
     SubscriptionTier.free => 'Free',
     SubscriptionTier.pro => 'Pro',
-    SubscriptionTier.proPlus => 'Pro Plus',
+    SubscriptionTier.proPlus => 'Pro+',
   };
 
   /// Emoji icon for tier
@@ -55,50 +53,50 @@ enum SubscriptionStatus {
 /// Features that can be gated (aligned with payment plan table)
 enum Feature {
   // Core Features (1-3)
-  accountCreation,          // All tiers
-  biometricAuth,            // All tiers
-  multiColorTheme,          // Pro + Pro Plus only
+  accountCreation,         
+  biometricAuth,         
+  multiColorTheme,        
 
   // Budget Features (4-5)
-  familyBudgetMode,         // Pro Plus only
-  budgetPeriods,            // All tiers (weekly/monthly/annual/custom)
+  familyBudgetMode,        
+  budgetPeriods,     
 
   // Account Mode (6)
-  expertModeFull,           // Free: Limited, Pro+: Full
+  expertModeFull,         
 
   // Sync Features (7-11)
-  cloudSync,                // Pro + Pro Plus
-  multiDeviceSync,          // Pro + Pro Plus
-  dataProtection,           // All tiers
-  dataLossPrevention,       // Partial free, Full paid
-  localOnlyStorage,         // Free only
+  cloudSync,             
+  multiDeviceSync,         
+  dataProtection,       
+  dataLossPrevention,    
+  localOnlyStorage,  
 
   // Export Features (12-13)
-  fullDataExport,           // Pro + Pro Plus (Free: 3 months max)
-  accountDeletion,          // All tiers
+  fullDataExport,          
+  accountDeletion,          
 
   // Analytics (14-15)
-  categoryDetailedAnalytics, // Pro + Pro Plus
-  predictionsInsights,       // Limited free, Full paid
+  categoryDetailedAnalytics, 
+  predictionsInsights,     
 
   // Scanning (16-18)
-  ocrScanning,              // Pro: Limited, Pro Plus: Unlimited
-  receiptScanning,          // Pro + Pro Plus
-  manualExpenseEntry,       // All tiers
+  ocrScanning,        
+  receiptScanning,          
+  manualExpenseEntry,       
 
   // Connectivity (19)
-  bankConnectivity,         // Pro Plus only
+  bankConnectivity,         
 
   // Other (20-24)
-  multiLanguage,            // All tiers
-  prioritySupport,          // Pro + Pro Plus
-  familyBudgetCreation,     // Pro Plus only
-  inviteFreeUsersToFamily,  // Pro Plus only
-  realTimeCurrencyConversion, // Pro + Pro Plus
+  multiLanguage,           
+  prioritySupport,         
+  familyBudgetCreation,  
+  inviteFreeUsersToFamily, 
+  realTimeCurrencyConversion, 
 }
 
 /// Subscription Manager - Single source of truth for feature gating
-/// Based on payment plan.md feature comparison table
+
 class SubscriptionManager {
   // ================================================================
   // QUANTITATIVE LIMITS
@@ -106,14 +104,14 @@ class SubscriptionManager {
 
   /// Max budgets per tier
   static int maxBudgets(SubscriptionTier tier) => switch (tier) {
-    SubscriptionTier.free => 1,  // Single budget
-    _ => -1,                      // Unlimited
+    SubscriptionTier.free => 1,  
+    _ => -1,                    
   };
 
-  /// Max expenses per tier (not explicitly in plan, but reasonable)
+  /// Max expenses per tier 
   static int maxExpenses(SubscriptionTier tier) => switch (tier) {
     SubscriptionTier.free => 500,
-    _ => -1, // Unlimited
+    _ => -1, 
   };
 
   /// OCR scans per month
@@ -131,9 +129,34 @@ class SubscriptionManager {
     _ => -1, // Unlimited (full)
   };
 
-  // ================================================================
+  /// Max bank accounts per tier
+  static int maxBankAccounts(SubscriptionTier tier) => switch (tier) {
+    SubscriptionTier.free => 1,
+    SubscriptionTier.pro => 2,
+    SubscriptionTier.proPlus => 5,
+  };
+
+  /// Bank sync interval in hours
+  static int bankSyncIntervalHours(SubscriptionTier tier) => switch (tier) {
+    SubscriptionTier.proPlus => 24,
+    SubscriptionTier.pro => 48,
+    SubscriptionTier.free => 72,
+  };
+
+  /// Bank sync retry interval in hours (after failure)
+  static int bankSyncRetryIntervalHours(SubscriptionTier tier) => switch (tier) {
+    SubscriptionTier.free => 12,
+    _ => 6, // Pro and Pro+
+  };
+
+  /// Priority level for bank connections (higher is better)
+  static int bankSyncPriority(SubscriptionTier tier) => switch (tier) {
+    SubscriptionTier.proPlus => 10,
+    SubscriptionTier.pro => 5,
+    SubscriptionTier.free => 1,
+  };
+
   // FEATURE ACCESS CHECKS (Based on payment plan table)
-  // ================================================================
 
   // Row 1-2: Account Creation & Biometric - All tiers
   static bool canUseAccountCreation(SubscriptionTier tier) => true;
@@ -144,8 +167,7 @@ class SubscriptionManager {
       tier != SubscriptionTier.free;
 
   // Row 4: Budget Mode Support
-  /// Free/Pro: Single budget mode only
-  /// Pro Plus: Single + Family budget mode
+
   static bool canUseFamilyBudgetMode(SubscriptionTier tier) =>
       tier == SubscriptionTier.proPlus;
 
@@ -153,8 +175,7 @@ class SubscriptionManager {
   static bool canUseBudgetPeriods(SubscriptionTier tier) => true;
 
   // Row 6: Account Mode (Expert mode)
-  /// Free: Beginner Full + Expert Limited
-  /// Pro/Pro Plus: Both modes fully unlocked
+
   static bool hasFullExpertMode(SubscriptionTier tier) =>
       tier != SubscriptionTier.free;
 
@@ -180,8 +201,7 @@ class SubscriptionManager {
       tier != SubscriptionTier.free;
 
   // Row 12: Data Download / Export
-  /// Free: Max 3 months at a time
-  /// Pro+: Full / Custom
+  
   static bool hasFullExportAccess(SubscriptionTier tier) =>
       tier != SubscriptionTier.free;
 
@@ -198,7 +218,6 @@ class SubscriptionManager {
       tier != SubscriptionTier.free;
 
   // Row 16: OCR (Text Recognition)
-  /// Free: No, Pro: Limited, Pro Plus: Unlimited
   static bool canUseOCR(SubscriptionTier tier) =>
       tier != SubscriptionTier.free;
 
@@ -209,15 +228,13 @@ class SubscriptionManager {
   // Row 18: Manual Expense Entry - All tiers
   static bool canUseManualExpenseEntry(SubscriptionTier tier) => true;
 
-  // Row 19: Bank Connectivity - Pro Plus only
-  static bool canUseBankConnectivity(SubscriptionTier tier) =>
-      tier == SubscriptionTier.proPlus;
+  // Row 19: Bank Connectivity - All tiers (with tiered limits)
+  static bool canUseBankConnectivity(SubscriptionTier tier) => true;
 
   // Row 20: Multi-Language Support - All tiers
   static bool canUseMultiLanguage(SubscriptionTier tier) => true;
 
   // Row 21: Technical Support
-  /// Free: Standard, Pro+: Priority
   static bool hasPrioritySupport(SubscriptionTier tier) =>
       tier != SubscriptionTier.free;
 
@@ -233,9 +250,6 @@ class SubscriptionManager {
   static bool canUseRealTimeCurrency(SubscriptionTier tier) =>
       tier != SubscriptionTier.free;
 
-  // ================================================================
-  // GENERIC FEATURE CHECK
-  // ================================================================
 
   /// Check if user can use a feature
   static bool canUseFeature(SubscriptionTier tier, Feature feature) {
@@ -267,9 +281,7 @@ class SubscriptionManager {
     };
   }
 
-  // ================================================================
-  // FEATURE METADATA
-  // ================================================================
+
 
   /// Get user-friendly feature name
   static String getFeatureName(Feature feature) {

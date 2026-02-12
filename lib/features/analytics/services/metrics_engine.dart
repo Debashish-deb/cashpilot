@@ -201,8 +201,44 @@ class MetricsEngine {
     final shares = await getCategoryShares(range, budgetId);
     final sorted = shares.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    
     return sorted.take(count).map((e) => e.key).toList();
+  }
+
+  /// Calculate "Burn Rate" - average daily spend over last 7 days vs 30 days
+  Future<Map<String, double>> getBurnRate(String budgetId) async {
+    final now = DateTime.now();
+    final recentRange = DateRange(start: now.subtract(const Duration(days: 7)), end: now);
+    final monthRange = DateRange(start: now.subtract(const Duration(days: 30)), end: now);
+
+    final recentDaily = await getAverageDaily(recentRange, budgetId);
+    final monthlyDaily = await getAverageDaily(monthRange, budgetId);
+
+    return {
+      'current_daily': recentDaily,
+      'baseline_daily': monthlyDaily,
+      'ratio': monthlyDaily > 0 ? recentDaily / monthlyDaily : 1.0,
+    };
+  }
+
+  /// Generate Category Heatmap data (Category -> Day of Week -> Intensity)
+  Future<List<Map<String, dynamic>>> getCategoryHeatmap(String budgetId) async {
+    final now = DateTime.now();
+    final start = now.subtract(const Duration(days: 90)); // Last 90 days for heatmap
+    final expenses = await _getExpensesInRange(DateRange(start: start, end: now), budgetId);
+
+    final heatmap = <String, Map<int, double>>{}; // Category -> Weekday -> Amount
+
+    for (final e in expenses) {
+      final cat = e.categoryId ?? 'other';
+      final weekday = e.date.weekday;
+      heatmap.putIfAbsent(cat, () => {});
+      heatmap[cat]![weekday] = (heatmap[cat]![weekday] ?? 0) + e.amount;
+    }
+
+    return heatmap.entries.map((e) => {
+      'category': e.key,
+      'data': e.value,
+    }).toList();
   }
   
   /// Merchant frequency (how many times each merchant appears)

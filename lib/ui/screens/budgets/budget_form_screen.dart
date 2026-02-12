@@ -1,7 +1,7 @@
+import 'package:drift/drift.dart' hide Column;
 import 'package:cashpilot/core/constants/app_constants.dart' show BudgetType;
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -75,8 +75,8 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
       if (budget == null || budget.isDeleted) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Budget not found or has been deleted'),
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.budgetsNotFound),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -85,6 +85,26 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
         return;
       }
       
+      // Load existing categories to populate the form
+      // This allows users to add missing categories to an existing budget
+      final semiBudgets = await (database.select(database.semiBudgets)
+        ..where((t) => t.budgetId.equals(widget.budgetId!) & t.isDeleted.equals(false))
+      ).get();
+
+      final existingKeys = <String>{};
+      for (final sb in semiBudgets) {
+        // Try to match by masterCategoryId first (reliable)
+        if (sb.masterCategoryId != null) {
+          final match = industrialCategories.where((c) => c.localizationKey.toLowerCase() == sb.masterCategoryId!.toLowerCase()).firstOrNull;
+          if (match != null) existingKeys.add(match.localizationKey);
+        } 
+        // Fallback: match by name (legacy)
+        else {
+           final match = industrialCategories.where((c) => c.getLocalizedName(context) == sb.name).firstOrNull;
+           if (match != null) existingKeys.add(match.localizationKey);
+        }
+      }
+
       setState(() {
         _titleController.text = budget.title;
         _limitController.text = (budget.totalLimit != null ? budget.totalLimit! / 100 : '').toString();
@@ -93,11 +113,12 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
         _startDate = budget.startDate;
         _endDate = budget.endDate;
         _isShared = budget.isShared;
+        _newCategories.addAll(existingKeys);
       });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading budget: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.commonErrorMessage(e.toString()))),
         );
         context.pop();
       }
@@ -117,6 +138,7 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final currency = ref.watch(currencyProvider);
     final theme = Theme.of(context);
     
     return Scaffold(
@@ -139,7 +161,7 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
           preferredSize: const Size.fromHeight(0.5),
           child: Container(
             height: 0.5,
-            color: theme.dividerColor.withValues(alpha: 0.1),
+            color: theme.dividerColor.withOpacity(0.1),
           ),
         ),
       ),
@@ -161,7 +183,7 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
+                    color: Colors.black.withOpacity(0.04),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -178,7 +200,7 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
                     decoration: InputDecoration(
                       hintText: l10n.formTitleHint,
                       hintStyle: TextStyle(
-                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.3),
+                        color: theme.textTheme.bodyMedium?.color?.withOpacity(0.3),
                         fontWeight: FontWeight.w600,
                       ),
                       border: InputBorder.none,
@@ -214,7 +236,7 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
                           decoration: InputDecoration(
                             hintText: l10n.formAmountHint,
                             hintStyle: TextStyle(
-                              color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                              color: theme.colorScheme.primary.withOpacity(0.3),
                             ),
                             border: InputBorder.none,
                             isDense: true,
@@ -237,7 +259,7 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
+                    color: Colors.black.withOpacity(0.04),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -246,49 +268,52 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
               padding: const EdgeInsets.all(14),
               child: Column(
                 children: [
-                  // Type chips - single row, compact
-                  Row(
-                    children: [
-                      _CompactTypeChip(
-                        label: l10n.formTypeMonth,
-                        icon: Icons.calendar_month,
-                        isSelected: _selectedType == BudgetType.monthly,
-                        onTap: () {
-                          setState(() => _selectedType = BudgetType.monthly);
-                          _setDefaultDates();
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      _CompactTypeChip(
-                        label: l10n.formTypeWeek,
-                        icon: Icons.calendar_view_week,
-                        isSelected: _selectedType == BudgetType.weekly,
-                        onTap: () {
-                          setState(() => _selectedType = BudgetType.weekly);
-                          _setDefaultDates();
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      _CompactTypeChip(
-                        label: l10n.formTypeYear,
-                        icon: Icons.calendar_today,
-                        isSelected: _selectedType == BudgetType.annual,
-                        onTap: () {
-                          setState(() => _selectedType = BudgetType.annual);
-                          _setDefaultDates();
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      _CompactTypeChip(
-                        label: l10n.formTypeCustom,
-                        icon: Icons.tune,
-                        isSelected: _selectedType == BudgetType.custom,
-                        onTap: () => setState(() => _selectedType = BudgetType.custom),
-                      ),
-                    ],
+                  // Type chips - horizontal scrollable row for overflow safety
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _CompactTypeChip(
+                          label: l10n.formTypeMonth,
+                          icon: Icons.calendar_month,
+                          isSelected: _selectedType == BudgetType.monthly,
+                          onTap: () {
+                            setState(() => _selectedType = BudgetType.monthly);
+                            _setDefaultDates();
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        _CompactTypeChip(
+                          label: l10n.formTypeWeek,
+                          icon: Icons.calendar_view_week,
+                          isSelected: _selectedType == BudgetType.weekly,
+                          onTap: () {
+                            setState(() => _selectedType = BudgetType.weekly);
+                            _setDefaultDates();
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        _CompactTypeChip(
+                          label: l10n.formTypeYear,
+                          icon: Icons.calendar_today,
+                          isSelected: _selectedType == BudgetType.annual,
+                          onTap: () {
+                            setState(() => _selectedType = BudgetType.annual);
+                            _setDefaultDates();
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        _CompactTypeChip(
+                          label: l10n.formTypeCustom,
+                          icon: Icons.tune,
+                          isSelected: _selectedType == BudgetType.custom,
+                          onTap: () => setState(() => _selectedType = BudgetType.custom),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 12),
-                  Divider(height: 1, color: theme.dividerColor.withValues(alpha: 0.2)),
+                  Divider(height: 1, color: theme.dividerColor.withOpacity(0.2)),
                   const SizedBox(height: 12),
                   // Dates - compact inline
                   Row(
@@ -331,7 +356,7 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
+                          color: Colors.black.withOpacity(0.04),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -339,8 +364,8 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
                     ),
                     child: Column(
                       children: [
-                        _buildSharingToggle(l10n, theme),
-                        Divider(height: 1, color: theme.dividerColor.withValues(alpha: 0.2)),
+                        _buildSharingToggle(l10n, theme, ref),
+                        Divider(height: 1, color: theme.dividerColor.withOpacity(0.2)),
                         FamilyMemberSelector(
                           selectedMemberIds: _selectedMemberIds,
                           inviteEmails: _inviteEmails,
@@ -372,34 +397,32 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
+                          color: Colors.black.withOpacity(0.04),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
                       ],
                     ),
-                    child: _buildSharingToggle(l10n, theme),
+                    child: _buildSharingToggle(l10n, theme, ref),
                   ),
                   const SizedBox(height: 16),
                 ],
               ),
             
-            // CATEGORIES (Collapsible) - only when creating
-            if (!isEditing) ...[
-              CollapsibleSection(
-                title: l10n.formSectionCategories,
-                badge: _newCategories.isEmpty ? null : '${_newCategories.length}',
-                isExpanded: _expandedSections['categories']!,
-                onToggle: () => setState(() => _expandedSections['categories'] = !_expandedSections['categories']!),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: _buildCategoriesSection(l10n),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-            ],
+            // CATEGORIES (Collapsible) - Enabled for both Create and Edit
+            CollapsibleSection(
+              title: l10n.formSectionCategories,
+              badge: _newCategories.isEmpty ? null : '${_newCategories.length}',
+              isExpanded: _expandedSections['categories']!,
+              onToggle: () => setState(() => _expandedSections['categories'] = !_expandedSections['categories']!),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: _buildCategoriesSection(l10n),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             
             // ADVANCED (Collapsible)
             CollapsibleSection(
@@ -428,7 +451,7 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
                         decoration: InputDecoration(
                           hintText: l10n.formNotes,
                           filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide.none,
@@ -456,6 +479,7 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
   }
 
 
+
   // ================================================
   // HELPER METHODS - Apple-inspired UI components
   // ================================================
@@ -479,7 +503,7 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
               fontSize: 13,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.5,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              color: theme.colorScheme.onSurface.withOpacity(0.6),
             ),
           ),
         ),
@@ -491,7 +515,7 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
+                color: Colors.black.withOpacity(0.04),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -539,7 +563,7 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
       child: Divider(
         height: 1,
         thickness: 0.5,
-        color: Theme.of(context).dividerColor.withValues(alpha: 0.2),
+        color: Theme.of(context).dividerColor.withOpacity(0.2),
       ),
     );
   }
@@ -711,8 +735,8 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
                 onDeleted: () {
                   setState(() => _newCategories.remove(catKey));
                 },
-                deleteIconColor: color.withValues(alpha: 0.6),
-                backgroundColor: color.withValues(alpha: 0.1),
+                deleteIconColor: color.withOpacity(0.6),
+                backgroundColor: color.withOpacity(0.1),
                 side: BorderSide(
                   color: color.withValues(alpha: 0.2),
                   width: 1.0,
@@ -787,7 +811,7 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
             prefixIcon: Icon(icon, color: Theme.of(context).primaryColor),
             prefix: prefix,
             filled: true,
-            fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+            fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide(
@@ -858,7 +882,7 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
       ],
     );
   }
-  Widget _buildSharingSelector(AppLocalizations l10n) {
+  Widget _buildSharingSelector(AppLocalizations l10n, WidgetRef ref) {
     final subscriptionTierAsync = ref.watch(subscriptionTierProvider);
     final isProPlus = subscriptionTierAsync.valueOrNull == 'pro_plus';
     
@@ -972,13 +996,14 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
   }
 
   Future<void> _showCategorySelectionDialog() async {
-    // Group categories by localized group key
-    final groups = <String, List<LocalizedCategory>>{};
+    // 1. Organize categories into Master -> Sub hierarchy
+    final masterCategories = industrialCategories.where((c) => c.parentKey == null).toList();
+    final Map<String, List<LocalizedCategory>> childrenMap = {};
+    
     for (var cat in industrialCategories) {
-      if (!groups.containsKey(cat.groupKey)) {
-        groups[cat.groupKey] = [];
+      if (cat.parentKey != null) {
+        childrenMap.putIfAbsent(cat.parentKey!, () => []).add(cat);
       }
-      groups[cat.groupKey]!.add(cat);
     }
 
     // Temporary list of selected category localization keys
@@ -987,168 +1012,239 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: Colors.transparent, // Use transparent for better look
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (dialogContext, setModalState) {
-            return DraggableScrollableSheet(
-              initialChildSize: 0.9,
-              minChildSize: 0.5,
-              maxChildSize: 0.95,
-              expand: false,
-              builder: (dialogContext, scrollController) {
-                return Column(
-                  children: [
-                    // Header
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              AppLocalizations.of(dialogContext)!.budgetsCategories, 
-                              style: AppTypography.titleLarge,
-                              overflow: TextOverflow.ellipsis,
+            final l10n = AppLocalizations.of(dialogContext)!;
+            final theme = Theme.of(dialogContext);
+            
+            return Container(
+              height: MediaQuery.of(dialogContext).size.height * 0.9,
+              decoration: BoxDecoration(
+                color: theme.scaffoldBackgroundColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                children: [
+                  // --- HEADER ---
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 12, 12, 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.budgetsCategories, 
+                              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              '${selected.length} items selected',
+                              style: TextStyle(
+                                fontSize: 13, 
+                                color: theme.textTheme.bodySmall?.color,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _newCategories.clear();
+                              _newCategories.addAll(selected);
+                            });
+                            Navigator.pop(dialogContext);
+                          },
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                            backgroundColor: theme.primaryColor.withOpacity(0.1),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          ),
+                          child: Text(
+                            l10n.commonSave,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold, 
+                              fontSize: 16,
+                              color: theme.primaryColor,
                             ),
                           ),
-                          TextButton(
-                            onPressed: () {
-                              setState(() {
-                                _newCategories.clear();
-                                _newCategories.addAll(selected);
-                              });
-                              dialogContext.pop();
-                            },
-                            child: Text(AppLocalizations.of(dialogContext)!.commonSave),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    const Divider(height: 1),
-                    
-                    // Apple-style Grid List
-                    Expanded(
-                      child: ListView.builder(
-                        controller: scrollController,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        itemCount: groups.length,
-                        itemBuilder: (dialogContext, index) {
-                          final groupKey = groups.keys.elementAt(index);
-                          final categories = groups[groupKey]!;
-                          final localizedGroup = categories.first.getLocalizedGroup(dialogContext);
-                          
-                          return Column(
+                  ),
+                  const Divider(height: 1),
+                  
+                  // --- HIERARCHICAL LIST ---
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      itemCount: masterCategories.length,
+                      itemBuilder: (context, index) {
+                        final master = masterCategories[index];
+                        final masterKey = master.localizationKey;
+                        final children = childrenMap[masterKey] ?? [];
+                        final color = master.resolveColor(dialogContext);
+                        
+                        // Check if any children are selected or the master itself
+                        final selectedChildren = children.where((c) => selected.contains(c.localizationKey)).toList();
+                        final isMasterSelected = selected.contains(masterKey);
+                        final hasAnySelection = isMasterSelected || selectedChildren.isNotEmpty;
+
+                        return Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: hasAnySelection 
+                                ? color.withOpacity(0.04) 
+                                : theme.cardColor,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: hasAnySelection 
+                                  ? color.withOpacity(0.2) 
+                                  : theme.dividerColor.withOpacity(0.1),
+                              width: 1,
+                            ),
+                          ),
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Group Header
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(8, 24, 8, 12),
-                                child: Text(
-                                  localizedGroup.toUpperCase(),
-                                  style: AppTypography.labelSmall.copyWith(
-                                    color: Theme.of(dialogContext).colorScheme.primary,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.2,
+                              // 1. MASTER CATEGORY ROW
+                              ListTile(
+                                leading: CPAppIcon(
+                                  icon: master.resolveIcon(),
+                                  color: color,
+                                  size: 44,
+                                  iconSize: 22,
+                                  useGradient: true,
+                                ),
+                                title: Text(
+                                  master.getLocalizedName(dialogContext),
+                                  style: TextStyle(
+                                    fontWeight: isMasterSelected ? FontWeight.bold : FontWeight.w600, 
+                                    fontSize: 17,
                                   ),
                                 ),
-                              ),
-                              // Apple-style 4-column Grid
-                              GridView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 4,
-                                  mainAxisSpacing: 8,
-                                  crossAxisSpacing: 8,
-                                  childAspectRatio: 0.85,
-                                ),
-                                itemCount: categories.length,
-                                itemBuilder: (context, catIndex) {
-                                  final cat = categories[catIndex];
-                                  final isSelected = selected.contains(cat.localizationKey);
-                                  final localizedName = cat.getLocalizedName(dialogContext);
-                                  final color = cat.resolveColor(dialogContext);
-                                  
-                                  return GestureDetector(
-                                    onTap: () {
-                                      HapticFeedback.selectionClick();
+                                subtitle: selectedChildren.isNotEmpty 
+                                  ? Text(
+                                      '${selectedChildren.length} subcategories',
+                                      style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500),
+                                    )
+                                  : null,
+                                trailing: Transform.scale(
+                                  scale: 0.9,
+                                  child: Checkbox(
+                                    value: isMasterSelected,
+                                    activeColor: color,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                    onChanged: (val) {
                                       setModalState(() {
-                                        if (isSelected) {
-                                          selected.remove(cat.localizationKey);
+                                        if (val == true) {
+                                          selected.add(masterKey);
                                         } else {
-                                          selected.add(cat.localizationKey);
+                                          selected.remove(masterKey);
                                         }
                                       });
                                     },
-                                    child: AnimatedContainer(
-                                      duration: const Duration(milliseconds: 200),
-                                      decoration: BoxDecoration(
-                                        // Transparent background, tinted only when selected
-                                        color: isSelected 
-                                            ? color.withValues(alpha: 0.12)
-                                            : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(16),
-                                        // No border for clean Apple look
-                                      ),
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          // Icon on Top
-                                          CPAppIcon(
-                                            icon: cat.resolveIcon(),
-                                            color: color,
-                                            size: 44,
-                                            iconSize: 24,
-                                            useGradient: true,
-                                            useShadow: isSelected,
-                                          ),
-                                          const SizedBox(height: 6),
-                                          // Title Below
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 2),
-                                            child: Text(
-                                              localizedName,
-                                              textAlign: TextAlign.center,
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: AppTypography.labelSmall.copyWith(
-                                                fontSize: 10,
-                                                color: isSelected 
-                                                    ? color 
-                                                    : Theme.of(dialogContext).colorScheme.onSurface.withValues(alpha: 0.8),
-                                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                                height: 1.1,
-                                              ),
-                                            ),
-                                          ),
-                                          // Checkmark indicator for selected
-                                          if (isSelected)
-                                            Padding(
-                                              padding: const EdgeInsets.only(top: 2),
-                                              child: Icon(
-                                                Icons.check_circle,
-                                                size: 14,
-                                                color: color,
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
+                                  ),
+                                ),
+                                onTap: () {
+                                  setModalState(() {
+                                    if (isMasterSelected) {
+                                      selected.remove(masterKey);
+                                    } else {
+                                      selected.add(masterKey);
+                                    }
+                                  });
                                 },
                               ),
+                              
+                              // 2. SUBCATEGORIES GRID (2 Columns)
+                              if (children.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                                  child: GridView.builder(
+                                    shrinkWrap: true,
+                                    physics: const NeverScrollableScrollPhysics(),
+                                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 2,
+                                      childAspectRatio: 3.0,
+                                      crossAxisSpacing: 12,
+                                      mainAxisSpacing: 12,
+                                    ),
+                                    itemCount: children.length,
+                                    itemBuilder: (context, childIndex) {
+                                      final child = children[childIndex];
+                                      final childKey = child.localizationKey;
+                                      final isChildSelected = selected.contains(childKey);
+                                      final childColor = child.resolveColor(dialogContext);
+                                      
+                                      final containerColor = isChildSelected 
+                                          ? childColor.withOpacity(0.15) 
+                                          : theme.colorScheme.surfaceContainerHighest.withOpacity(0.3);
+                                      
+                                      final borderColor = isChildSelected 
+                                          ? childColor.withOpacity(0.5) 
+                                          : Colors.transparent;
+
+                                      return InkWell(
+                                        onTap: () {
+                                          setModalState(() {
+                                            if (isChildSelected) {
+                                              selected.remove(childKey);
+                                            } else {
+                                              selected.add(childKey);
+                                            }
+                                          });
+                                        },
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: AnimatedContainer(
+                                          duration: const Duration(milliseconds: 200),
+                                          decoration: BoxDecoration(
+                                            color: containerColor,
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(color: borderColor, width: 1.5),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                child.resolveIcon(),
+                                                size: 20,
+                                                color: isChildSelected ? childColor : theme.iconTheme.color?.withOpacity(0.7),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: Text(
+                                                  child.getLocalizedName(dialogContext),
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: isChildSelected ? FontWeight.w700 : FontWeight.w500,
+                                                    color: isChildSelected ? childColor : theme.textTheme.bodyMedium?.color,
+                                                    height: 1.1,
+                                                  ),
+                                                  maxLines: 2,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                              if (isChildSelected)
+                                                Icon(Icons.check, size: 16, color: childColor),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
                             ],
-                          );
-                        },
-                      ),
+                          ),
+                        );
+                      },
                     ),
-                  ],
-                );
-              },
+                  ),
+                ],
+              ),
             );
           },
         );
@@ -1156,22 +1252,23 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
     );
   }
   Future<void> _showUpgradeDialog(TierValidationResult result) async {
+    final l10n = AppLocalizations.of(context)!;
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Limit Reached'),
+        title: Text(l10n.budgetLimitReached),
         content: Text(result.toString()),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () {
               Navigator.pop(context);
               // Navigate to subscription screen if it exists, or show upgrade info
             },
-            child: const Text('Upgrade'),
+            child: Text(l10n.commonUpgrade),
           ),
         ],
       ),
@@ -1184,6 +1281,7 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
 
     if (!isEditing && _newCategories.isEmpty) {
       // Prompt user with a compact, elegant dialog
+      final l10n = AppLocalizations.of(context)!;
       final confirm = await showDialog<bool>(
         context: context,
         builder: (c) => Dialog(
@@ -1197,7 +1295,7 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                    color: Theme.of(context).primaryColor.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -1217,7 +1315,7 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
                 Text(
                   'Add default categories for better expense tracking?',
                   style: AppTypography.bodyMedium.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -1230,7 +1328,7 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                        child: const Text('Skip'),
+                        child: Text(l10n.commonSkip),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1243,7 +1341,7 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
                         style: FilledButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                        child: const Text('Add'),
+                        child: Text(l10n.commonAdd),
                       ),
                     ),
                   ],
@@ -1324,27 +1422,90 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
         );
       }
       
-      // Create categories
-      for (final catKey in _newCategories) {
-        // Find metadata by localization key
-        final defaultCat = industrialCategories.firstWhere(
-          (c) => c.localizationKey == catKey, 
-          orElse: () => LocalizedCategory(
-            localizationKey: catKey, 
-            groupKey: 'catGroupTech', // fallback
-            colorHex: '#808080',
-          ),
-        );
+      // --- HIERARCHICAL SEMI-BUDGET CREATION ---
+      
+      // 0. Fetch existing semi-budgets to avoid duplicates
+      final db = ref.read(databaseProvider);
+      final existingSemiBudgets = await (db.select(db.semiBudgets)
+        ..where((t) => t.budgetId.equals(budgetId) & t.isDeleted.equals(false))
+      ).get();
+      
+      final existingMasterIds = existingSemiBudgets
+          .where((sb) => sb.masterCategoryId != null)
+          .map((sb) => sb.masterCategoryId!.toLowerCase())
+          .toSet();
 
-        // Get the localized name to save to DB (using current language)
+      // 1. Identify all required parent categories
+      // If a user selects a subcategory, we MUST create its parent even if not explicitly selected.
+      final Set<String> allRequiredMasterKeys = {};
+      for (final key in _newCategories) {
+        allRequiredMasterKeys.add(key);
+        final cat = industrialCategories.firstWhere((c) => c.localizationKey == key);
+        if (cat.parentKey != null) {
+          allRequiredMasterKeys.add(cat.parentKey!);
+        }
+      }
+
+      // 2. PASS 1: Create Top-Level SemiBudgets
+      final Map<String, String> masterKeyToSemiBudgetId = {};
+      final topLevelKeys = allRequiredMasterKeys.where((key) {
+        final cat = industrialCategories.firstWhere((c) => c.localizationKey == key);
+        return cat.parentKey == null;
+      }).toList();
+
+      for (final masterKey in topLevelKeys) {
+        final defaultCat = industrialCategories.firstWhere((c) => c.localizationKey == masterKey);
         final localizedName = defaultCat.getLocalizedName(context);
+        
+        // The global category record ID (seeded in app_database.dart)
+        final masterCategoryId = masterKey.toLowerCase();
+        
+        // CHECK IF EXISTS
+        if (existingMasterIds.contains(masterCategoryId)) {
+             final existing = existingSemiBudgets.firstWhere((sb) => sb.masterCategoryId?.toLowerCase() == masterCategoryId);
+             masterKeyToSemiBudgetId[masterKey] = existing.id;
+             continue; // Skip creation
+        }
+
+        final semiBudgetId = await controller.createSemiBudget(
+          budgetId: budgetId,
+          name: localizedName,
+          limitAmount: 0,
+          iconName: defaultCat.iconName,
+          colorHex: defaultCat.colorHex,
+          masterCategoryId: masterCategoryId,
+          parentCategoryId: null, // Top level
+        );
+        masterKeyToSemiBudgetId[masterKey] = semiBudgetId;
+      }
+
+      // 3. PASS 2: Create Subcategory SemiBudgets
+      final subcategoryKeys = _newCategories.where((key) {
+        final cat = industrialCategories.firstWhere((c) => c.localizationKey == key);
+        return cat.parentKey != null;
+      }).toList();
+
+      for (final subKey in subcategoryKeys) {
+        final defaultCat = industrialCategories.firstWhere((c) => c.localizationKey == subKey);
+        final localizedName = defaultCat.getLocalizedName(context);
+        final parentSemiBudgetId = masterKeyToSemiBudgetId[defaultCat.parentKey!];
+        
+        // The global category record ID
+        final masterCategoryId = subKey.toLowerCase();
+        
+        // CHECK IF EXISTS
+        if (existingMasterIds.contains(masterCategoryId)) {
+             continue; // Skip creation
+        }
 
         await controller.createSemiBudget(
           budgetId: budgetId,
           name: localizedName,
-          limitAmount: 0, // Default 0 limit implies no specific limit
+          limitAmount: 0,
           iconName: defaultCat.iconName,
           colorHex: defaultCat.colorHex,
+          masterCategoryId: masterCategoryId,
+          parentCategoryId: parentSemiBudgetId,
         );
       }
 
@@ -1386,7 +1547,7 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
   }
 
   // Build sharing toggle - for family budget section
-  Widget _buildSharingToggle(AppLocalizations l10n, ThemeData theme) {
+  Widget _buildSharingToggle(AppLocalizations l10n, ThemeData theme, WidgetRef ref) {
     final subscriptionTierAsync = ref.watch(subscriptionTierProvider);
     final isProPlus = subscriptionTierAsync.valueOrNull == 'pro_plus';
     
@@ -1446,43 +1607,45 @@ class _CompactTypeChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? theme.colorScheme.primaryContainer
-                : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(8),
-            border: isSelected
-                ? Border.all(color: theme.colorScheme.primary, width: 1.5)
-                : null,
-          ),
-          child: Column(
-            children: [
-              Icon(
-                icon,
-                size: 18,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        constraints: const BoxConstraints(minWidth: 80),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? theme.colorScheme.primaryContainer
+              : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(8),
+          border: isSelected
+              ? Border.all(color: theme.colorScheme.primary, width: 1.5)
+              : null,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected
+                  ? theme.colorScheme.primary
+                  : theme.textTheme.bodyMedium?.color,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 color: isSelected
-                    ? theme.colorScheme.primary
+                    ? theme.colorScheme.onPrimaryContainer
                     : theme.textTheme.bodyMedium?.color,
               ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  color: isSelected
-                      ? theme.colorScheme.onPrimaryContainer
-                      : theme.textTheme.bodyMedium?.color,
-                ),
-              ),
-            ],
-          ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
       ),
     );

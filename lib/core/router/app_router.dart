@@ -17,6 +17,7 @@ import '../constants/subscription.dart';
 import 'page_transitions.dart';
 import 'route_guards.dart';
 import '../../services/auth_service.dart';
+import '../services/glass_toast_service.dart';
 
 // Screens
 import '../../ui/screens/home/home_screen.dart';
@@ -32,6 +33,7 @@ import '../../ui/screens/admin/ab_testing_screen.dart';
 import '../../ui/screens/shell/main_shell.dart';
 import '../../ui/screens/onboarding/onboarding_screen.dart';
 import '../../ui/screens/categories/category_form_screen.dart';
+import '../../ui/screens/settings/advanced_settings_screen.dart';
 import '../../features/family/screens/contact_picker_screen.dart';
 
 import '../../ui/screens/scan/receipt_scan_screen.dart';
@@ -43,12 +45,17 @@ import '../../ui/screens/profile/profile_screen.dart';
 import '../../ui/screens/paywall/paywall_screen.dart';
 import '../../ui/screens/scan/barcode_scan_screen.dart';
 import '../../ui/screens/legal/user_agreement_screen.dart';
-import '../../ui/screens/savings/savings_goals_screen.dart';
 import '../../ui/screens/categories/category_list_screen.dart';
 import '../../ui/screens/sync/conflicts_screen.dart';
-// Bank screens temporarily disabled until feature complete
-// import '../../ui/screens/banking/bank_accounts_screen.dart';
-// import '../../ui/screens/banking/bank_connection_flow_screen.dart';
+import '../../features/export/ui/screens/export_screen.dart';
+import '../../features/knowledge/presentation/screens/knowledge_screen.dart';
+import '../../features/knowledge/presentation/screens/knowledge_article_screen.dart';
+import '../../features/knowledge/domain/entities/knowledge_article.dart';
+import '../../ui/screens/net_worth/net_worth_screen.dart';
+
+import '../../ui/screens/banking/bank_accounts_screen.dart';
+import '../../ui/screens/banking/bank_connection_flow_screen.dart';
+import '../../ui/screens/banking/bank_transactions_screen.dart';
 
 // ============================================================================
 // ROUTER REFRESH NOTIFIER - Listens to auth state and triggers router refresh
@@ -123,6 +130,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     debugLogDiagnostics: kDebugMode,
+    navigatorKey: GlassToastService.navigatorKey, // ADDED: Global overlay support
     
     // CRITICAL: This makes router re-evaluate redirect when auth state changes
     refreshListenable: refreshNotifier,
@@ -298,6 +306,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
 
+      // Advanced Settings
+      GoRoute(
+        path: AppRoutes.advancedSettings,
+        name: 'advanced-settings',
+        pageBuilder: (context, state) => SlideInPage(
+          key: state.pageKey,
+          name: 'advanced-settings',
+          child: const AdvancedSettingsScreen(),
+        ),
+      ),
+
       // ---------------------------------------------------------
       // Full-Screen Routes (Modals, Screens)
       // ---------------------------------------------------------
@@ -426,14 +445,68 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
-      // Savings Goals
+      // Net Worth (Financial OS Upgrade)
       GoRoute(
-        path: AppRoutes.savings,
-        name: 'savings',
+        path: AppRoutes.netWorth,
+        name: 'net-worth',
         pageBuilder: (_, state) => SlideInPage(
           key: state.pageKey,
-          name: 'savings',
-          child: const SavingsGoalsScreen(),
+          name: 'net-worth',
+          child: const NetWorthScreen(),
+        ),
+      ),
+
+      // Savings Goals
+      GoRoute(
+        path: AppRoutes.savingsGoals,
+        name: 'savings-goals',
+        pageBuilder: (_, state) => SlideInPage(
+          key: state.pageKey,
+          name: 'savings-goals',
+          child: const Scaffold(body: Center(child: Text('Savings Goals - Coming Soon'))), 
+          // TODO: Replace with SavingsGoalsScreen() when integrated
+          // child: const SavingsGoalsScreen(),
+        ),
+      ),
+      
+      // Accounts Management (Placeholder)
+      GoRoute(
+        path: AppRoutes.accounts,
+        name: 'accounts',
+        pageBuilder: (_, state) => const NoTransitionPage(child: Scaffold(body: Center(child: Text('Accounts Management - Coming Soon')))),
+        routes: [
+           GoRoute(
+            path: ':id',
+            name: 'account-details',
+            builder: (context, state) => Scaffold(body: Center(child: Text('Account Details: ${state.pathParameters['id']}'))),
+          ),
+          GoRoute(
+             path: 'create', // path is relative to parent, so just 'create'
+             name: 'account-create',
+             builder: (context, state) => const Scaffold(body: Center(child: Text('Create Account - Coming Soon'))),
+          ),
+        ]
+      ),
+      
+      // Register (Placeholder)
+      GoRoute(
+        path: AppRoutes.register,
+        name: 'register',
+        pageBuilder: (_, state) => FastFadePage(
+          key: state.pageKey,
+          name: 'register',
+          child: const Scaffold(body: Center(child: Text('Register - Coming Soon'))),
+        ),
+      ),
+
+      // Forgot Password (Placeholder)
+      GoRoute(
+        path: AppRoutes.forgotPassword,
+        name: 'forgot-password',
+        pageBuilder: (_, state) => FastFadePage(
+          key: state.pageKey,
+          name: 'forgot-password',
+          child: const Scaffold(body: Center(child: Text('Forgot Password - Coming Soon'))),
         ),
       ),
 
@@ -503,13 +576,59 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
+      // Enterprise Export
+      GoRoute(
+        path: AppRoutes.export,
+        name: 'export',
+        pageBuilder: (context, state) => SlideUpPage(
+          key: state.pageKey,
+          name: 'export',
+          child: const ExportScreen(),
+        ),
+      ),
+      
+      // Knowledge Database
+      GoRoute(
+        path: AppRoutes.knowledge,
+        name: 'knowledge',
+        pageBuilder: (context, state) => SlideInPage(
+          key: state.pageKey,
+          name: 'knowledge',
+          child: const KnowledgeScreen(),
+        ),
+        routes: [
+           GoRoute(
+            path: 'article/:id',
+            name: 'knowledge-article',
+            pageBuilder: (context, state) {
+              final article = state.extra as KnowledgeArticle?;
+              // Note: If article is null (deep link), we would fetch it in the screen.
+              // For now, we assume it's passed or handled by screen if missing.
+              // However, since KnowledgeArticleScreen REQUIRES 'article', we should handle deep linking better.
+              // But for this MVP step, we will rely on navigation passing the object.
+              // Future improvement: Fetch by ID if extra is null.
+              if (article == null) {
+                 // Fallback: Redirect to main knowledge screen if no article data
+                 // In a real app, we'd fetch by ID here.
+                 // Scheduling a microtask to redirect to avoid build-phase navigation
+                 Future.microtask(() => context.go(AppRoutes.knowledge));
+                 return const NoTransitionPage(child: SizedBox.shrink()); 
+              }
+              return SlideInPage(
+                key: state.pageKey,
+                name: 'knowledge-article',
+                child: KnowledgeArticleScreen(article: article),
+              );
+            },
+          ),
+        ],
+      ),
+
       // -------------------------------------------------------------------------
       // Banking / Yapily - STUBBED FOR FUTURE IMPLEMENTATION
       // Requires eIDAS certificates for production use
       // See: docs/BANK_INTEGRATION_GUIDE.md
       // -------------------------------------------------------------------------
-      
-      /* UNCOMMENT WHEN READY TO IMPLEMENT BANK CONNECTIVITY:
       
       GoRoute(
         path: AppRoutes.bankAccounts,
@@ -530,8 +649,18 @@ final routerProvider = Provider<GoRouter>((ref) {
           child: const BankConnectionFlowScreen(),
         ),
       ),
-      
-      */
+
+      GoRoute(
+        path: '/banking/transactions/:accountId',
+        name: 'bank-transactions',
+        pageBuilder: (_, state) => SlideInPage(
+          key: state.pageKey,
+          name: 'bank-transactions',
+          child: BankTransactionsScreen(
+            accountId: state.pathParameters['accountId']!,
+          ),
+        ),
+      ),
     ],
 
     /// Error Page

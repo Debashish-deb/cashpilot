@@ -1,6 +1,7 @@
+import 'package:cashpilot/l10n/app_localizations.dart' show AppLocalizations;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/tokens.g.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../widgets/common/progress_bar.dart';
 
@@ -30,6 +31,7 @@ class SavingsGoalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final progress = targetAmount > 0 ? (currentAmount / targetAmount).clamp(0.0, 1.0) : 0.0;
     final percentage = (progress * 100).toInt();
     final remaining = targetAmount - currentAmount;
@@ -40,35 +42,14 @@ class SavingsGoalCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          // Solid background from theme surface
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(20), // 20dp per featurelytics
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: Theme.of(context).brightness == Brightness.dark
                 ? Colors.white.withValues(alpha: 0.08)
-                : Colors.black.withValues(alpha: 0.04), // Subtle border
+                : Colors.black.withValues(alpha: 0.04),
             width: 1,
           ),
-          boxShadow: Theme.of(context).brightness == Brightness.dark
-              ? [
-                  BoxShadow(
-                    color: (color ?? Theme.of(context).primaryColor).withValues(alpha: 0.08),
-                    blurRadius: 12,
-                    offset: const Offset(0, 2),
-                  )
-                ]
-              : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,8 +83,8 @@ class SavingsGoalCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         deadline != null 
-                            ? 'Goal by ${DateFormat.yMMMd().format(deadline!)}' 
-                            : 'No deadline',
+                            ? l10n.savingsGoalBy(DateFormat.yMMMd(l10n.localeName).format(deadline!)) 
+                            : l10n.savingsNoDeadline,
                         style: AppTypography.bodySmall.copyWith(
                           color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
@@ -122,14 +103,14 @@ class SavingsGoalCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Saved',
+                      l10n.savingsSaved,
                       style: AppTypography.labelSmall.copyWith(
                         color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _formatCurrency(currentAmount, currency),
+                      _formatCurrency(context, currentAmount, currency),
                       style: AppTypography.titleLarge.copyWith(
                         fontWeight: FontWeight.bold,
                         color: themeColor,
@@ -141,14 +122,14 @@ class SavingsGoalCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      'Target',
+                      l10n.savingsTarget,
                       style: AppTypography.labelSmall.copyWith(
                         color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _formatCurrency(targetAmount, currency),
+                      _formatCurrency(context, targetAmount, currency),
                       style: AppTypography.titleSmall.copyWith(
                          fontWeight: FontWeight.w600,
                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
@@ -170,20 +151,20 @@ class SavingsGoalCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: remaining > 0 
-                  ? Text(
-                      '${_formatCurrency(remaining, currency)} left to go',
-                      style: AppTypography.bodySmall.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                        fontWeight: FontWeight.w500,
+                    ? Text(
+                        l10n.savingsLeftToGo(_formatCurrency(context, remaining, currency)),
+                        style: AppTypography.bodySmall.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      )
+                    : Text(
+                        l10n.savingsGoalReached,
+                        style: AppTypography.bodySmall.copyWith(
+                         color: AppTokens.semanticSuccess,
+                         fontWeight: FontWeight.w600,
+                       ),
                       ),
-                    )
-                  : Text(
-                      'Goal Reached! 🎉',
-                      style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.success,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
                 ),
                 TextButton.icon(
                   onPressed: onAddMoney,
@@ -194,7 +175,7 @@ class SavingsGoalCard extends StatelessWidget {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Add Money'),
+                  label: Text(AppLocalizations.of(context)!.savingsAddMoney),
                 ),
               ],
             ),
@@ -221,9 +202,13 @@ class SavingsGoalCard extends StatelessWidget {
     );
   }
 
-  String _formatCurrency(int amountInCents, String currency) {
+  String _formatCurrency(BuildContext context, int amountInCents, String currency) {
     final amount = amountInCents / 100;
-    return NumberFormat.simpleCurrency(name: currency, decimalDigits: 0).format(amount);
+    return NumberFormat.simpleCurrency(
+      locale: AppLocalizations.of(context)!.localeName,
+      name: currency,
+      decimalDigits: 0,
+    ).format(amount);
   }
 
   IconData _getIcon(String? iconName) {

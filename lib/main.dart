@@ -1,31 +1,30 @@
-library;
-
 import 'dart:async';
-import 'dart:io';
 
-import 'package:cashpilot/core/services/bootstrap_service.dart';
-import 'package:cashpilot/services/auth_service.dart' show AuthService;
-import 'package:cashpilot/services/subscription_service.dart';
-import 'package:cashpilot/services/sync_engine.dart' show syncEngineProvider;
-import 'package:flutter/foundation.dart';
+import 'package:cashpilot/services/subscription_service.dart' show subscriptionService;
+import 'package:flutter/foundation.dart' show debugPrint, defaultTargetPlatform, kDebugMode, kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'l10n/app_localizations.dart';
 
+import 'package:cashpilot/core/services/bootstrap_service.dart';
+import 'package:cashpilot/services/auth_service.dart';
+import 'package:cashpilot/services/sync_engine.dart';
+import 'package:cashpilot/services/encryption_service.dart';
+import 'package:cashpilot/services/crash_reporting_service.dart';
+import 'package:cashpilot/services/notification_service.dart';
+import 'package:cashpilot/core/managers/analytics_manager.dart';
+import 'package:cashpilot/core/managers/network_manager.dart';
+
+import 'l10n/app_localizations.dart';
 import 'core/constants/app_constants.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/accent_colors.dart';
 import 'core/providers/app_providers.dart';
 import 'core/router/app_router.dart';
-import 'services/crash_reporting_service.dart';
-import 'services/notification_service.dart';
 import 'features/analytics/providers/analytics_providers.dart';
+
 import 'ui/widgets/lock_screen.dart';
 import 'ui/widgets/security/privacy_guard.dart';
-import 'core/managers/analytics_manager.dart';
-import 'core/managers/network_manager.dart';
 import 'ui/widgets/common/error_boundary.dart';
-
 
 // ===============================================================
 // APP ENTRY
@@ -34,7 +33,6 @@ import 'ui/widgets/common/error_boundary.dart';
 Future<void> main() async {
   await BootstrapService.run(const CashPilotApp());
 }
-
 
 // APP ROOT
 
@@ -100,6 +98,30 @@ class _CashPilotAppState extends ConsumerState<CashPilotApp>
       ref.read(syncEngineProvider).initialize();
     } catch (e) {
       if (kDebugMode) debugPrint('[Main] Sync engine init failed: $e');
+    }
+
+    // 🔒 SECURITY: Configure Logout Wipe
+    // Wires up the "Strict Data Isolation" contract
+    try {
+      final db = ref.read(databaseProvider);
+      final prefs = ref.read(sharedPreferencesProvider);
+      
+      AuthService().onDataWipe = () async {
+        if (kDebugMode) debugPrint('🔒 [Security] Executing Strict Data Wipe...');
+        
+        // 1. Wipe Database (Business Data)
+        await db.wipeAllData();
+        
+        // 2. Wipe Encryption Keys (Crypto-shredding)
+        await encryptionService.deleteAllKeys();
+        
+        // 3. Wipe Preferences (Session, Settings, Onboarding)
+        await prefs.clear();
+        
+        if (kDebugMode) debugPrint('🔒 [Security] Wipe Complete. Device is clean.');
+      };
+    } catch (e) {
+      if (kDebugMode) debugPrint('[Main] Security wipe configuration failed: $e');
     }
 
     // 4️⃣ Initial sync with 100ms delay (prioritize UI rendering)
@@ -200,8 +222,14 @@ class _CashPilotAppState extends ConsumerState<CashPilotApp>
         ref.read(syncEngineProvider).performSync();
         
         // Refresh subscription tier
-        subscriptionService.sync();
-        subscriptionService.checkExpirations();
+        if (subscriptionService.isInitialized) {
+          try {
+            subscriptionService.sync();
+            subscriptionService.checkExpirations();
+          } catch (e) {
+            if (kDebugMode) debugPrint('⚠️ Resume subscription check failed: $e');
+          }
+        }
       } else {
         if (kDebugMode) debugPrint('⏭️ Resume sync skipped (debounced)');
       }
@@ -286,7 +314,7 @@ class _AppScrollBehavior extends MaterialScrollBehavior {
 
   @override
   ScrollPhysics getScrollPhysics(BuildContext context) {
-    return Platform.isIOS
+    return defaultTargetPlatform == TargetPlatform.iOS
         ? const BouncingScrollPhysics(
             parent: AlwaysScrollableScrollPhysics(),
           )

@@ -26,6 +26,10 @@ class AppColors {
   static const Color primaryGold = Color(0xFFC7A46A);
   static const Color accentGold = Color(0xFFE2C77B);
 
+  /// Indigo Palette (New Brand Colors)
+  static const Color indigo600 = Color(0xFF4F46E5);
+  static const Color indigo400 = Color(0xFF818CF8);
+
   // ============================================================
   // LIGHT MODE — Balanced for iOS + Android
   // ============================================================
@@ -52,11 +56,11 @@ class AppColors {
   // DARK MODE — Universal Android + iOS darkness
   // ============================================================
 
-  /// OLED-optimized pure black surfaces
-  static const Color darkBackground = Color(0xFF000000);
-  static const Color darkSurface = Color(0xFF0D0D0F);
-  static const Color darkSurfaceVariant = Color(0xFF1A1A1D);
-  static const Color darkCardBackground = Color(0xFF08080A);
+  /// Solid Grey Dark Mode (User provided reference)
+  static const Color darkBackground = Color(0xFF3C3C3C);
+  static const Color darkSurface = Color(0xFF3C3C3C);
+  static const Color darkSurfaceVariant = Color(0xFF4A4A4A);
+  static const Color darkCardBackground = Color(0xFF4A4A4A);
 
   /// Text hierarchy (Apple + Android compatible)
   static const Color darkTextPrimary = Color(0xFFFFFFFF);
@@ -136,6 +140,26 @@ class AppColors {
 
   static const LinearGradient oceanGradient = LinearGradient(
     colors: [Color(0xFF73D2FF), Color(0xFF1A8FFF)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient magmaGradient = sunsetGradient;
+
+  static const LinearGradient tealGradient = LinearGradient(
+    colors: [Color(0xFF4FD1C5), Color(0xFF285E61)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient emeraldGradient = LinearGradient(
+    colors: [Color(0xFF6EE7B7), Color(0xFF065F46)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient indigoGradient = LinearGradient(
+    colors: [Color(0xFF818CF8), Color(0xFF312E81)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

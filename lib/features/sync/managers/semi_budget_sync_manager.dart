@@ -1,18 +1,18 @@
+import 'package:cashpilot/features/sync/services/sync_checkpoint_service.dart' show SyncCheckpointService;
 import 'package:flutter/foundation.dart';
 import 'package:drift/drift.dart';
 import 'base_sync_manager.dart';
 import '../../../data/drift/app_database.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/device_info_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cashpilot/features/sync/services/sync_checkpoint_service.dart';
 
 class SemiBudgetSyncManager implements BaseSyncManager<SemiBudget> {
   final AppDatabase db;
   final AuthService authService;
-  final SharedPreferences prefs;
-  static const _syncKey = 'last_semi_budgets_sync_iso';
+  final SyncCheckpointService checkpointService;
 
-  SemiBudgetSyncManager(this.db, this.authService, this.prefs);
+  SemiBudgetSyncManager(this.db, this.authService, this.checkpointService);
 
   @override
   Future<void> syncUp(String id) async {
@@ -187,7 +187,8 @@ class SemiBudgetSyncManager implements BaseSyncManager<SemiBudget> {
 
     int count = 0;
     try {
-      final lastSyncStr = prefs.getString(_syncKey);
+      final checkpoint = await checkpointService.getCheckpoint('semi_budgets');
+      final lastSyncAt = checkpoint.lastSyncAt;
       
       // SemiBudgets don't have owner_id directly usually, they link to budgets.
       // We need to join with budgets table to filter by owner_id.
@@ -198,8 +199,8 @@ class SemiBudgetSyncManager implements BaseSyncManager<SemiBudget> {
           // to allow fetching semi-budgets of shared budgets via RLS
       
       // Incremental sync: only fetch changes since last sync
-      if (lastSyncStr != null) {
-        query = query.gt('updated_at', lastSyncStr);
+      if (lastSyncAt != null) {
+        query = query.gt('updated_at', lastSyncAt.toIso8601String());
       }
 
       final remoteSemiBudgets = await query;
@@ -224,7 +225,7 @@ class SemiBudgetSyncManager implements BaseSyncManager<SemiBudget> {
       
       // Save checkpoint if we received data
       if (maxUpdated != null) {
-        await prefs.setString(_syncKey, maxUpdated.toIso8601String());
+        await checkpointService.updateCheckpoint('semi_budgets', lastSyncAt: maxUpdated);
       }
       
       debugPrint('[SemiBudgetSyncManager] Pulled $count semi-budgets');

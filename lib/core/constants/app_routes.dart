@@ -7,67 +7,39 @@
 library;
 
 class AppRoutes {
-  // ===========================================================================
-  // MAIN TABS
-  // ===========================================================================
 
   static const String home = '/';
   static const String budgets = '/budgets';
   static const String addExpense = '/add-expense';
   static const String reports = '/reports';
   static const String settings = '/settings';
+  static const String advancedSettings = '/settings/advanced';
 
-  // ===========================================================================
-  // BUDGET ROUTES
-  // ===========================================================================
-
+ 
   static const String budgetDetails = '/budgets/:id';
   static const String budgetCreate = '/create-budget';
   static const String budgetEdit = '/budgets/:id/edit';
-
-  // ===========================================================================
-  // SEMI-BUDGET (CATEGORY) ROUTES
-  // ===========================================================================
 
   static const String semiBudgetDetails = '/budgets/:budgetId/category/:id';
   static const String categoryAdd = '/budgets/:budgetId/category/add';
   static const String categoryEdit =
       '/budgets/:budgetId/category/:categoryId/edit';
 
-  // ===========================================================================
-  // EXPENSE ROUTES
-  // ===========================================================================
-
   static const String expenseDetails = '/expenses/:id';
   static const String expenseEdit = '/expenses/:id/edit';
   static const String expenseList = '/budgets/:budgetId/expenses';
 
-  // ===========================================================================
-  // SCAN ROUTES
-  // ===========================================================================
 
   static const String scanReceipt = '/scan-receipt';
   static const String scanBarcode = '/scan/barcode';
-
-  // ===========================================================================
-  // ACCOUNT ROUTES
-  // ===========================================================================
 
   static const String accounts = '/accounts';
   static const String accountDetails = '/accounts/:id';
   static const String accountCreate = '/accounts/create';
 
-  // ===========================================================================
-  // FAMILY ROUTES
-  // ===========================================================================
-
   static const String familySettings = '/family';
   static const String familyInvite = '/family/invite';
   static const String pendingInvites = '/family/pending-invites';
-
-  // ===========================================================================
-  // AUTH ROUTES
-  // ===========================================================================
 
   static const String login = '/login';
   static const String register = '/register';
@@ -76,17 +48,15 @@ class AppRoutes {
   static const String privacyPolicy = '/privacy-policy';
   static const String termsOfService = '/terms-of-service';
 
-  // ===========================================================================
-  // OTHER ROUTES
-  // ===========================================================================
-
   static const String onboarding = '/onboarding';
   static const String profile = '/profile';
   static const String paywall = '/paywall';
   static const String recurringExpenses = '/recurring-expenses';
-  static const String savings = '/savings';
+  static const String netWorth = '/net-worth'; // Renamed from savings
+  static const String savingsGoals = '/savings-goals'; // New route
   static const String categories = '/categories';
   static const String syncConflicts = '/sync/conflicts';
+  static const String export = '/export';
   
   // Banking / GoCardless
   static const String bankAccounts = '/banking/accounts';
@@ -94,10 +64,11 @@ class AppRoutes {
   static const String contactPicker = '/family/contacts';
   static const String bankTransactions = '/banking/transactions/:accountId';
 
-  // ===========================================================================
+  // Knowledge Database
+  static const String knowledge = '/knowledge';
+  static const String knowledgeArticle = '/knowledge/article/:id';
+
   // ROUTE BUILDERS (SAFE HELPERS)
-  // These MUST stay in sync with route definitions above
-  // ===========================================================================
 
   static String budgetDetailsPath(String id) {
     assert(id.isNotEmpty);
@@ -145,6 +116,11 @@ class AppRoutes {
     assert(budgetId.isNotEmpty);
     return '/budgets/$budgetId/expenses';
   }
+  
+  static String knowledgeArticlePath(String id) {
+    assert(id.isNotEmpty);
+    return '/knowledge/article/$id';
+  }
 
   static String legalPath(String type) {
     if (type == 'privacy') return privacyPolicy;
@@ -152,9 +128,8 @@ class AppRoutes {
     return userAgreement;
   }
 
-  // ===========================================================================
   // UTILITIES (NON-BREAKING)
-  // ===========================================================================
+  
 
   /// Returns true if the route contains path parameters (":id")
   static bool isParameterized(String route) {

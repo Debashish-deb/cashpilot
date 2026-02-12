@@ -1,5 +1,6 @@
+import 'package:cashpilot/l10n/app_localizations.dart' show AppLocalizations;
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/tokens.g.dart';
 import '../../../core/theme/app_typography.dart';
 import 'package:intl/intl.dart';
 
@@ -45,7 +46,7 @@ class BudgetHealthChip extends StatelessWidget {
         context,
         'Upcoming',
         _ChipStyle.neutral,
-        'Budget starts on ${DateFormat('MMM d').format(start)}',
+        'Budget starts on ${DateFormat('MMM d', AppLocalizations.of(context)!.localeName).format(start)}',
       );
     }
 
@@ -112,21 +113,27 @@ class BudgetHealthChip extends StatelessWidget {
         context,
         statusLabel,
         explanation,
-        _getColor(health),
+        _getColor(context, health),
       ),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
           color: chipStyle == _ChipStyle.danger
-              ? Colors.white
-              : chipStyle == _ChipStyle.success
-                  ? Colors.white.withValues(alpha: 0.25)
-                  : Colors.amber.shade900.withValues(alpha: 0.6),
+              ? AppTokens.semanticDanger.withValues(alpha: 0.1)
+              : chipStyle == _ChipStyle.warning
+                  ? AppTokens.semanticWarning.withValues(alpha: 0.1)
+                  : chipStyle == _ChipStyle.success
+                      ? AppTokens.semanticSuccess.withValues(alpha: 0.1)
+                      : Theme.of(context).disabledColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: chipStyle == _ChipStyle.danger
-                ? Colors.red.shade700.withValues(alpha: 0.4)
-                : Colors.white.withValues(alpha: 0.3),
+                ? AppTokens.semanticDanger.withValues(alpha: 0.3)
+                : chipStyle == _ChipStyle.warning
+                    ? AppTokens.semanticWarning.withValues(alpha: 0.3)
+                    : chipStyle == _ChipStyle.success
+                        ? AppTokens.semanticSuccess.withValues(alpha: 0.3)
+                        : Theme.of(context).disabledColor.withValues(alpha: 0.3),
           ),
         ),
         child: Row(
@@ -137,8 +144,12 @@ class BudgetHealthChip extends StatelessWidget {
               height: 6,
               decoration: BoxDecoration(
                 color: chipStyle == _ChipStyle.danger
-                    ? Colors.red.shade700
-                    : Colors.white,
+                    ? AppTokens.semanticDanger
+                    : chipStyle == _ChipStyle.warning
+                        ? AppTokens.semanticWarning
+                        : chipStyle == _ChipStyle.success
+                            ? AppTokens.semanticSuccess
+                            : Theme.of(context).disabledColor,
                 shape: BoxShape.circle,
               ),
             ),
@@ -147,8 +158,12 @@ class BudgetHealthChip extends StatelessWidget {
               statusLabel,
               style: AppTypography.labelSmall.copyWith(
                 color: chipStyle == _ChipStyle.danger
-                    ? Colors.red.shade700
-                    : Colors.white,
+                    ? AppTokens.semanticDanger
+                    : chipStyle == _ChipStyle.warning
+                        ? AppTokens.semanticWarning
+                        : chipStyle == _ChipStyle.success
+                            ? AppTokens.semanticSuccess
+                            : Theme.of(context).disabledColor,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.3,
               ),
@@ -165,20 +180,17 @@ class BudgetHealthChip extends StatelessWidget {
     _ChipStyle style,
     String explanation,
   ) {
-    final bgColor = style == _ChipStyle.danger
-        ? Colors.white
-        : style == _ChipStyle.neutral
-            ? Colors.white.withValues(alpha: 0.2)
+    final color = style == _ChipStyle.danger
+        ? AppTokens.semanticDanger
+        : style == _ChipStyle.warning
+            ? AppTokens.semanticWarning
             : style == _ChipStyle.success
-                ? Colors.white.withValues(alpha: 0.25)
-                : Colors.amber.shade900.withValues(alpha: 0.6);
+                ? AppTokens.semanticSuccess
+                : Theme.of(context).disabledColor;
 
-    final textColor =
-        style == _ChipStyle.danger ? Colors.red.shade700 : Colors.white;
-
-    final borderColor = style == _ChipStyle.danger
-        ? Colors.red.shade700.withValues(alpha: 0.4)
-        : Colors.white.withValues(alpha: 0.3);
+    final bgColor = color.withValues(alpha: 0.1);
+    final textColor = color;
+    final borderColor = color.withValues(alpha: 0.3);
 
     return GestureDetector(
       onTap: () =>
@@ -201,16 +213,16 @@ class BudgetHealthChip extends StatelessWidget {
     );
   }
 
-  Color _getColor(BudgetHealth health) {
+  Color _getColor(BuildContext context, BudgetHealth health) {
     switch (health) {
       case BudgetHealth.ok:
-        return AppColors.success;
+        return AppTokens.semanticSuccess;
       case BudgetHealth.watch:
-        return AppColors.warning;
+        return AppTokens.semanticWarning;
       case BudgetHealth.risk:
-        return AppColors.danger;
+        return AppTokens.semanticDanger;
       case BudgetHealth.inactive:
-        return AppColors.neutral60;
+        return Theme.of(context).disabledColor;
     }
   }
 
@@ -263,7 +275,7 @@ class BudgetHealthChip extends StatelessWidget {
                       const EdgeInsets.symmetric(vertical: 16),
                 ),
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Got it'),
+                child: Text(AppLocalizations.of(context)!.commonGotIt),
               ),
             ),
           ],

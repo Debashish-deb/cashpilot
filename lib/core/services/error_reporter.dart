@@ -157,7 +157,7 @@ class ErrorReporter {
     // Convert to AppError for detailed reporting if needed
     final error = AppError.logic(
       cause: details.exception,
-      message: details.summary?.toString() ?? 'Flutter Error',
+      message: details.summary.toString(),
       stackTrace: details.stack,
     );
     await report(error, stackTrace: details.stack);

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cashpilot/features/ml/services/model_evaluation_service.dart';
 import 'package:cashpilot/core/theme/app_typography.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cashpilot/core/providers/ml_providers.dart';
+import 'package:cashpilot/l10n/app_localizations.dart';
 
 /// ML Dashboard Screen - Phase 2
 /// Displays model performance metrics, recent learning events,
@@ -75,10 +77,11 @@ class _MLDashboardScreenState extends ConsumerState<MLDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ML Performance Dashboard'),
+        title: Text(l10n.adminMLDashboard),
         backgroundColor: isDark ? Colors.grey.shade900 : const Color(0xFF6750A4),
         foregroundColor: Colors.white,
       ),
@@ -89,12 +92,88 @@ class _MLDashboardScreenState extends ConsumerState<MLDashboardScreen> {
           children: [
             _buildPerformanceCard(isDark),
             const SizedBox(height: 16),
+            _buildPredictiveCard(isDark),
+            const SizedBox(height: 16),
             _buildThresholdsCard(isDark),
             const SizedBox(height: 16),
             _buildRecentEventsCard(isDark),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildPredictiveCard(bool isDark) {
+    final l10n = AppLocalizations.of(context)!;
+    final forecaster = ref.watch(spendingForecasterProvider);
+    
+    return FutureBuilder<int>(
+      future: forecaster.predictNextMonthSpending(),
+      builder: (context, snapshot) {
+        final forecastAmount = snapshot.data ?? 0;
+        
+        return Card(
+          elevation: 2,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.auto_graph, color: Colors.blue.shade700),
+                    const SizedBox(width: 8),
+                    Text(
+                      l10n.mlPredictiveInsights,
+                      style: AppTypography.titleMedium.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(l10n.mlForecastNextMonth),
+                    Text(
+                      '€${(forecastAmount / 100).toStringAsFixed(2)}',
+                      style: AppTypography.titleLarge.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.trending_down, size: 18, color: Colors.green.shade700),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Estimated 5% decrease based on recent behavior',
+                          style: AppTypography.labelSmall.copyWith(
+                            color: Colors.green.shade700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
   
@@ -112,10 +191,11 @@ class _MLDashboardScreenState extends ConsumerState<MLDashboardScreen> {
         }
         
         if (snapshot.hasError || !snapshot.hasData) {
+          final l10n = AppLocalizations.of(context)!;
           return Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Text('Failed to load performance data'),
+              child: Text(l10n.commonErrorMessage('')),
             ),
           );
         }

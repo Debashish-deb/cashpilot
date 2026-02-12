@@ -1,10 +1,9 @@
+import 'package:cashpilot/core/providers/sync_providers.dart' show conflictListProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cashpilot/data/drift/app_database.dart';
-import 'package:cashpilot/services/sync/conflict_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cashpilot/l10n/app_localizations.dart';
-import 'conflict_detail_screen.dart';
 
 /// Screen showing all unresolved sync conflicts
 class ConflictListScreen extends ConsumerWidget {
@@ -45,7 +44,7 @@ class ConflictListScreen extends ConsumerWidget {
           }
 
           // Group by entity type
-          final groupedConflicts = <String, List<Conflict>>{};
+          final groupedConflicts = <String, List<ConflictData>>{};
           for (final conflict in conflicts) {
             groupedConflicts.putIfAbsent(conflict.entityType, () => []).add(conflict);
           }
@@ -113,7 +112,7 @@ class ConflictListScreen extends ConsumerWidget {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(
-          child: Text('Error loading conflicts: $error'),
+          child: Text(l10n.commonErrorMessage(error.toString())),
         ),
       ),
     );
@@ -126,7 +125,7 @@ class ConflictListScreen extends ConsumerWidget {
 }
 
 class _ConflictCard extends StatelessWidget {
-  final Conflict conflict;
+  final ConflictData conflict;
 
   const _ConflictCard({required this.conflict});
 

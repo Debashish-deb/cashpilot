@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../features/savings/providers/savings_providers.dart';
+import 'package:cashpilot/l10n/app_localizations.dart';
+import 'package:cashpilot/features/savings_goals/presentation/providers/savings_goals_providers.dart';
+import 'package:cashpilot/features/savings_goals/domain/entities/savings_goal.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../data/drift/app_database.dart';
+import '../../../../core/managers/format_manager.dart';
+import '../../../../core/providers/app_providers.dart';
 import 'widgets/savings_goal_card.dart';
 import 'widgets/savings_goal_form_dialog.dart';
 
@@ -18,18 +21,19 @@ class SavingsGoalsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Savings Goals'),
-        backgroundColor: isDark ? Colors.grey.shade900 : const Color(0xFF6750A4),
-        foregroundColor: Colors.white,
+        centerTitle: true,
+        elevation: 0,
+        scrolledUnderElevation: 0,
       ),
       body: goalsAsync.when(
         data: (goals) {
           if (goals.isEmpty) {
             return _buildEmptyState(context);
           }
-          return _buildGoalsList(context, goals);
+          return _buildGoalsList(context, goals, ref);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, s) => Center(child: Text('Error: $e')),
+        error: (e, s) => Center(child: Text(AppLocalizations.of(context)!.commonErrorMessage(e.toString()))),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showDialog(
@@ -60,17 +64,19 @@ class SavingsGoalsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildGoalsList(BuildContext context, List<SavingsGoal> goals) {
+  Widget _buildGoalsList(BuildContext context, List<SavingsGoal> goals, WidgetRef ref) {
     final totalTarget = goals.fold(0, (sum, g) => sum + g.targetAmount);
     final totalSaved = goals.fold(0, (sum, g) => sum + g.currentAmount);
     final percent = totalTarget > 0 ? (totalSaved / totalTarget).clamp(0.0, 1.0) : 0.0;
+    final currency = ref.watch(currencyProvider);
+    final formatter = ref.watch(formatManagerProvider);
 
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: _buildSummaryCard(context, totalSaved, totalTarget, percent),
+            child: _buildSummaryCard(context, totalSaved, totalTarget, percent, currency, formatter),
           ),
         ),
         SliverPadding(
@@ -96,7 +102,7 @@ class SavingsGoalsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryCard(BuildContext context, int saved, int target, double percent) {
+  Widget _buildSummaryCard(BuildContext context, int saved, int target, double percent, String currency, FormatManager formatter) {
     final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
@@ -125,7 +131,7 @@ class SavingsGoalsScreen extends ConsumerWidget {
                 children: [
                   const Text('Total Savings', style: TextStyle(color: Colors.white70)),
                   Text(
-                    '€${(saved / 100).toStringAsFixed(0)}',
+                    formatter.formatCurrency(saved / 100, currencyCode: currency, decimalDigits: 0),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 32,
@@ -163,7 +169,7 @@ class SavingsGoalsScreen extends ConsumerWidget {
                 style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
               Text(
-                'Target: €${(target / 100).toStringAsFixed(0)}',
+                'Target: ${formatter.formatCurrency(target / 100, currencyCode: currency, decimalDigits: 0)}',
                 style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
             ],
@@ -220,7 +226,7 @@ class SavingsGoalsScreen extends ConsumerWidget {
             TextButton(
               onPressed: () async {
                 Navigator.pop(context);
-                await ref.read(savingsGoalsControllerProvider.notifier).deleteGoal(goal.id);
+                await ref.read(savingsGoalsControllerProvider.notifier).delete(goal.id);
               },
               style: TextButton.styleFrom(foregroundColor: Colors.red),
               child: const Text('Delete'),

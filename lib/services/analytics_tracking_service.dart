@@ -1,19 +1,8 @@
-/// Analytics Tracking Service
-/// The "Eyes" of the application - Central point for all event tracking.
-/// 
-/// Purpose:
-/// 1. Track user journey (funnel conversion)
-/// 2. Monitor feature usage (what's working?)
-/// 3. Detect churn signals (inactive users)
-/// 4. Privacy-aware (no PII in event properties)
-library;
-
-import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:uuid/uuid.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Analytics Event Types
 enum AnalyticsEventType {
@@ -72,6 +61,14 @@ class AnalyticsTrackingService {
     debugPrint('[AnalyticsTrackingService] Initialized');
   }
 
+  /// Compatibility layer for string-based events
+  void logEvent(String name, {Map<String, dynamic>? parameters}) {
+    trackEvent(AnalyticsEventType.featureUsed, {
+      'legacy_event_name': name,
+      if (parameters != null) ...parameters,
+    });
+  }
+
   /// Track a specific event with properties
   void trackEvent(AnalyticsEventType type, [Map<String, dynamic>? properties]) {
     // Build event with correct column names matching Supabase schema
@@ -107,6 +104,34 @@ class AnalyticsTrackingService {
     trackEvent(AnalyticsEventType.screenView, {
       'screen_name': screenName,
     });
+  }
+
+  /// Set user properties in analytics
+  Future<void> setUserProperty(String name, String value) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      await Supabase.instance.client.from('user_properties').upsert({
+        'user_id': user.id,
+        'property_name': name,
+        'property_value': value,
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+      
+      if (kDebugMode) {
+        debugPrint('[Analytics] Set property: $name = $value');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[Analytics] Error setting property: $e');
+      }
+    }
+  }
+
+  /// Set user ID for analytics tracking
+  Future<void> setUserId(String userId) async {
+    await setUserProperty('user_id', userId);
   }
 
   /// Process the event queue

@@ -10,6 +10,7 @@ class ConfidenceEngine {
     required double mean,
     required double variance,
     required int sampleSize,
+    DateTime? lastSyncAt,
   }) {
     // 1. Edge Cases (Insufficient Data)
     if (sampleSize < 3 || mean.abs() < 0.01) {
@@ -51,7 +52,18 @@ class ConfidenceEngine {
     
     score = score.clamp(0.0, 100.0);
 
-    // 4. Determine Level
+    // 4. Staleness Penalty (Fintech Layer 5)
+    if (lastSyncAt != null) {
+      final stalenessHours = DateTime.now().difference(lastSyncAt).inHours;
+      if (stalenessHours > 48) {
+        // Decay score by 5% for every 24 hours past the 48h safety window
+        final daysLate = (stalenessHours - 48) / 24.0;
+        final decayFactor = pow(0.95, daysLate);
+        score *= decayFactor;
+      }
+    }
+
+    // 5. Determine Level
     ConfidenceLevel level;
     if (score >= 70) {
       level = ConfidenceLevel.high; // < 15% Relative Error roughly

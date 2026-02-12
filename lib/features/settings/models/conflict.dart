@@ -57,6 +57,33 @@ class Conflict {
     }
     return diffs;
   }
+ 
+  /// Create from Drift data class
+  factory Conflict.fromData(dynamic data) {
+    // We use dynamic to avoid direct dependency on app_database.dart if not needed,
+    // but here we are in the same package.
+    final row = data; // Assuming it's ConflictData or similar
+    return Conflict(
+      id: row.id,
+      entityType: ConflictEntityType.values.firstWhere(
+        (e) => e.name == row.entityType,
+        orElse: () => ConflictEntityType.expense,
+      ),
+      entityId: row.entityId,
+      createdAt: row.createdAt,
+      status: row.status == 'resolved' ? ConflictStatus.resolved : ConflictStatus.open,
+      localPayload: jsonDecode(row.localJson) as Map<String, dynamic>,
+      remotePayload: jsonDecode(row.remoteJson) as Map<String, dynamic>,
+      fieldsChanged: (jsonDecode(row.diffJson ?? '[]') as List)
+          .map((d) => (d as Map)['field'] as String)
+          .toList(),
+      resolution: ConflictResolution.values.firstWhere(
+        (e) => e.name == row.resolutionType,
+        orElse: () => ConflictResolution.pending,
+      ),
+      resolvedAt: row.resolvedAt,
+    );
+  }
 
   /// Create from Drift row
   factory Conflict.fromDrift(Map<String, dynamic> row) {

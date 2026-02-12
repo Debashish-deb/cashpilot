@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart' show FlutterSecureStorage;
 
 import '../../core/providers/app_providers.dart';
 import '../../services/auth_service.dart';
@@ -18,7 +19,7 @@ final syncOrchestratorProvider = Provider<SyncOrchestrator>((ref) {
     db: db,
     authService: AuthService(),
     deviceInfoService: DeviceInfoService(),
-    prefs: prefs,
+    prefs: prefs, secureStorage: FlutterSecureStorage(),
   );
 
   

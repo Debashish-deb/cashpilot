@@ -12,8 +12,10 @@ import 'package:cashpilot/core/theme/accent_colors.dart'; // For refreshing acce
 import 'package:cashpilot/features/sync/sync_manager.dart' show RealtimeConnectionStatus, SyncManager, realtimeStatusProvider;
 import 'package:cashpilot/services/device_info_service.dart' show DeviceInfoService;
 import 'package:cashpilot/services/subscription_service.dart' show SubscriptionService;
+import 'package:cashpilot/services/kill_switch_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -27,9 +29,10 @@ import '../services/sync_checkpoint_service.dart';
 import '../../../core/providers/app_providers.dart'; // For refreshing settings via ref
 import '../../../core/sync/sync_state_machine.dart'; // Formal state machine
 import '../../../core/sync/sync_states.dart'; // State enums
+import 'package:cashpilot/core/errors/error_taxonomy.dart'; // Error classification
 
-import '../../../core/errors/error_taxonomy.dart'; // Error classification
 import '../services/atomic_sync_state_service.dart'; // NEW: Atomic persistence
+import '../../../core/sync/lamport_clock.dart';
 
 /// Sync Reason - Unified trigger contract
 /// All sync requests MUST go through requestSync(reason)
@@ -95,6 +98,7 @@ class SyncOrchestrator {
   final AuthService authService;
   final DeviceInfoService deviceInfoService;
   final SharedPreferences prefs;
+  final FlutterSecureStorage secureStorage; // NEW
   
   // Existing sync manager (we don't change it, just coordinate with it)
   late final SyncManager _syncManager;
@@ -119,6 +123,9 @@ class SyncOrchestrator {
   
   // Atomic sync state service (NEW - replaces SharedPreferences)
   late final AtomicSyncStateService _atomicSyncState;
+
+  // Lamport Clock for distributed state
+  late final LamportClock _lamportClock;
   
   // Constants
   static const String _lastSyncKey = 'last_full_sync_timestamp';
@@ -136,6 +143,9 @@ class SyncOrchestrator {
     await prefs.remove('last_categories_sync_iso');
     await prefs.remove('last_savings_goals_sync_iso');
     await prefs.remove('last_budget_members_sync_iso');
+    await prefs.remove('last_family_groups_sync_iso');
+    await prefs.remove('last_family_contacts_sync_iso');
+    await prefs.remove('last_family_relations_sync_iso');
     _log('[SyncOrchestrator] All timestamps cleared - next sync will pull ALL data');
   }
 
@@ -178,12 +188,13 @@ class SyncOrchestrator {
     required this.authService,
     required this.deviceInfoService,
     required this.prefs,
+    required this.secureStorage,
   }) {
     _syncManager = SyncManager(ref);
     _settingsBatchSync = SettingsBatchSync(prefs);
     _dataBatchSync = DataBatchSync(db, ref);
     _deviceGate = DeviceGateService();
-    _checkpointService = SyncCheckpointService(prefs);
+    _checkpointService = SyncCheckpointService(secureStorage);
     _atomicSyncState = AtomicSyncStateService(db); // NEW: Atomic state persistence
     
     // Wire up state machine with atomic logging (Phase 2 requirement)
@@ -197,6 +208,9 @@ class SyncOrchestrator {
         sessionId: t.sessionId,
       ),
     );
+
+    // Initialize Lamport Clock
+    _lamportClock = LamportClock(deviceId: ''); // Will be updated after initialize()
   }
   
   /// Initialize the orchestrator
@@ -210,6 +224,9 @@ class SyncOrchestrator {
     // Initialize existing sync manager (sets up realtime)
     _syncManager.initialize();
     
+    // Initialize KillSwitchService
+    await killSwitchService.initialize();
+    
     // Listen for future auth changes
     _setupAuthListener();
     
@@ -218,6 +235,10 @@ class SyncOrchestrator {
     
     _isInitialized = true;
     _log('✅ SyncOrchestrator: Initialized');
+
+    // Update Lamport Clock with actual device ID
+    final deviceId = await deviceInfoService.getDeviceId();
+    _lamportClock.updateDeviceId(deviceId);
     
     // RECOVERY: Check for interrupted sync (app was killed during sync) - USE ATOMIC SERVICE
     final interruptedState = await _atomicSyncState.getInterruptedSyncState();
@@ -307,16 +328,22 @@ class SyncOrchestrator {
       if (_lastTier != null && _lastTier != currentTier) {
         _log('[SyncOrchestrator] Tier changed (${_lastTier?.value} -> ${currentTier.value})');
         
-        // If upgraded from Free -> Paid, trigger full sync
+        // If upgraded from Free -> Paid, trigger force push of local data to cloud
         if (_lastTier == SubscriptionTier.free && currentTier != SubscriptionTier.free) {
-           _log('[SyncOrchestrator] Upgrade detected! Triggering sync.');
-           await requestSync(SyncReason.appResume);
+           _log('[SyncOrchestrator] Upgrade detected! Triggering manual force push.');
+           unawaited(forcePushLocalToCloud());
         }
         
         // If upgraded from Pro -> Pro Plus (more OCR features)
         if (_lastTier == SubscriptionTier.pro && currentTier == SubscriptionTier.proPlus) {
            _log('[SyncOrchestrator] Pro Plus upgrade! Syncing settings.');
            await syncSettingsOnly();
+        }
+
+        // If downgraded to Free, stop realtime sync
+        if (_lastTier != SubscriptionTier.free && currentTier == SubscriptionTier.free) {
+           _log('[SyncOrchestrator] Downgrade detected! Stopping sync operations.');
+           stopSync();
         }
         
         _lastTier = currentTier;
@@ -499,6 +526,19 @@ class SyncOrchestrator {
     // This fixes the race condition on fresh install where tier is 'free' before sync
     await SubscriptionService().sync();
     
+    // P0 OPERATIONAL: Check Kill Switch
+    if (!killSwitchService.isSyncAllowed) {
+      _log('[SyncOrchestrator] CRITICAL: Sync blocked by remote Kill Switch');
+      return SyncOrchestratorResult(
+        totalPushed: 0,
+        totalPulled: 0,
+        settingsSynced: 0,
+        duration: Duration.zero,
+        errors: ['Sync disabled by administrator'],
+        detailsByEntity: {},
+      );
+    }
+    
     if (!_canSync) {
       _log('SyncOrchestrator: Free tier - local only');
       return SyncOrchestratorResult(
@@ -598,14 +638,14 @@ class SyncOrchestrator {
           _log(' SyncOrchestrator: Incremental pull - changes since $lastSync');
         }
             
-        await _dataBatchSync.pullAll(lastSync);
+        await _dataBatchSync.pullAll(lastSync, sessionId: sessionId);
         
         // Update global checkpoint
         await prefs.setString(_lastSyncKey, DateTime.now().toIso8601String());
         
         // --- PHASE 2: PUSH AFTER PULL (safe now) ---
         // Uses 'batch_sync' RPC to push all dirty data in one transaction
-        final batchResult = await _dataBatchSync.pushAll();
+        final batchResult = await _dataBatchSync.pushAll(sessionId: sessionId);
         pushedCount = (batchResult['expenses'] ?? 0) + (batchResult['budgets'] ?? 0); 
         
         _log(' SyncOrchestrator: Data sync completed (Pull first, then Push: $pushedCount records)');
@@ -661,6 +701,12 @@ class SyncOrchestrator {
       // PERSISTENCE: Mark sync failed for retry on next launch (ATOMIC)
       await _atomicSyncState.markSyncFailed('$category: $e');
       
+      // ROLLBACK: Revert local dirty state to prevent data corruption/ghosting if error is fatal
+      if (category == ErrorCategory.database || category == ErrorCategory.unknown) {
+        _log('[SyncOrchestrator] CRITICAL error detected, orchestrating ROLLBACK for session: $sessionId');
+        await db.rollbackSyncSession(sessionId);
+      }
+      
       rethrow;
     } finally {
       // Ensure flags are always reset even on error
@@ -688,6 +734,31 @@ class SyncOrchestrator {
   Future<int> pullSettings() async {
     if (!_canSync) return 0;
     return await _settingsBatchSync.pullSettings();
+  }
+
+  /// Manually force push all local data to cloud
+  /// Used for subscription upgrades or troubleshooting
+  Future<SyncOrchestratorResult> forcePushLocalToCloud() async {
+    _log('[SyncOrchestrator] Starting manual FORCE PUSH of all local data');
+    
+    // 1. Reset checkpoints to ensure we pull everything fresh too (optional but safer)
+    await _checkpointService.clearAllCheckpoints();
+    await prefs.remove(_lastSyncKey);
+
+    // 2. Mark all local records as dirty in the database
+    await db.markAllEntitiesAsDirty();
+
+    // 3. Request a full sync with forceFull=true
+    return requestSync(SyncReason.forceFull);
+  }
+
+  /// Stop all sync operations (realtime and timers)
+  /// Used on logout or subscription expiration
+  void stopSync() {
+    _log('[SyncOrchestrator] Stopping all sync operations');
+    stopPeriodicSync();
+    _syncManager.pauseRealtime(); // Disconnects or pauses listeners
+    _log('[SyncOrchestrator] Sync stopped');
   }
   
   // ============================================================

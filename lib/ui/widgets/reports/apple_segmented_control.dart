@@ -93,7 +93,7 @@ class _AppleSegmentedControlState extends State<AppleSegmentedControl>
     final segmentCount = widget.segments.length;
 
     return Container(
-      height: 44,
+      constraints: const BoxConstraints(minHeight: 44),
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: isDark

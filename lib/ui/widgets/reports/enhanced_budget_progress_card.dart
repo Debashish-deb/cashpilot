@@ -8,7 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/managers/format_manager.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/tokens.g.dart';
 import '../../../core/theme/app_typography.dart';
 
 class EnhancedBudgetProgressCard extends ConsumerWidget {
@@ -53,13 +53,6 @@ class EnhancedBudgetProgressCard extends ConsumerWidget {
           border: Border.all(
             color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
         ),
         child: Row(
           children: [
@@ -68,14 +61,7 @@ class EnhancedBudgetProgressCard extends ConsumerWidget {
               width: 6,
               height: 80,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    accentColor ?? progressColor,
-                    (accentColor ?? progressColor).withValues(alpha: 0.5),
-                  ],
-                ),
+                color: accentColor ?? progressColor,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(16),
                   bottomLeft: Radius.circular(16),
@@ -106,13 +92,13 @@ class EnhancedBudgetProgressCard extends ConsumerWidget {
                               padding: const EdgeInsets.all(4),
                               margin: const EdgeInsets.only(right: 8),
                               decoration: BoxDecoration(
-                                color: AppColors.warning.withValues(alpha: 0.15),
+                                color: AppTokens.semanticWarning.withValues(alpha: 0.15),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
                                 Icons.warning_amber_rounded,
                                 size: 14,
-                                color: AppColors.warning,
+                                color: AppTokens.semanticWarning,
                               ),
                             ),
                           ),
@@ -137,12 +123,7 @@ class EnhancedBudgetProgressCard extends ConsumerWidget {
                             child: Container(
                               height: 10,
                               decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    progressColor,
-                                    progressColor.withValues(alpha: 0.8),
-                                  ],
-                                ),
+                                color: progressColor,
                                 borderRadius: BorderRadius.circular(6),
                               ),
                             ),
@@ -165,7 +146,7 @@ class EnhancedBudgetProgressCard extends ConsumerWidget {
                               ? '-${formatManager.formatCurrency(remaining.abs() / 100, currencyCode: currency)}'
                               : '${formatManager.formatCurrency(remaining / 100, currencyCode: currency)} ${l10n.reportsLeft}',
                           style: AppTypography.labelMedium.copyWith(
-                            color: isOverBudget ? AppColors.danger : AppColors.success,
+                            color: isOverBudget ? AppTokens.semanticDanger : AppTokens.semanticSuccess,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -186,19 +167,19 @@ class EnhancedBudgetProgressCard extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: isOverBudget
-            ? AppColors.danger.withValues(alpha: 0.1)
-            : AppColors.success.withValues(alpha: 0.1),
+            ? AppTokens.semanticDanger.withValues(alpha: 0.1)
+            : AppTokens.semanticSuccess.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isOverBudget
-              ? AppColors.danger.withValues(alpha: 0.3)
-              : AppColors.success.withValues(alpha: 0.3),
+              ? AppTokens.semanticDanger.withValues(alpha: 0.3)
+              : AppTokens.semanticSuccess.withValues(alpha: 0.3),
         ),
       ),
       child: Text(
         formatManager.formatPercentage(progress),
         style: AppTypography.labelSmall.copyWith(
-          color: isOverBudget ? AppColors.danger : AppColors.success,
+          color: isOverBudget ? AppTokens.semanticDanger : AppTokens.semanticSuccess,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -206,9 +187,9 @@ class EnhancedBudgetProgressCard extends ConsumerWidget {
   }
 
   Color _getProgressColor(double progress) {
-    if (progress >= 1.0) return AppColors.danger;
-    if (progress >= 0.85) return AppColors.warning;
-    if (progress >= 0.60) return AppColors.caution;
-    return AppColors.success;
+    if (progress >= 1.0) return AppTokens.semanticDanger;
+    if (progress >= 0.85) return AppTokens.semanticWarning;
+    if (progress >= 0.60) return AppTokens.semanticCaution;
+    return AppTokens.semanticSuccess;
   }
 }

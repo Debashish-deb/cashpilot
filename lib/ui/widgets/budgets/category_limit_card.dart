@@ -76,7 +76,7 @@ class CategoryLimitCard extends StatelessWidget {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: (color ?? theme.colorScheme.primary).withOpacity(0.1),
+                      color: (color ?? theme.colorScheme.primary).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
@@ -101,7 +101,7 @@ class CategoryLimitCard extends StatelessWidget {
                         Text(
                           'Limit: ${_formatAmount(limitAmount)}',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
+                            color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
                           ),
                         ),
                       ],
@@ -112,7 +112,7 @@ class CategoryLimitCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: healthColor.withOpacity(0.1),
+                      color: healthColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -138,7 +138,7 @@ class CategoryLimitCard extends StatelessWidget {
                       padding: const EdgeInsets.only(left: 8),
                       child: Icon(
                         isExpanded ? Icons.expand_less : Icons.expand_more,
-                        color: theme.iconTheme.color?.withOpacity(0.5),
+                        color: theme.iconTheme.color?.withValues(alpha: 0.5),
                       ),
                     ),
                 ],

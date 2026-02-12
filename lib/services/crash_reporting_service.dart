@@ -2,7 +2,7 @@
 library;
 
 import 'dart:async';
-import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -78,20 +78,22 @@ class CrashReportingService {
         _platform = "web";
         _deviceInfo = "Web Browser";
         _osVersion = "Unknown";
-      } else if (Platform.isAndroid) {
-        final info = await deviceInfo.androidInfo;
-        _platform = "android";
-        _osVersion = info.version.release;
-        _deviceInfo = "${info.manufacturer} ${info.model}";
-      } else if (Platform.isIOS) {
-        final info = await deviceInfo.iosInfo;
-        _platform = "ios";
-        _osVersion = info.systemVersion;
-        _deviceInfo = "${info.name} ${info.model}";
       } else {
-        _platform = Platform.operatingSystem;
-        _osVersion = Platform.operatingSystemVersion;
-        _deviceInfo = "Unknown device";
+         if (defaultTargetPlatform == TargetPlatform.android) {
+          final info = await deviceInfo.androidInfo;
+          _platform = "android";
+          _osVersion = info.version.release;
+          _deviceInfo = "${info.manufacturer} ${info.model}";
+        } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+          final info = await deviceInfo.iosInfo;
+          _platform = "ios";
+          _osVersion = info.systemVersion;
+          _deviceInfo = "${info.name} ${info.model}";
+        } else {
+          _platform = defaultTargetPlatform.name;
+          _osVersion = "Unknown";
+          _deviceInfo = "Unknown device";
+        }
       }
     } catch (e) {
       _platform = "unknown";
@@ -110,7 +112,7 @@ class CrashReportingService {
   }
 
   Future<void> _collectEnvironmentInfo() async {
-    _dartVersion = Platform.version;
+    _dartVersion = kIsWeb ? "Unknown" : "Dart Native"; // Platform.version requires dart:io
     _runtimeMode = kReleaseMode
         ? "release"
         : kProfileMode

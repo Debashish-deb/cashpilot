@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 /// Premium Card Widget with solid background
@@ -71,44 +72,56 @@ class GlassCard extends StatelessWidget {
             ),
           ];
 
-    Widget card = Container(
-      width: width,
-      height: height,
-      padding: padding ?? const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: gradient == null ? effectiveColor : null,
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(borderRadius),
-        border: effectiveBorder,
-        boxShadow: isPrimary 
-            ? [
-                BoxShadow(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ]
-            : shadows,
+    final card = ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        child: Container(
+          width: width,
+          height: height,
+          padding: padding ?? const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: gradient == null 
+                ? (isDark ? Colors.black.withOpacity(0.3) : effectiveColor.withOpacity(0.8))
+                : null,
+            gradient: gradient,
+            borderRadius: BorderRadius.circular(borderRadius),
+            border: Border.all(
+              color: isDark 
+                  ? Colors.white.withOpacity(0.12) 
+                  : Colors.white.withOpacity(0.4),
+              width: 0.5,
+            ),
+            boxShadow: isPrimary 
+                ? [
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withOpacity(0.15),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
+                    ),
+                  ]
+                : shadows,
+          ),
+          child: child,
+        ),
       ),
-      child: child,
     );
 
-    if (margin != null) {
-      card = Padding(padding: margin!, child: card);
-    }
-
     if (onTap != null) {
-      return Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(borderRadius),
-          child: card,
+      return Padding(
+        padding: margin ?? EdgeInsets.zero,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(borderRadius),
+            child: card,
+          ),
         ),
       );
     }
 
-    return card;
+    return margin != null ? Padding(padding: margin!, child: card) : card;
   }
 }
 

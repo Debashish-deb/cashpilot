@@ -9,6 +9,7 @@ import 'package:cashpilot/core/constants/subscription.dart';
 import 'package:cashpilot/core/constants/app_routes.dart';
 import 'package:cashpilot/core/theme/app_colors.dart';
 import 'package:cashpilot/core/theme/app_typography.dart';
+import 'package:cashpilot/l10n/app_localizations.dart';
 // Assuming this exists or generic icon
 
 class SubscriptionManagementScreen extends ConsumerWidget {
@@ -111,7 +112,7 @@ class SubscriptionManagementScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   _UpgradeBanner(
-                    title: 'Get Pro Plus',
+                    title: 'Get Pro +',
                     subtitle: 'Family budgets & unlimited power',
                     gradient: const [Color(0xFFF59E0B), Color(0xFFD97706)],
                     icon: Icons.rocket_launch_rounded,
@@ -119,7 +120,7 @@ class SubscriptionManagementScreen extends ConsumerWidget {
                   ),
                 ] else if (tier == SubscriptionTier.pro) ...[
                   _UpgradeBanner(
-                    title: 'Upgrade to Pro Plus',
+                    title: 'Upgrade to Pro +',
                     subtitle: 'Unlock family sharing & bank connect',
                     gradient: const [Color(0xFFF59E0B), Color(0xFFD97706)],
                     icon: Icons.rocket_launch_rounded,
@@ -138,7 +139,7 @@ class SubscriptionManagementScreen extends ConsumerWidget {
                     await service.restorePurchases();
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Purchases restored')),
+                        const SnackBar(content: Text('Purchase restored successfully')),
                       );
                     }
                   },
@@ -172,14 +173,14 @@ class SubscriptionManagementScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cancel Subscription?'),
+        title: const Text('Cancel Subscription'),
         content: const Text(
           'You will retain access until the end of your billing period.\n\nAre you sure you want to cancel?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Keep Subscription'),
+            child: const Text('Keep Plan'),
           ),
           FilledButton(
             onPressed: () async {
@@ -195,7 +196,7 @@ class SubscriptionManagementScreen extends ConsumerWidget {
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
-            child: const Text('Cancel'),
+            child: const Text('Cancel Subscription'),
           ),
         ],
       ),
@@ -265,11 +266,15 @@ class _PlanStatusCard extends StatelessWidget {
                    child: Column(
                      crossAxisAlignment: CrossAxisAlignment.start,
                      children: [
-                       Text(
-                         tier.displayName,
-                         style: AppTypography.headlineSmall.copyWith(
-                           fontWeight: FontWeight.w800,
-                           color: gradient[0], // Use primary gradient color for text
+                       Flexible(
+                         child: Text(
+                           tier.displayName,
+                           style: AppTypography.headlineSmall.copyWith(
+                             fontWeight: FontWeight.w800,
+                             color: gradient[0], // Use primary gradient color for text
+                           ),
+                           maxLines: 1,
+                           overflow: TextOverflow.ellipsis,
                          ),
                        ),
                        if (isTrialActive)
@@ -282,7 +287,7 @@ class _PlanStatusCard extends StatelessWidget {
                         )
                        else if (expiresAt != null)
                         Text(
-                          'Renews ${DateFormat('MMM d, y').format(expiresAt!)}',
+                          'Renews ${DateFormat('MMM d, y', AppLocalizations.of(context)!.localeName).format(expiresAt!)}',
                           style: AppTypography.bodySmall,
                         )
                        else 
@@ -369,12 +374,12 @@ class _UsageCard extends StatelessWidget {
             children: [
               Icon(icon, color: AppColors.primaryGreen, size: 20),
               const SizedBox(width: 8),
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+              Flexible(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)),
               const Spacer(),
               if (isUnlimited)
                 const Icon(Icons.all_inclusive_rounded, size: 20, color: AppColors.gold)
               else
-                Text('$used / $limit', style: const TextStyle(fontWeight: FontWeight.bold)),
+                Flexible(child: Text('$used / $limit', style: const TextStyle(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis)),
             ],
           ),
           const SizedBox(height: 12),
@@ -493,12 +498,16 @@ class _UtilityAction extends StatelessWidget {
           children: [
             Icon(icon, color: color, size: 20),
             const SizedBox(width: 12),
-            Text(
-               label, 
-               style: TextStyle(
-                 color: color,
-                 fontWeight: FontWeight.w500,
-               ),
+            Flexible(
+              child: Text(
+                 label, 
+                 style: TextStyle(
+                   color: color,
+                   fontWeight: FontWeight.w500,
+                 ),
+                 maxLines: 1,
+                 overflow: TextOverflow.ellipsis,
+              ),
             ),
             const Spacer(),
             Icon(Icons.chevron_right_rounded, color: color.withValues(alpha: 0.3), size: 20),
@@ -543,7 +552,7 @@ class _FeatureComparisonSection extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Expanded(flex: 3, child: Text(label, style: const TextStyle(fontSize: 12))),
+          Expanded(flex: 3, child: Text(label, style: const TextStyle(fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis)),
           Expanded(child: Center(child: _cell(free))),
           Expanded(child: Center(child: _cell(pro, color: const Color(0xFF6366F1)))),
           Expanded(child: Center(child: _cell(proPlus, color: const Color(0xFFF59E0B)))),

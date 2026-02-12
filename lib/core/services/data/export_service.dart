@@ -1,10 +1,8 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:csv/csv.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:cashpilot/data/drift/app_database.dart';
@@ -51,15 +49,16 @@ class ExportService {
       };
 
       final jsonString = const JsonEncoder.withIndent('  ').convert(backupPayload);
-
-      final directory = await getApplicationDocumentsDirectory();
       final fileName = _timestampedFileName('cashpilot_backup', 'json');
-      final file = File('${directory.path}/$fileName');
-
-      await file.writeAsString(jsonString, flush: true);
+      
+      final xFile = XFile.fromData(
+        utf8.encode(jsonString),
+        name: fileName,
+        mimeType: 'application/json',
+      );
 
       await Share.shareXFiles(
-        [XFile(file.path)],
+        [xFile],
         subject: 'CashPilot Backup',
         text: 'CashPilot full backup created on ${now.toLocal()}',
       );
@@ -109,15 +108,16 @@ class ExportService {
       }
 
       final csvData = const ListToCsvConverter().convert(rows);
-
-      final directory = await getApplicationDocumentsDirectory();
       final fileName = _timestampedFileName('cashpilot_expenses', 'csv');
-      final file = File('${directory.path}/$fileName');
 
-      await file.writeAsString(csvData, flush: true);
+      final xFile = XFile.fromData(
+        utf8.encode(csvData),
+        name: fileName,
+        mimeType: 'text/csv',
+      );
 
       await Share.shareXFiles(
-        [XFile(file.path)],
+        [xFile],
         subject: 'CashPilot Expense Report',
         text: 'CashPilot expense report (CSV)',
       );

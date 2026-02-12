@@ -41,104 +41,98 @@ class OnboardingScreen extends ConsumerWidget {
           final iconInnerSize = screenSize.isSmallScreen ? 60.0 : 72.0;
           
           return SafeArea(
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: screenSize.isSmallScreen ? SFSpacing.md : SFSpacing.xl,
-                vertical: SFSpacing.lg,
-              ),
-          child: Column(
-            children: [
-              const Spacer(),
-
-              /// HERO ICON (Apple-grade depth)
-              Container(
-                width: iconSize,
-                height: iconSize,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(40),
-                  gradient: LinearGradient(
-                    colors: [
-                      theme.primaryColor,
-                      theme.primaryColor.withValues(alpha: 0.75),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: theme.primaryColor.withValues(alpha: 0.35),
-                      blurRadius: 32,
-                      offset: const Offset(0, 18),
+            child: CustomScrollView(
+              slivers: [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenSize.isSmallScreen ? SFSpacing.md : SFSpacing.xl,
+                      vertical: SFSpacing.lg,
                     ),
-                  ],
+                    child: Column(
+                      children: [
+                        const SizedBox(height: SFSpacing.xl),
+                        
+                        /// HERO ICON (Apple-grade depth)
+                        Container(
+                          width: iconSize,
+                          height: iconSize,
+                          decoration: BoxDecoration(
+                            color: theme.primaryColor,
+                            borderRadius: BorderRadius.circular(40),
+                          ),
+                          child: Icon(
+                            Icons.account_balance_wallet_rounded,
+                            size: iconInnerSize,
+                            color: Colors.white,
+                          ),
+                        ),
+
+                        const SizedBox(height: SFSpacing.hero),
+
+                        /// TITLE
+                        Text(
+                          l10n.onboardingWelcomeTitle ?? 'Welcome to CashPilot',
+                          style: AppTypography.displaySmall.copyWith(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.6,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+
+                        const SizedBox(height: SFSpacing.md),
+
+                        /// VALUE PROPOSITION
+                        Text(
+                          l10n.onboardingWelcomeSubtitle ??
+                              'Take full control of your money with secure, intelligent budgeting and expense tracking—designed to be fast, private, and effortless.',
+                          style: AppTypography.bodyLarge.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
+                            height: 1.55,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+
+                        const SizedBox(height: SFSpacing.xxl),
+                        const Spacer(),
+
+                        /// PRIMARY CTA
+                        CPButton(
+                          label: l10n.commonGetStarted ?? 'Get Started',
+                          expanded: true,
+                          onTap: () async {
+                            await ref
+                                .read(onboardingCompleteProvider.notifier)
+                                .setComplete(true);
+
+                            if (context.mounted) {
+                              context.go(AppRoutes.login);
+                            }
+                          },
+                        ),
+
+                        const SizedBox(height: SFSpacing.lg),
+
+                        /// TRUST FOOTER (Apple-style subtle copy)
+                        Text(
+                          l10n.onboardingPrivacyNote ??
+                              'Your data stays private. No ads. No selling data.',
+                          style: AppTypography.labelSmall.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                            letterSpacing: 0.2,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+
+                        const SizedBox(height: SFSpacing.sm),
+                      ],
+                    ),
+                  ),
                 ),
-                child: Icon(
-                  Icons.account_balance_wallet_rounded,
-                  size: iconInnerSize,
-                  color: Colors.white,
-                ),
-              ),
-
-              const SizedBox(height: SFSpacing.hero),
-
-              /// TITLE
-              Text(
-                l10n.onboardingWelcomeTitle ?? 'Welcome to CashPilot',
-                style: AppTypography.displaySmall.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.6,
-                  color: theme.colorScheme.onSurface,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: SFSpacing.md),
-
-              /// VALUE PROPOSITION
-              Text(
-                l10n.onboardingWelcomeSubtitle ??
-                    'Take full control of your money with secure, intelligent budgeting and expense tracking—designed to be fast, private, and effortless.',
-                style: AppTypography.bodyLarge.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
-                  height: 1.55,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const Spacer(),
-
-              /// PRIMARY CTA
-              CPButton(
-                label: l10n.commonGetStarted ?? 'Get Started',
-                expanded: true,
-                onTap: () async {
-                  await ref
-                      .read(onboardingCompleteProvider.notifier)
-                      .setComplete(true);
-
-                  if (context.mounted) {
-                    context.go(AppRoutes.login);
-                  }
-                },
-              ),
-
-              const SizedBox(height: SFSpacing.lg),
-
-              /// TRUST FOOTER (Apple-style subtle copy)
-              Text(
-                l10n.onboardingPrivacyNote ??
-                    'Your data stays private. No ads. No selling data.',
-                style: AppTypography.labelSmall.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
-                  letterSpacing: 0.2,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: SFSpacing.sm),
               ],
             ),
-          )
           );
         },
       ),

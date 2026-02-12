@@ -1,5 +1,4 @@
-import 'dart:io';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -39,7 +38,7 @@ class PermissionManager {
   Future<bool> requestPhotos(BuildContext context) async {
     try {
       // Platform-aware handling
-      final permission = Platform.isIOS
+      final permission = defaultTargetPlatform == TargetPlatform.iOS
           ? Permission.photos
           : Permission.storage;
 

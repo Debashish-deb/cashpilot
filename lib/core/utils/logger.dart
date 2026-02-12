@@ -4,7 +4,7 @@ library;
 
 import 'package:flutter/foundation.dart';
 import '../../services/crash_reporting_service.dart';
-import '../../services/analytics_service.dart';
+import '../../services/analytics_tracking_service.dart';
 
 /// Log level
 enum LogLevel {
@@ -23,6 +23,7 @@ enum LogCategory {
   payment,
   feature,
   system,
+  security,
 }
 
 /// Application logger

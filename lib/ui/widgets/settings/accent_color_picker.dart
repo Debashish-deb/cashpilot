@@ -320,28 +320,45 @@ class AccentColorPickerCompact extends ConsumerWidget {
 /// Sheet to pick accent color
 Future<void> showAccentColorSheet(BuildContext context) {
   final theme = Theme.of(context);
+  final isDark = theme.brightness == Brightness.dark;
+  final primaryColor = theme.primaryColor;
 
   return showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withValues(alpha: 0.7),
     isScrollControlled: true,
     builder: (context) => ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surface.withValues(alpha: 0.92),
+            color: isDark ? Colors.black.withValues(alpha: 0.7) : Colors.white.withValues(alpha: 0.85),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
             border: Border.all(
-              color: theme.dividerColor.withValues(alpha: 0.55),
+              color: isDark 
+                  ? Colors.white.withValues(alpha: 0.25) 
+                  : Colors.white.withValues(alpha: 0.5),
+              width: 1,
+            ),
+             gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDark ? [
+                Colors.black.withValues(alpha: 0.8),
+                Colors.black.withValues(alpha: 0.6),
+              ] : [
+                  Colors.white.withValues(alpha: 0.9),
+                  Colors.white.withValues(alpha: 0.6),
+              ],
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: theme.brightness == Brightness.dark ? 0.35 : 0.18),
-                blurRadius: 26,
-                offset: const Offset(0, -8),
+                color: primaryColor.withValues(alpha: 0.15),
+                blurRadius: 30,
+                offset: const Offset(0, -10),
               ),
             ],
           ),
@@ -360,7 +377,7 @@ Future<void> showAccentColorSheet(BuildContext context) {
                           width: 42,
                           height: 4,
                           decoration: BoxDecoration(
-                            color: theme.dividerColor.withValues(alpha: 0.9),
+                            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -380,10 +397,17 @@ Future<void> showAccentColorSheet(BuildContext context) {
 
                 // Title
                 Text(
-                  AppLocalizations.of(context)!.accentColorTitle,
-                  style: AppTypography.titleLarge.copyWith(
+                  AppLocalizations.of(context)!.accentColorTitle.toUpperCase(),
+                  style: AppTypography.labelLarge.copyWith(
                     fontWeight: FontWeight.w800,
-                    letterSpacing: -0.3,
+                    letterSpacing: 1.2,
+                    color: primaryColor,
+                    shadows: [
+                      Shadow(
+                          color: primaryColor.withValues(alpha: 0.5),
+                          blurRadius: 10,
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -396,7 +420,7 @@ Future<void> showAccentColorSheet(BuildContext context) {
 
                 const SizedBox(height: 18),
 
-                // Color Picker
+                // Color Picker - Refactored to float on glass
                 const AccentColorPicker(),
 
                 const SizedBox(height: 18),

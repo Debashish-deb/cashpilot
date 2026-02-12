@@ -23,7 +23,7 @@ enum SubscriptionTier {
     return switch (this) {
       SubscriptionTier.free => 'Free',
       SubscriptionTier.pro => 'Pro',
-      SubscriptionTier.proPlus => 'Pro Plus',
+      SubscriptionTier.proPlus => 'Pro+',
     };
   }
 }

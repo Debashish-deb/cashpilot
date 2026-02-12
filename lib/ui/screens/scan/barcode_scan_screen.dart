@@ -474,7 +474,7 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen>
               FilledButton.icon(
                 onPressed: () => ref.read(barcodeScanViewModelProvider.notifier).resetScanner(),
                 icon: const Icon(Icons.refresh),
-                label: const Text('Try Again'),
+                label: Text(AppLocalizations.of(context)!.commonRetry),
                 style: FilledButton.styleFrom(
                   backgroundColor: Theme.of(context).primaryColor,
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
@@ -546,9 +546,10 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen>
           ),
           child: SafeArea(
             top: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
                 // Apple-style drag indicator
                 Container(
                   width: 36,
@@ -633,10 +634,11 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen>
                           ),
                         ),
                       ],
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -683,13 +685,17 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen>
                   : theme.colorScheme.onSurface,
             ),
             const SizedBox(width: 8),
-            Text(
-              label,
-              style: AppTypography.labelLarge.copyWith(
-                color: isPrimary 
-                    ? Colors.white
-                    : theme.colorScheme.onSurface,
-                fontWeight: FontWeight.w600,
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.labelLarge.copyWith(
+                  color: isPrimary 
+                      ? Colors.white
+                      : theme.colorScheme.onSurface,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
@@ -1156,7 +1162,7 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen>
     await Clipboard.setData(ClipboardData(text: text));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Copied to clipboard')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.commonCopied)),
       );
     }
     await ref.read(deviceManagerProvider).vibrateSelection();
@@ -1242,100 +1248,102 @@ class _ManualEntrySheetState extends State<_ManualEntrySheet> {
           top: 24,
           bottom: MediaQuery.of(context).viewInsets.bottom + 24,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  translations.enterManually,
-                  style: AppTypography.titleMedium.copyWith(
-                    fontWeight: FontWeight.w600,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    translations.enterManually,
+                    style: AppTypography.titleMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            
-            // Recent scans quick selection
-            if (widget.recentScans.isNotEmpty) ...[
-              Text(
-                'Recent scans:',
-                style: AppTypography.labelSmall.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: widget.recentScans.map((scan) => InputChip(
-                  label: Text(scan),
-                  onPressed: () {
-                    _controller.text = scan;
-                    _validateBarcode();
-                  },
-                )).toList(),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
-            ],
-            
-            TextField(
-              controller: _controller,
-              focusNode: _focusNode,
-              decoration: InputDecoration(
-                hintText: translations.barcodeExample,
-                prefixIcon: const Icon(Icons.qr_code),
-                suffixIcon: _isValidating
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : _validationMessage.isNotEmpty
-                        ? Icon(
-                            _validationMessage.startsWith('✓') 
-                                ? Icons.check_circle 
-                                : Icons.warning,
-                            color: _validationMessage.startsWith('✓')
-                                ? AppColors.success
-                                : AppColors.warning,
-                          )
-                        : null,
-              ),
-              keyboardType: TextInputType.number,
-              textInputAction: TextInputAction.done,
-              maxLength: 20,
-              onSubmitted: _submit,
-            ),
-            
-            if (_validationMessage.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8, left: 8),
-                child: Text(
-                  _validationMessage,
+              
+              // Recent scans quick selection
+              if (widget.recentScans.isNotEmpty) ...[
+                Text(
+                  'Recent scans:',
                   style: AppTypography.labelSmall.copyWith(
-                    color: _validationMessage.startsWith('✓')
-                        ? AppColors.success
-                        : AppColors.warning,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: widget.recentScans.map((scan) => InputChip(
+                    label: Text(scan),
+                    onPressed: () {
+                      _controller.text = scan;
+                      _validateBarcode();
+                    },
+                  )).toList(),
+                ),
+                const SizedBox(height: 16),
+              ],
+              
+              TextField(
+                controller: _controller,
+                focusNode: _focusNode,
+                decoration: InputDecoration(
+                  hintText: translations.barcodeExample,
+                  prefixIcon: const Icon(Icons.qr_code),
+                  suffixIcon: _isValidating
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : _validationMessage.isNotEmpty
+                          ? Icon(
+                              _validationMessage.startsWith('✓') 
+                                  ? Icons.check_circle 
+                                  : Icons.warning,
+                              color: _validationMessage.startsWith('✓')
+                                  ? AppColors.success
+                                  : AppColors.warning,
+                            )
+                          : null,
+                ),
+                keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.done,
+                maxLength: 20,
+                onSubmitted: _submit,
               ),
-            
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: () => _submit(_controller.text),
-                child: const Text('Look Up'),
+              
+              if (_validationMessage.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8, left: 8),
+                  child: Text(
+                    _validationMessage,
+                    style: AppTypography.labelSmall.copyWith(
+                      color: _validationMessage.startsWith('✓')
+                          ? AppColors.success
+                          : AppColors.warning,
+                    ),
+                  ),
+                ),
+              
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => _submit(_controller.text),
+                  child: const Text('Look Up'),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

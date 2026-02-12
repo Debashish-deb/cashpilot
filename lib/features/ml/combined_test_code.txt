@@ -1,0 +1,2360 @@
+// === /Users/debashishdeb/Documents/Flutter_project/cashpilot/lib/features/ml/providers/intelligence_providers.dart ===
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/providers/app_providers.dart';
+import '../../../core/services/audit_logger.dart';
+import '../../expenses/services/category_learning_service.dart';
+import '../services/intelligence_orchestrator.dart';
+import '../services/anomaly_detector.dart';
+import '../services/spending_forecaster.dart';
+import '../services/naive_bayes_classifier.dart';
+
+final anomalyDetectorProvider = Provider((ref) {
+  final db = ref.watch(databaseProvider);
+  return AnomalyDetector(db);
+});
+
+final spendingForecasterProvider = Provider((ref) {
+  final db = ref.watch(databaseProvider);
+  return SpendingForecaster(db);
+});
+
+final classifierProvider = Provider((ref) {
+  return NaiveBayesClassifier();
+});
+
+final auditLoggerProvider = Provider((ref) {
+  final db = ref.watch(databaseProvider);
+  return AuditLogger(db);
+});
+
+final categoryLearningServiceProvider = Provider((ref) {
+  final db = ref.watch(databaseProvider);
+  return CategoryLearningService(db);
+});
+
+final intelligenceOrchestratorProvider = Provider((ref) {
+  final db = ref.watch(databaseProvider);
+  final anomaly = ref.watch(anomalyDetectorProvider);
+  final forecaster = ref.watch(spendingForecasterProvider);
+  final classifier = ref.watch(classifierProvider);
+  final audit = ref.watch(auditLoggerProvider);
+  final learning = ref.watch(categoryLearningServiceProvider);
+  
+  return IntelligenceOrchestrator(
+    db,
+    anomaly,
+    forecaster,
+    classifier,
+    audit,
+    learning,
+  );
+});
+
+
+// === /Users/debashishdeb/Documents/Flutter_project/cashpilot/lib/features/ml/providers/ab_testing_providers.dart ===
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/ab_testing_service.dart';
+
+/// Provider for the ABTestingService singleton
+final abTestingServiceProvider = Provider<ABTestingService>((ref) {
+  return ABTestingService();
+});
+
+/// Future provider for fetching active A/B tests
+final activeTestsProvider = FutureProvider.autoDispose<List<ABTest>>((ref) async {
+  final service = ref.watch(abTestingServiceProvider);
+  return service.getActiveTests();
+});
+
+/// Future provider for fetching completed A/B tests
+final completedTestsProvider = FutureProvider.autoDispose<List<ABTest>>((ref) async {
+  final service = ref.watch(abTestingServiceProvider);
+  return service.getCompletedTests();
+});
+
+/// State provider for tracking A/B Test creation form state if needed
+final abTestFormProcessingProvider = StateProvider<bool>((ref) => false);
+
+
+// === /Users/debashishdeb/Documents/Flutter_project/cashpilot/lib/features/ml/models/ocr_metadata.dart ===
+
+import 'package:flutter/foundation.dart';
+
+/// Text orientation detected in OCR
+enum TextOrientation {
+  portrait,
+  landscape,
+  upsideDown,
+  landscapeReversed,
+}
+
+/// Bounding box for text regions
+@immutable
+class BoundingBox {
+  final double x;
+  final double y;
+  final double width;
+  final double height;
+
+  const BoundingBox({
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
+  });
+
+  factory BoundingBox.fromJson(Map<String, dynamic> json) => BoundingBox(
+        x: (json['x'] as num).toDouble(),
+        y: (json['y'] as num).toDouble(),
+        width: (json['width'] as num).toDouble(),
+        height: (json['height'] as num).toDouble(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'x': x,
+        'y': y,
+        'width': width,
+        'height': height,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BoundingBox &&
+          runtimeType == other.runtimeType &&
+          x == other.x &&
+          y == other.y &&
+          width == other.width &&
+          height == other.height;
+
+  @override
+  int get hashCode => Object.hash(x, y, width, height);
+}
+
+/// Individual text block detected by OCR
+@immutable
+class TextBlock {
+  final String text;
+  final double confidence;
+  final BoundingBox? bounds;
+  final int? blockIndex;
+
+  const TextBlock({
+    required this.text,
+    required this.confidence,
+    this.bounds,
+    this.blockIndex,
+  });
+
+  factory TextBlock.fromJson(Map<String, dynamic> json) => TextBlock(
+        text: json['text'] as String,
+        confidence: (json['confidence'] as num).toDouble(),
+        bounds: json['bounds'] != null
+            ? BoundingBox.fromJson(json['bounds'] as Map<String, dynamic>)
+            : null,
+        blockIndex: json['block_index'] as int?,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'text': text,
+        'confidence': confidence,
+        if (bounds != null) 'bounds': bounds!.toJson(),
+        if (blockIndex != null) 'block_index': blockIndex,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TextBlock &&
+          runtimeType == other.runtimeType &&
+          text == other.text &&
+          confidence == other.confidence &&
+          bounds == other.bounds &&
+          blockIndex == other.blockIndex;
+
+  @override
+  int get hashCode => Object.hash(text, confidence, bounds, blockIndex);
+}
+
+/// Typed OCR metadata - replaces Map<String, dynamic>
+/// This provides compile-time safety and enables ML training
+@immutable
+class OcrMetadata {
+  final String modelVersion;
+  final DateTime scannedAt;
+  final int processingTimeMs;
+  final TextOrientation? orientation;
+  final List<TextBlock> blocks;
+  final int totalCharacters;
+  final double averageConfidence;
+
+  const OcrMetadata({
+    required this.modelVersion,
+    required this.scannedAt,
+    required this.processingTimeMs,
+    this.orientation,
+    required this.blocks,
+    required this.totalCharacters,
+    required this.averageConfidence,
+  });
+
+  factory OcrMetadata.fromJson(Map<String, dynamic> json) {
+    final blocks = (json['blocks'] as List?)
+            ?.map((b) => TextBlock.fromJson(b as Map<String, dynamic>))
+            .toList() ??
+        [];
+
+    return OcrMetadata(
+      modelVersion: json['model_version'] as String? ?? 'unknown',
+      scannedAt: json['scanned_at'] != null
+          ? DateTime.parse(json['scanned_at'] as String)
+          : DateTime.now(),
+      processingTimeMs: json['processing_time_ms'] as int? ?? 0,
+      orientation: json['orientation'] != null
+          ? TextOrientation.values.byName(json['orientation'] as String)
+          : null,
+      blocks: blocks,
+      totalCharacters: json['total_characters'] as int? ?? 0,
+      averageConfidence: (json['average_confidence'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'model_version': modelVersion,
+        'scanned_at': scannedAt.toIso8601String(),
+        'processing_time_ms': processingTimeMs,
+        if (orientation != null) 'orientation': orientation!.name,
+        'blocks': blocks.map((b) => b.toJson()).toList(),
+        'total_characters': totalCharacters,
+        'average_confidence': averageConfidence,
+      };
+
+  /// Create from legacy Map format for backward compatibility
+  factory OcrMetadata.fromLegacyMap(Map<String, dynamic> legacy) {
+    return OcrMetadata.fromJson(legacy);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OcrMetadata &&
+          runtimeType == other.runtimeType &&
+          modelVersion == other.modelVersion &&
+          scannedAt == other.scannedAt &&
+          processingTimeMs == other.processingTimeMs &&
+          orientation == other.orientation &&
+          listEquals(blocks, other.blocks) &&
+          totalCharacters == other.totalCharacters &&
+          averageConfidence == other.averageConfidence;
+
+  @override
+  int get hashCode => Object.hash(
+        modelVersion,
+        scannedAt,
+        processingTimeMs,
+        orientation,
+        Object.hashAll(blocks),
+        totalCharacters,
+        averageConfidence,
+      );
+
+  @override
+  String toString() => 'OcrMetadata('
+      'model: $modelVersion, '
+      'blocks: ${blocks.length}, '
+      'confidence: ${(averageConfidence * 100).toStringAsFixed(1)}%'
+      ')';
+}
+
+
+// === /Users/debashishdeb/Documents/Flutter_project/cashpilot/lib/features/ml/models/barcode_models.dart ===
+
+import 'package:flutter/foundation.dart';
+
+/// Barcode format type
+enum BarcodeFormat {
+  ean13,
+  ean8,
+  upca,
+  upce,
+  qrCode,
+  code128,
+  code39,
+  dataMatrix,
+  unknown,
+}
+
+/// Product information from barcode lookup
+@immutable
+class ProductInfo {
+  final String name;
+  final String? brand;
+  final String? category;
+  final double? suggestedPrice;
+  final String? currency;
+  final String? imageUrl;
+  final String? description;
+
+  const ProductInfo({
+    required this.name,
+    this.brand,
+    this.category,
+    this.suggestedPrice,
+    this.currency,
+    this.imageUrl,
+    this.description,
+  });
+
+  factory ProductInfo.fromJson(Map<String, dynamic> json) => ProductInfo(
+        name: json['name'] as String,
+        brand: json['brand'] as String?,
+        category: json['category'] as String?,
+        suggestedPrice: (json['suggested_price'] as num?)?.toDouble(),
+        currency: json['currency'] as String?,
+        imageUrl: json['image_url'] as String?,
+        description: json['description'] as String?,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        if (brand != null) 'brand': brand,
+        if (category != null) 'category': category,
+        if (suggestedPrice != null) 'suggested_price': suggestedPrice,
+        if (currency != null) 'currency': currency,
+        if (imageUrl != null) 'image_url': imageUrl,
+        if (description != null) 'description': description,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ProductInfo &&
+          runtimeType == other.runtimeType &&
+          name == other.name &&
+          brand == other.brand &&
+          category == other.category &&
+          suggestedPrice == other.suggestedPrice &&
+          currency == other.currency &&
+          imageUrl == other.imageUrl &&
+          description == other.description;
+
+  @override
+  int get hashCode => Object.hash(
+        name,
+        brand,
+        category,
+        suggestedPrice,
+        currency,
+        imageUrl,
+        description,
+      );
+}
+
+/// Typed barcode extras - replaces Map<String, dynamic>
+@immutable
+class BarcodeExtras {
+  final BarcodeFormat format;
+  final int? checksum;
+  final String? rawBytes;
+  final Map<String, String>? additionalData;
+
+  const BarcodeExtras({
+    required this.format,
+    this.checksum,
+    this.rawBytes,
+    this.additionalData,
+  });
+
+  factory BarcodeExtras.fromJson(Map<String, dynamic> json) {
+    final additionalDataRaw = json['additional_data'];
+    Map<String, String>? additionalData;
+    if (additionalDataRaw != null) {
+      additionalData = (additionalDataRaw as Map<String, dynamic>)
+          .map((k, v) => MapEntry(k, v.toString()));
+    }
+
+    return BarcodeExtras(
+      format: BarcodeFormat.values.byName(
+        json['format'] as String? ?? 'unknown',
+      ),
+      checksum: json['checksum'] as int?,
+      rawBytes: json['raw_bytes'] as String?,
+      additionalData: additionalData,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'format': format.name,
+        if (checksum != null) 'checksum': checksum,
+        if (rawBytes != null) 'raw_bytes': rawBytes,
+        if (additionalData != null) 'additional_data': additionalData,
+      };
+
+  /// Create from legacy Map format for backward compatibility
+  factory BarcodeExtras.fromLegacyMap(Map<String, dynamic> legacy) {
+    return BarcodeExtras.fromJson(legacy);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BarcodeExtras &&
+          runtimeType == other.runtimeType &&
+          format == other.format &&
+          checksum == other.checksum &&
+          rawBytes == other.rawBytes &&
+          mapEquals(additionalData, other.additionalData);
+
+  @override
+  int get hashCode => Object.hash(
+        format,
+        checksum,
+        rawBytes,
+        additionalData != null ? Object.hashAll(additionalData!.entries) : null,
+      );
+}
+
+/// Typed barcode metadata - replaces Map<String, dynamic>
+@immutable
+class BarcodeMetadata {
+  final String scanId;
+  final DateTime scannedAt;
+  final String modelVersion;
+  final String source; // 'camera', 'image', 'manual'
+  final double? scanQuality; // 0.0-1.0
+  final int? processingTimeMs;
+  final bool wasOffline;
+
+  const BarcodeMetadata({
+    required this.scanId,
+    required this.scannedAt,
+    required this.modelVersion,
+    required this.source,
+    this.scanQuality,
+    this.processingTimeMs,
+    this.wasOffline = false,
+  });
+
+  factory BarcodeMetadata.fromJson(Map<String, dynamic> json) =>
+      BarcodeMetadata(
+        scanId: json['scan_id'] as String,
+        scannedAt: DateTime.parse(json['scanned_at'] as String),
+        modelVersion: json['model_version'] as String? ?? 'unknown',
+        source: json['source'] as String? ?? 'camera',
+        scanQuality: (json['scan_quality'] as num?)?.toDouble(),
+        processingTimeMs: json['processing_time_ms'] as int?,
+        wasOffline: json['was_offline'] as bool? ?? false,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'scan_id': scanId,
+        'scanned_at': scannedAt.toIso8601String(),
+        'model_version': modelVersion,
+        'source': source,
+        if (scanQuality != null) 'scan_quality': scanQuality,
+        if (processingTimeMs != null) 'processing_time_ms': processingTimeMs,
+        'was_offline': wasOffline,
+      };
+
+  /// Create from legacy Map format for backward compatibility
+  factory BarcodeMetadata.fromLegacyMap(Map<String, dynamic> legacy) {
+    return BarcodeMetadata.fromJson(legacy);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BarcodeMetadata &&
+          runtimeType == other.runtimeType &&
+          scanId == other.scanId &&
+          scannedAt == other.scannedAt &&
+          modelVersion == other.modelVersion &&
+          source == other.source &&
+          scanQuality == other.scanQuality &&
+          processingTimeMs == other.processingTimeMs &&
+          wasOffline == other.wasOffline;
+
+  @override
+  int get hashCode => Object.hash(
+        scanId,
+        scannedAt,
+        modelVersion,
+        source,
+        scanQuality,
+        processingTimeMs,
+        wasOffline,
+      );
+
+  @override
+  String toString() => 'BarcodeMetadata('
+      'id: $scanId, '
+      'source: $source, '
+      'offline: $wasOffline'
+      ')';
+}
+
+
+// === /Users/debashishdeb/Documents/Flutter_project/cashpilot/lib/features/ml/models/scan_evidence.dart ===
+
+import 'package:flutter/foundation.dart';
+import 'ocr_metadata.dart';
+import 'confidence_breakdown.dart';
+
+/// Validation result for extracted data
+@immutable
+class ValidationResult {
+  final String field;
+  final bool isValid;
+  final String? errorMessage;
+  final String? validatedValue;
+
+  const ValidationResult({
+    required this.field,
+    required this.isValid,
+    this.errorMessage,
+    this.validatedValue,
+  });
+
+  factory ValidationResult.fromJson(Map<String, dynamic> json) =>
+      ValidationResult(
+        field: json['field'] as String,
+        isValid: json['is_valid'] as bool,
+        errorMessage: json['error_message'] as String?,
+        validatedValue: json['validated_value'] as String?,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'field': field,
+        'is_valid': isValid,
+        if (errorMessage != null) 'error_message': errorMessage,
+        if (validatedValue != null) 'validated_value': validatedValue,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ValidationResult &&
+          runtimeType == other.runtimeType &&
+          field == other.field &&
+          isValid == other.isValid &&
+          errorMessage == other.errorMessage &&
+          validatedValue == other.validatedValue;
+
+  @override
+  int get hashCode => Object.hash(field, isValid, errorMessage, validatedValue);
+}
+
+/// Quality issue detected in scan
+@immutable
+class QualityIssue {
+  final String type;
+  final String description;
+  final double severity; // 0.0-1.0
+  final String? recommendation;
+
+  const QualityIssue({
+    required this.type,
+    required this.description,
+    required this.severity,
+    this.recommendation,
+  });
+
+  factory QualityIssue.fromJson(Map<String, dynamic> json) => QualityIssue(
+        type: json['type'] as String,
+        description: json['description'] as String,
+        severity: (json['severity'] as num?)?.toDouble() ?? 0.5,
+        recommendation: json['recommendation'] as String?,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'type': type,
+        'description': description,
+        'severity': severity,
+        if (recommendation != null) 'recommendation': recommendation,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is QualityIssue &&
+          runtimeType == other.runtimeType &&
+          type == other.type &&
+          description == other.description &&
+          severity == other.severity &&
+          recommendation == other.recommendation;
+
+  @override
+  int get hashCode => Object.hash(type, description, severity, recommendation);
+}
+
+/// Typed scan evidence - replaces Map<String, dynamic>
+/// Complete audit trail for ML training and debugging
+@immutable
+class ScanEvidence {
+  final String scanId;
+  final DateTime timestamp;
+  final String imageHash;
+  final OcrMetadata ocrMeta;
+  final ConfidenceBreakdown confidence;
+  final List<ValidationResult> validations;
+  final List<QualityIssue> qualityIssues;
+  final String? userId;
+
+  const ScanEvidence({
+    required this.scanId,
+    required this.timestamp,
+    required this.imageHash,
+    required this.ocrMeta,
+    required this.confidence,
+    required this.validations,
+    required this.qualityIssues,
+    this.userId,
+  });
+
+  factory ScanEvidence.fromJson(Map<String, dynamic> json) {
+    final validationsList = (json['validations'] as List?)
+            ?.map((v) => ValidationResult.fromJson(v as Map<String, dynamic>))
+            .toList() ??
+        [];
+
+    final issuesList = (json['quality_issues'] as List?)
+            ?.map((i) => QualityIssue.fromJson(i as Map<String, dynamic>))
+            .toList() ??
+        [];
+
+    return ScanEvidence(
+      scanId: json['scan_id'] as String,
+      timestamp: DateTime.parse(json['timestamp'] as String),
+      imageHash: json['image_hash'] as String,
+      ocrMeta: OcrMetadata.fromJson(json['ocr_meta'] as Map<String, dynamic>),
+      confidence: ConfidenceBreakdown.fromJson(
+          json['confidence'] as Map<String, dynamic>),
+      validations: validationsList,
+      qualityIssues: issuesList,
+      userId: json['user_id'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'scan_id': scanId,
+        'timestamp': timestamp.toIso8601String(),
+        'image_hash': imageHash,
+        'ocr_meta': ocrMeta.toJson(),
+        'confidence': confidence.toJson(),
+        'validations': validations.map((v) => v.toJson()).toList(),
+        'quality_issues': qualityIssues.map((i) => i.toJson()).toList(),
+        if (userId != null) 'user_id': userId,
+      };
+
+  /// Whether scan passed all validations
+  bool get isValid => validations.every((v) => v.isValid);
+
+  /// Critical quality issues (severity > 0.7)
+  List<QualityIssue> get criticalIssues =>
+      qualityIssues.where((i) => i.severity > 0.7).toList();
+
+  /// Overall scan quality score (0.0-1.0)
+  double get qualityScore {
+    if (qualityIssues.isEmpty) return confidence.overall;
+    final avgSeverity =
+        qualityIssues.map((i) => i.severity).reduce((a, b) => a + b) /
+            qualityIssues.length;
+    return confidence.overall * (1.0 - avgSeverity * 0.3);
+  }
+
+  /// Create from legacy Map format for backward compatibility
+  factory ScanEvidence.fromLegacyMap(Map<String, dynamic> legacy) {
+    return ScanEvidence.fromJson(legacy);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ScanEvidence &&
+          runtimeType == other.runtimeType &&
+          scanId == other.scanId &&
+          timestamp == other.timestamp &&
+          imageHash == other.imageHash &&
+          ocrMeta == other.ocrMeta &&
+          confidence == other.confidence &&
+          listEquals(validations, other.validations) &&
+          listEquals(qualityIssues, other.qualityIssues) &&
+          userId == other.userId;
+
+  @override
+  int get hashCode => Object.hash(
+        scanId,
+        timestamp,
+        imageHash,
+        ocrMeta,
+        confidence,
+        Object.hashAll(validations),
+        Object.hashAll(qualityIssues),
+        userId,
+      );
+
+  @override
+  String toString() => 'ScanEvidence('
+      'id: $scanId, '
+      'quality: ${(qualityScore * 100).toStringAsFixed(1)}%, '
+      'valid: $isValid'
+      ')';
+}
+
+
+// === /Users/debashishdeb/Documents/Flutter_project/cashpilot/lib/features/ml/models/models.dart ===
+
+/// Typed ML Models - Export File
+/// Phase 1 of Technical Debt Resolution
+library;
+
+// OCR Models
+export 'ocr_metadata.dart';
+
+// Confidence  Models
+export 'confidence_breakdown.dart';
+
+// Scan Evidence
+export 'scan_evidence.dart';
+
+// Barcode Models
+export 'barcode_models.dart';
+
+
+// === /Users/debashishdeb/Documents/Flutter_project/cashpilot/lib/features/ml/models/confidence_breakdown.dart ===
+
+import 'package:flutter/foundation.dart';
+
+/// Source of confidence value
+enum ConfidenceSource {
+  ocr,        // From OCR engine
+  pattern,    // From pattern matching
+  lookup,     // From database lookup
+  learned,    // From ML learning
+  manual,     // User-provided
+}
+
+/// Issue affecting confidence
+@immutable
+class ConfidenceIssue {
+  final String field;
+  final String reason;
+  final String? suggestion;
+  final double impact; // 0.0-1.0, how much this affects confidence
+
+  const ConfidenceIssue({
+    required this.field,
+    required this.reason,
+    this.suggestion,
+    required this.impact,
+  });
+
+  factory ConfidenceIssue.fromJson(Map<String, dynamic> json) =>
+      ConfidenceIssue(
+        field: json['field'] as String,
+        reason: json['reason'] as String,
+        suggestion: json['suggestion'] as String?,
+        impact: (json['impact'] as num?)?.toDouble() ?? 0.5,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'field': field,
+        'reason': reason,
+        if (suggestion != null) 'suggestion': suggestion,
+        'impact': impact,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ConfidenceIssue &&
+          runtimeType == other.runtimeType &&
+          field == other.field &&
+          reason == other.reason &&
+          suggestion == other.suggestion &&
+          impact == other.impact;
+
+  @override
+  int get hashCode => Object.hash(field, reason, suggestion, impact);
+}
+
+/// Confidence for a specific field
+@immutable
+class FieldConfidence {
+  final double value; // 0.0-1.0
+  final ConfidenceSource source;
+  final String? reason;
+  final DateTime? lastUpdated;
+
+  const FieldConfidence({
+    required this.value,
+    required this.source,
+    this.reason,
+    this.lastUpdated,
+  });
+
+  factory FieldConfidence.fromJson(Map<String, dynamic> json) =>
+      FieldConfidence(
+        value: (json['value'] as num).toDouble(),
+        source: ConfidenceSource.values.byName(json['source'] as String),
+        reason: json['reason'] as String?,
+        lastUpdated: json['last_updated'] != null
+            ? DateTime.parse(json['last_updated'] as String)
+            : null,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'value': value,
+        'source': source.name,
+        if (reason != null) 'reason': reason,
+        if (lastUpdated != null) 'last_updated': lastUpdated!.toIso8601String(),
+      };
+
+  /// Confidence level category
+  String get level {
+    if (value >= 0.85) return 'high';
+    if (value >= 0.65) return 'medium';
+    return 'low';
+  }
+
+  /// Whether this field needs review
+  bool get needsReview => value < 0.65;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is FieldConfidence &&
+          runtimeType == other.runtimeType &&
+          value == other.value &&
+          source == other.source &&
+          reason == other.reason &&
+          lastUpdated == other.lastUpdated;
+
+  @override
+  int get hashCode => Object.hash(value, source, reason, lastUpdated);
+}
+
+/// Typed confidence breakdown - replaces Map<String, dynamic>
+/// Provides structured confidence information for ML training
+@immutable
+class ConfidenceBreakdown {
+  final double overall;
+  final Map<String, FieldConfidence> fields;
+  final List<ConfidenceIssue> issues;
+  final DateTime calculatedAt;
+
+  const ConfidenceBreakdown({
+    required this.overall,
+    required this.fields,
+    required this.issues,
+    required this.calculatedAt,
+  });
+
+  factory ConfidenceBreakdown.fromJson(Map<String, dynamic> json) {
+    final fieldsMap = (json['fields'] as Map<String, dynamic>?)?.map(
+          (k, v) => MapEntry(
+            k,
+            FieldConfidence.fromJson(v as Map<String, dynamic>),
+          ),
+        ) ??
+        {};
+
+    final issuesList = (json['issues'] as List?)
+            ?.map((i) => ConfidenceIssue.fromJson(i as Map<String, dynamic>))
+            .toList() ??
+        [];
+
+    return ConfidenceBreakdown(
+      overall: (json['overall'] as num?)?.toDouble() ?? 0.0,
+      fields: fieldsMap,
+      issues: issuesList,
+      calculatedAt: json['calculated_at'] != null
+          ? DateTime.parse(json['calculated_at'] as String)
+          : DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'overall': overall,
+        'fields': fields.map((k, v) => MapEntry(k, v.toJson())),
+        'issues': issues.map((i) => i.toJson()).toList(),
+        'calculated_at': calculatedAt.toIso8601String(),
+      };
+
+  /// Get confidence for a specific field
+  FieldConfidence? getFieldConfidence(String fieldName) => fields[fieldName];
+
+  /// Get all fields that need review
+  List<String> get fieldsNeedingReview =>
+      fields.entries.where((e) => e.value.needsReview).map((e) => e.key).toList();
+
+  /// Whether overall scan needs review
+  bool get needsReview => overall < 0.65;
+
+  /// Overall confidence level
+  String get level {
+    if (overall >= 0.85) return 'high';
+    if (overall >= 0.65) return 'medium';
+    return 'low';
+  }
+
+  /// Create from legacy Map format for backward compatibility
+  factory ConfidenceBreakdown.fromLegacyMap(Map<String, dynamic> legacy) {
+    return ConfidenceBreakdown.fromJson(legacy);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ConfidenceBreakdown &&
+          runtimeType == other.runtimeType &&
+          overall == other.overall &&
+          mapEquals(fields, other.fields) &&
+          listEquals(issues, other.issues) &&
+          calculatedAt == other.calculatedAt;
+
+  @override
+  int get hashCode => Object.hash(
+        overall,
+        Object.hashAll(fields.entries),
+        Object.hashAll(issues),
+        calculatedAt,
+      );
+
+  @override
+  String toString() => 'ConfidenceBreakdown('
+      'overall: ${(overall * 100).toStringAsFixed(1)}%, '
+      'fields: ${fields.length}, '
+      'issues: ${issues.length}'
+      ')';
+}
+
+
+// === /Users/debashishdeb/Documents/Flutter_project/cashpilot/lib/features/ml/services/spending_forecaster.dart ===
+
+
+import 'package:flutter/foundation.dart';
+import '../../../data/drift/app_database.dart';
+import 'package:drift/drift.dart';
+
+/// Predicts future spending based on historical time-series data
+class SpendingForecaster {
+  final AppDatabase _db;
+  
+  SpendingForecaster(this._db);
+
+  /// Forecasts next month's spending with seasonal awareness
+  Future<int> predictNextMonthSpending() async {
+    try {
+      final expenses = await (_db.select(_db.expenses)
+        ..orderBy([(t) => OrderingTerm.asc(t.date)])
+      ).get();
+
+      if (expenses.isEmpty) return 0;
+
+      final monthlyTotals = _calculateMonthlyTotals(expenses);
+      final history = monthlyTotals.values.map((v) => v.toDouble()).toList();
+
+      if (history.length < 3) {
+        return (history.reduce((a, b) => a + b) / history.length).round();
+      }
+
+      // 1. Triple Exponential Smoothing (Holt-Winters) approximation
+      // For mobile, we'll use a weighted seasonal moving average
+      
+      // Calculate Trend
+      double recentTrend = 0;
+      for (var i = 1; i < history.length; i++) {
+        recentTrend += (history[i] - history[i-1]);
+      }
+      recentTrend /= (history.length - 1);
+
+      // Calculate Seasonality (Simple Month-over-Month check from previous year if available)
+      double seasonalFactor = 1.0;
+      if (history.length >= 12) {
+        final lastYearValue = history[history.length - 12];
+        final yearAvg = history.sublist(history.length - 12).reduce((a, b) => a + b) / 12;
+        if (yearAvg > 0) {
+          seasonalFactor = lastYearValue / yearAvg;
+        }
+      }
+
+      // Final Prediction
+      final lastMonth = history.last;
+      double forecast = (lastMonth + recentTrend) * seasonalFactor;
+      
+      // Smooth again with overall average to prevent wild swings
+      final overallAvg = history.reduce((a, b) => a + b) / history.length;
+      forecast = (forecast * 0.7) + (overallAvg * 0.3);
+
+      debugPrint('[BudgetAI] History length: ${history.length}, Trend: $recentTrend, Seasonal Factor: $seasonalFactor, Forecast: ${forecast/100}');
+      
+      return forecast.round().clamp(0, 50000000);
+    } catch (e) {
+      debugPrint('[BudgetAI] Error: $e');
+      return 0;
+    }
+  }
+
+  Map<String, int> _calculateMonthlyTotals(List<Expense> expenses) {
+    final totals = <String, int>{};
+    for (final e in expenses) {
+      final key = '${e.date.year}-${e.date.month.toString().padLeft(2, '0')}';
+      totals[key] = (totals[key] ?? 0) + e.amount;
+    }
+    return totals;
+  }
+}
+
+
+// === /Users/debashishdeb/Documents/Flutter_project/cashpilot/lib/features/ml/services/anomaly_detector.dart ===
+
+
+import 'dart:math';
+import 'package:flutter/foundation.dart';
+import '../../../data/drift/app_database.dart';
+import 'package:drift/drift.dart';
+
+class AnomalyDetector {
+  final AppDatabase _db;
+  
+  AnomalyDetector(this._db);
+
+  /// Analyzes an expense for anomalies relative to its category history
+  /// Returns a confidence score (0-1) that this is an anomaly.
+  Future<double> checkAnomaly(Expense expense) async {
+    final catId = expense.categoryId;
+    if (catId == null) return 0.0;
+
+    try {
+      // 1. Fetch historical context for the category
+      final categoryExpenses = await (_db.select(_db.expenses)
+        ..where((t) => t.categoryId.equals(catId))
+        ..where((t) => t.id.equals(expense.id).not()) // Exclude current
+        ..orderBy([(t) => OrderingTerm.desc(t.date)])
+        ..limit(100)
+      ).get();
+
+      if (categoryExpenses.length < 5) return 0.0;
+
+      final amounts = categoryExpenses.map((e) => e.amount.toDouble()).toList();
+      
+      // Calculate Stats
+      final mean = amounts.reduce((a, b) => a + b) / amounts.length;
+      final variance = amounts.map((a) => pow(a - mean, 2)).reduce((a, b) => a + b) / amounts.length;
+      final stdDev = sqrt(variance);
+      
+      if (stdDev == 0) return 0.0;
+
+      // 2. Multi-dimensional Z-Score
+      // Dimension A: Amount Z-Score
+      final amountZ = (expense.amount - mean).abs() / stdDev;
+      
+      // Dimension B: Frequency check (Temporal Anomaly)
+      // Check if this category is usually spent at this time of month
+      final dayOfMonth = expense.date.day;
+      final historicalDays = categoryExpenses.map((e) => e.date.day.toDouble()).toList();
+      final dayMean = historicalDays.reduce((a, b) => a + b) / historicalDays.length;
+      final dayVariance = historicalDays.map((a) => pow(a - dayMean, 2)).reduce((a, b) => a + b) / historicalDays.length;
+      final dayStdDev = sqrt(dayVariance);
+      
+      double temporalAnomaly = 0.0;
+      if (dayStdDev > 0) {
+        final dayZ = (dayOfMonth - dayMean).abs() / dayStdDev;
+        if (dayZ > 2.0) temporalAnomaly = 0.2; // Minor boost to anomaly score
+      }
+
+      // 3. Final Confidence Calculation
+      double anomalyScore = 0.0;
+      if (amountZ > 3.5) {
+        anomalyScore = 0.98; // Critical outlier
+      } else if (amountZ > 2.5) {
+        anomalyScore = 0.85;
+      } else if (amountZ > 1.5) {
+        anomalyScore = 0.40;
+      }
+      
+      // Add temporal boost
+      anomalyScore = (anomalyScore + temporalAnomaly).clamp(0.0, 1.0);
+
+      debugPrint('[FraudEngine] Category: $catId, AmountZ: $amountZ, Temporal: $temporalAnomaly, Final: $anomalyScore');
+      
+      return anomalyScore;
+    } catch (e) {
+      debugPrint('[FraudEngine] Error: $e');
+      return 0.0;
+    }
+  }
+
+  /// Bulk detect anomalies in recent history
+  Future<List<Expense>> detectAnomalies() async {
+    // Implement if needed for dashboard alerts
+    return [];
+  }
+}
+
+
+// === /Users/debashishdeb/Documents/Flutter_project/cashpilot/lib/features/ml/services/naive_bayes_classifier.dart ===
+
+/// Naive Bayes Classifier for Expense Categorization
+/// 
+/// Uses probabilistic learning to classify text descriptions/merchants into categories.
+/// P(Category | Tokens) ∝ P(Category) * Π P(Token | Category)
+library;
+
+import 'dart:math';
+
+class NaiveBayesClassifier {
+  // Map<Category, Count> - How many times each category has been seen
+  final Map<String, int> _categoryCounts = {};
+  
+  // Map<Category, Map<Token, Count>> - Word frequencies per category
+  final Map<String, Map<String, int>> _tokenCounts = {};
+  
+  // Map<Category, int> - Total number of tokens in each category (for denominator)
+  final Map<String, int> _totalTokensByCategory = {};
+  
+  // Total number of documents (transactions) trained
+  int _totalDocuments = 0;
+  
+  // Total number of unique tokens (vocabulary size)
+  int _vocabularySize = 0;
+  final Set<String> _vocabulary = {};
+
+  /// Train the model with a single sample
+  void train(String text, String category) {
+    _totalDocuments++;
+    _categoryCounts[category] = (_categoryCounts[category] ?? 0) + 1;
+    
+    // Initialize maps if needed
+    _tokenCounts.putIfAbsent(category, () => {});
+    _totalTokensByCategory.putIfAbsent(category, () => 0);
+    
+    final tokens = _tokenize(text);
+    
+    for (final token in tokens) {
+      _vocabulary.add(token);
+      _tokenCounts[category]![token] = (_tokenCounts[category]![token] ?? 0) + 1;
+      _totalTokensByCategory[category] = _totalTokensByCategory[category]! + 1;
+    }
+    
+    _vocabularySize = _vocabulary.length;
+  }
+
+  /// Bulk train model
+  void trainBatch(List<({String text, String category})> samples) {
+    for (final sample in samples) {
+      train(sample.text, sample.category);
+    }
+  }
+
+  /// Predict category for new text
+  /// Returns a map of Category -> Log Probability (higher is better)
+  Map<String, double> predictProbabilities(String text) {
+    if (_totalDocuments == 0) return {};
+
+    final tokens = _tokenize(text);
+    
+    // Check if any tokens exist in vocabulary
+    // If not, we have absolutely no signal -> return empty
+    final knownTokens = tokens.where((t) => _vocabulary.contains(t));
+    if (knownTokens.isEmpty) return {};
+
+    final scores = <String, double>{};
+
+    // Use uniform prior to prevent large categories (like Food) from dominating
+    // small categories (like Rent) just because they have more training keywords.
+    final logUniformPrior = log(1.0 / _categoryCounts.length);
+    
+    for (final category in _categoryCounts.keys) {
+      // 1. Prior Probability P(Category)
+      // We use uniform prior instead of frequency-based prior
+      double logPrior = logUniformPrior; 
+      
+      // 2. Likelihood P(Tokens | Category)
+      double logLikelihood = 0.0;
+      
+      final categoryTokenCount = _totalTokensByCategory[category] ?? 0;
+      // Laplace Smoothing (Add-1) denominator: Total tokens in class + Vocabulary size
+      final denominator = categoryTokenCount + _vocabularySize;
+
+      for (final token in tokens) {
+        // Count of this token in this category
+        final count = _tokenCounts[category]?[token] ?? 0;
+        
+        // P(Token | Category) with Laplace smoothing
+        // prob = (count + 1) / (total_tokens_in_category + unique_tokens_in_vocab)
+        logLikelihood += log((count + 1) / denominator);
+      }
+      
+      scores[category] = logPrior + logLikelihood;
+    }
+    
+    return scores;
+  }
+  
+  /// Get top prediction
+  ({String category, double probability})? predict(String text) {
+    final scores = predictProbabilities(text);
+    if (scores.isEmpty) return null;
+    
+    // Find category with max score
+    var maxScore = double.negativeInfinity;
+    var bestCategory = '';
+    
+    scores.forEach((category, score) {
+      if (score > maxScore) {
+        maxScore = score;
+        bestCategory = category;
+      }
+    });
+
+    if (bestCategory.isEmpty) return null;
+    
+    // Convert log score back to relative probability (simplified)
+    // Note: True probability requires normalization over all classes, 
+    // but for ranking, raw log score is sufficient. 
+    // We return a normalized confidence score scaled 0.0-1.0 roughly.
+    
+    return (category: bestCategory, probability: _normalizeScore(maxScore, scores.values));
+  }
+  
+  /// Simple tokenizer: lowercase, strip punctuation, split by space
+  List<String> _tokenize(String text) {
+    return text.toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9\s]'), ' ') // Replace non-alphanumeric with space
+        .split(RegExp(r'\s+')) // Split by whitespace
+        .where((t) => t.isNotEmpty) // Remove empty tokens
+        .where((t) => t.length > 2) // Ignore very short words (stop words approximation)
+        .toList();
+  }
+  
+  /// Normalize log scores to a 0-1 confidence-like scale
+  double _normalizeScore(double maxLogScore, Iterable<double> allScores) {
+    // Softmax-ish approach or relative difference check
+    // If the difference between top 1 and top 2 is large -> high confidence
+    final sorted = allScores.toList()..sort();
+    if (sorted.length < 2) return 1.0;
+    
+    final secondBest = sorted[sorted.length - 2];
+    final diff = maxLogScore - secondBest;
+    
+    // Log difference of ~2.3 means 10x more likely. 
+    // Log difference of ~0.7 means 2x more likely.
+    if (diff > 2.3) return 0.95;
+    if (diff > 1.5) return 0.85;
+    if (diff > 0.7) return 0.65;
+    return 0.45;
+  }
+  
+  void clear() {
+    _categoryCounts.clear();
+    _tokenCounts.clear();
+    _totalTokensByCategory.clear();
+    _vocabulary.clear();
+    _totalDocuments = 0;
+    _vocabularySize = 0;
+  }
+}
+
+
+// === /Users/debashishdeb/Documents/Flutter_project/cashpilot/lib/features/ml/services/model_evaluation_service.dart ===
+
+/// Model Evaluation Service - Analyzes ML model performance
+/// Uses learning event data to evaluate and optimize models
+library;
+
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+/// Model performance metrics
+class ModelPerformance {
+  final String modelVersion;
+  final int totalScans;
+  final int accepted;
+  final int edited;
+  final int rejected;
+  final double acceptanceRate;
+  final double editRate;
+  final double rejectionRate;
+  final Map<String, int> mostCorrectedFields;
+  final DateTime evaluatedAt;
+  
+  const ModelPerformance({
+    required this.modelVersion,
+    required this.totalScans,
+    required this.accepted,
+    required this.edited,
+    required this.rejected,
+    required this.acceptanceRate,
+    required this.editRate,
+    required this.rejectionRate,
+    required this.mostCorrectedFields,
+    required this.evaluatedAt,
+  });
+  
+  /// Is model performing well?
+  bool get isHealthy => acceptanceRate >= 0.70 && rejectionRate < 0.15;
+  
+  /// Needs immediate attention?
+  bool get needsImprovement => acceptanceRate < 0.50 || rejectionRate > 0.25;
+  
+  Map<String, dynamic> toJson() => {
+    'model_version': modelVersion,
+    'total_scans': totalScans,
+    'accepted': accepted,
+    'edited': edited,
+    'rejected': rejected,
+    'acceptance_rate': acceptanceRate,
+    'edit_rate': editRate,
+    'rejection_rate': rejectionRate,
+    'most_corrected_fields': mostCorrectedFields,
+    'evaluated_at': evaluatedAt.toIso8601String(),
+  };
+}
+
+/// Service for evaluating ML model performance
+class ModelEvaluationService {
+  final _supabase = Supabase.instance.client;
+  
+  /// Evaluate receipt model performance
+  Future<ModelPerformance> evaluateReceiptModel(String modelVersion) async {
+    try {
+      // Get learning events
+      final response = await _supabase
+          .from('receipt_learning_events')
+          .select()
+          .eq('model_version', modelVersion);
+      
+      final events = response as List;
+      
+      if (events.isEmpty) {
+        return ModelPerformance(
+          modelVersion: modelVersion,
+          totalScans: 0,
+          accepted: 0,
+          edited: 0,
+          rejected: 0,
+          acceptanceRate: 0.0,
+          editRate: 0.0,
+          rejectionRate: 0.0,
+          mostCorrectedFields: {},
+          evaluatedAt: DateTime.now(),
+        );
+      }
+      
+      final accepted = events.where((e) => e['outcome'] == 'accepted').length;
+      final edited = events.where((e) => e['outcome'] == 'edited').length;
+      final rejected = events.where((e) => e['outcome'] == 'rejected').length;
+      final total = events.length;
+      
+      // Analyze most corrected fields
+      final fieldCounts = <String, int>{};
+      for (final event in events) {
+        if (event['outcome'] == 'edited' && event['corrections'] != null) {
+          final corrections = event['corrections'] as Map<String, dynamic>;
+          for (final field in corrections.keys) {
+            fieldCounts[field] = (fieldCounts[field] ?? 0) + 1;
+          }
+        }
+      }
+      
+      return ModelPerformance(
+        modelVersion: modelVersion,
+        totalScans: total,
+        accepted: accepted,
+        edited: edited,
+        rejected: rejected,
+        acceptanceRate: accepted / total,
+        editRate: edited / total,
+        rejectionRate: rejected / total,
+        mostCorrectedFields: fieldCounts,
+        evaluatedAt: DateTime.now(),
+      );
+    } catch (e) {
+      print('Failed to evaluate model: $e');
+      rethrow;
+    }
+  }
+  
+  /// Compare two model versions
+  Future<Map<String, dynamic>> compareModels(
+    String modelA,
+    String modelB,
+  ) async {
+    final perfA = await evaluateReceiptModel(modelA);
+    final perfB = await evaluateReceiptModel(modelB);
+    
+    return {
+      'model_a': perfA.toJson(),
+      'model_b': perfB.toJson(),
+      'improvements': {
+        'acceptance_rate': perfB.acceptanceRate - perfA.acceptanceRate,
+        'rejection_rate': perfB.rejectionRate - perfA.rejectionRate,
+      },
+      'winner': perfB.acceptanceRate > perfA.acceptanceRate ? modelB : modelA,
+    };
+  }
+  
+  /// Get historical performance trend
+  Future<List<Map<String, dynamic>>> getPerformanceTrend(
+    String modelVersion, {
+    int days = 30,
+  }) async {
+    try {
+      final cutoff = DateTime.now().subtract(Duration(days: days));
+      
+      final response = await _supabase
+          .from('receipt_learning_events')
+          .select()
+          .eq('model_version', modelVersion)
+          .gte('timestamp', cutoff.toIso8601String())
+          .order('timestamp');
+      
+      final events = response as List;
+      
+      // Group by day
+      final dailyStats = <String, Map<String, int>>{};
+      
+      for (final event in events) {
+        final date = DateTime.parse(event['timestamp'] as String);
+        final dayKey = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+        
+        dailyStats.putIfAbsent(dayKey, () => {
+          'accepted': 0,
+          'edited': 0,
+          'rejected': 0,
+        });
+        
+        final outcome = event['outcome'] as String;
+        dailyStats[dayKey]![outcome] = (dailyStats[dayKey]![outcome] ?? 0) + 1;
+      }
+      
+      // Convert to list
+      return dailyStats.entries.map((e) {
+        final total = (e.value['accepted'] ?? 0) + 
+                     (e.value['edited'] ?? 0) + 
+                     (e.value['rejected'] ?? 0);
+        
+        return {
+          'date': e.key,
+          'accepted': e.value['accepted'],
+          'edited': e.value['edited'],
+          'rejected': e.value['rejected'],
+          'acceptance_rate': total > 0 ? (e.value['accepted'] ?? 0) / total : 0.0,
+        };
+      }).toList();
+    } catch (e) {
+      print('Failed to get performance trend: $e');
+      return [];
+    }
+  }
+}
+
+
+// === /Users/debashishdeb/Documents/Flutter_project/cashpilot/lib/features/ml/services/regional_model_service.dart ===
+
+import 'package:flutter/foundation.dart';
+
+/// Regional Model Service - Phase 3
+/// Selects optimal ML model based on user's region  
+class RegionalModelService {
+  /// Detect user's region from currency or locale
+  Future<String> detectRegion({String? currency, String? locale}) async {
+    try {
+      // Priority:
+      // 1. Currency code
+      // 2. Device locale
+      // 3. Fallback to global
+
+      if (currency != null) {
+        return _getRegionFromCurrency(currency);
+      }
+
+      if (locale != null) {
+        return _getRegionFromLocale(locale);
+      }
+
+      return 'global';
+    } catch (e) {
+      debugPrint('[Regional] Failed to detect region: $e');
+      return 'global';
+    }
+  }
+
+  /// Get region from currency code
+  String _getRegionFromCurrency(String currency) {
+    const currencyMap = {
+      'USD': 'us',
+      'CAD': 'us',
+      'EUR': 'eu',
+      'GBP': 'eu',
+      'JPY': 'asia',
+      'CNY': 'asia',
+      'KRW': 'asia',
+      'INR': 'asia',
+      'AUD': 'global',
+    };
+
+    return currencyMap[currency.toUpperCase()] ?? 'global';
+  }
+
+  /// Get region from locale
+  String _getRegionFromLocale(String locale) {
+    final countryCode = locale.split('_').last.toUpperCase();
+
+    const countryMap = {
+      'US': 'us',
+      'CA': 'us',
+      'GB': 'eu',
+      'DE': 'eu',
+      'FR': 'eu',
+      'IT': 'eu',
+      'ES': 'eu',
+      'JP': 'asia',
+      'CN': 'asia',
+      'KR': 'asia',
+      'IN': 'asia',
+    };
+
+    return countryMap[countryCode] ?? 'global';
+  }
+
+  /// Get optimal model version for region
+  String getModelForRegion({
+    required String modelName,
+    required String region,
+  }) {
+    // In Phase 3, we support regional models
+    // Format: modelName_region_version
+    // e.g., 'receipt_scanner_us_v1.0'
+
+    debugPrint('[Regional] Selected model: ${modelName}_$region');
+    return '${modelName}_$region';
+  }
+}
+
+
+// === /Users/debashishdeb/Documents/Flutter_project/cashpilot/lib/features/ml/services/intelligence_orchestrator.dart ===
+
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import '../../../data/drift/app_database.dart';
+import 'anomaly_detector.dart';
+import 'spending_forecaster.dart';
+import 'naive_bayes_classifier.dart';
+import '../../../core/services/audit_logger.dart';
+import '../../../features/expenses/services/category_learning_service.dart';
+import 'package:drift/drift.dart';
+
+class IntelligenceOrchestrator {
+  final AppDatabase _db;
+  final AnomalyDetector _anomalyDetector;
+  final SpendingForecaster _forecaster;
+  final NaiveBayesClassifier _classifier;
+  final AuditLogger _auditLogger;
+  final CategoryLearningService _learningService;
+
+  IntelligenceOrchestrator(
+    this._db,
+    this._anomalyDetector,
+    this._forecaster,
+    this._classifier,
+    this._auditLogger,
+    this._learningService,
+  );
+
+  /// Central processing pipeline for any new or updated expense
+  Future<Expense> processExpense(Expense expense, {bool isCorrection = false}) async {
+    debugPrint('[Intelligence] Processing expense: ${expense.id} (Correction: $isCorrection)');
+
+    // 0. Handle Learning Loop (Correction)
+    if (isCorrection && expense.categoryId != null) {
+      await _learningService.learnPattern(
+        merchant: expense.merchantName ?? expense.title,
+        selectedCategory: expense.categoryId!,
+      );
+      debugPrint('[Intelligence] Learned pattern for: ${expense.merchantName ?? expense.title}');
+    }
+
+    // 1. Category Inference (only if not a user correction)
+    String? inferredCategoryId = expense.categoryId;
+    double confidence = expense.confidence;
+    bool isAiAssigned = expense.isAiAssigned;
+
+    if (!isCorrection && (expense.categoryId == null || expense.isAiAssigned)) {
+      // Check learned patterns first
+      final learnedCategory = await _learningService.getTopLearnedCategory(expense.merchantName ?? expense.title);
+      
+      if (learnedCategory != null) {
+        inferredCategoryId = learnedCategory;
+        confidence = 0.95; // High confidence for learned patterns
+        isAiAssigned = true;
+      } else {
+        // Fallback to Naive Bayes
+        final prediction = _classifier.predict(expense.title);
+        if (prediction != null) {
+          inferredCategoryId = prediction.category;
+          confidence = prediction.probability;
+          isAiAssigned = true;
+        }
+      }
+      debugPrint('[Intelligence] Inferred Category: $inferredCategoryId (Prob: $confidence)');
+    }
+
+    // 2. Anomaly Detection (Fraud Engine)
+    final anomalyScore = await _anomalyDetector.checkAnomaly(updatedExpenseToProcess(expense, inferredCategoryId));
+    
+    // 3. Budget Impact Analysis
+    final forecast = await _forecaster.predictNextMonthSpending();
+
+    // 4. Update Expense with AI Metadata
+    final updatedExpense = expense.copyWith(
+      categoryId: Value(inferredCategoryId),
+      confidence: confidence,
+      isAiAssigned: isAiAssigned,
+      isVerified: !isAiAssigned || isCorrection,
+    );
+
+    // Save update to DB if changed
+    if (updatedExpense != expense) {
+      await (_db.update(_db.expenses)..where((t) => t.id.equals(expense.id))).write(updatedExpense);
+    }
+
+    // 5. Audit Logging
+    await _auditLogger.log(
+      entityType: 'expense',
+      entityId: expense.id,
+      action: isCorrection ? 'correction' : 'ai_processing',
+      userId: expense.enteredBy,
+      oldValue: jsonEncode(expense.toJson()),
+      newValue: jsonEncode(updatedExpense.toJson()),
+      metadata: {
+        'anomaly_score': anomalyScore,
+        'forecast_next_month': forecast,
+        'orchestrator_version': '1.0.0',
+      },
+    );
+
+    return updatedExpense;
+  }
+
+  // Helper to run anomaly check on what will be the new state
+  Expense updatedExpenseToProcess(Expense e, String? catId) {
+    return e.copyWith(categoryId: Value(catId));
+  }
+}
+
+
+// === /Users/debashishdeb/Documents/Flutter_project/cashpilot/lib/features/ml/services/ab_testing_service.dart ===
+
+import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:math';
+
+/// A/B Test configuration
+class ABTest {
+  final String id;
+  final String testName;
+  final String modelName;
+  final String controlVersion;
+  final String treatmentVersion;
+  final double treatmentRatio;
+  final String status;
+  final DateTime startDate;
+  final DateTime? endDate;
+  final Map<String, dynamic>? results;
+  final ModelStats controlStats;
+  final ModelStats treatmentStats;
+
+  ABTest({
+    required this.id,
+    required this.testName,
+    required this.modelName,
+    required this.controlVersion,
+    required this.treatmentVersion,
+    required this.treatmentRatio,
+    required this.status,
+    required this.startDate,
+    this.endDate,
+    this.results,
+    required this.controlStats,
+    required this.treatmentStats,
+  });
+
+  factory ABTest.fromJson(Map<String, dynamic> json, ModelStats control, ModelStats treatment) {
+    return ABTest(
+      id: json['id'] as String,
+      testName: json['test_name'] as String,
+      modelName: json['model_name'] as String,
+      controlVersion: json['control_version'] as String,
+      treatmentVersion: json['treatment_version'] as String,
+      treatmentRatio: (json['treatment_ratio'] as num).toDouble(),
+      status: json['status'] as String,
+      startDate: DateTime.parse(json['start_date'] as String),
+      endDate: json['end_date'] != null ? DateTime.parse(json['end_date'] as String) : null,
+      results: json['results'] as Map<String, dynamic>?,
+      controlStats: control,
+      treatmentStats: treatment,
+    );
+  }
+}
+
+/// Model statistics for A/B testing
+class ModelStats {
+  final int totalScans;
+  final int acceptedScans;
+  final double acceptanceRate;
+
+  ModelStats({
+    required this.totalScans,
+    required this.acceptedScans,
+    required this.acceptanceRate,
+  });
+}
+
+/// A/B Testing Service - Phase 3
+/// Manages A/B tests for model comparison
+class ABTestingService {
+  final _supabase = Supabase.instance.client;
+  static final _random = Random();
+
+  /// Get active A/B tests
+  Future<List<ABTest>> getActiveTests() async {
+    try {
+      final response = await _supabase
+          .from('ab_test_configs')
+          .select()
+          .eq('status', 'active')
+          .order('start_date', ascending: false);
+
+      final tests = <ABTest>[];
+      for (final json in (response as List)) {
+        final control = await _getModelStats(json['model_name'], json['control_version']);
+        final treatment = await _getModelStats(json['model_name'], json['treatment_version']);
+        tests.add(ABTest.fromJson(json, control, treatment));
+      }
+
+      return tests;
+    } catch (e) {
+      debugPrint('[ABTesting] Failed to fetch active tests: $e');
+      return [];
+    }
+  }
+
+  /// Get completed A/B tests
+  Future<List<ABTest>> getCompletedTests() async {
+    try {
+      final response = await _supabase
+          .from('ab_test_configs')
+          .select()
+          .eq('status', 'completed')
+          .order('end_date', ascending: false)
+          .limit(10);
+
+      final tests = <ABTest>[];
+      for (final json in (response as List)) {
+        final control = await _getModelStats(json['model_name'], json['control_version']);
+        final treatment = await _getModelStats(json['model_name'], json['treatment_version']);
+        tests.add(ABTest.fromJson(json, control, treatment));
+      }
+
+      return tests;
+    } catch (e) {
+      debugPrint('[ABTesting] Failed to fetch completed tests: $e');
+      return [];
+    }
+  }
+
+  /// Get user's assigned model version (sticky A/B testing)
+  Future<String?> getUserModelVersion(String userId, String modelName) async {
+    try {
+      // Check active test
+      final testResponse = await _supabase
+          .from('ab_test_configs')
+          .select()
+          .eq('model_name', modelName)
+          .eq('status', 'active')
+          .order('start_date', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      if (testResponse == null) {
+        // No active test, use production version
+        return _getActiveVersion(modelName);
+      }
+
+      final test = testResponse;
+      final testId = test['id'] as String;
+
+      // Check if user already has assignment
+      final assignmentResponse = await _supabase
+          .from('user_model_assignments')
+          .select()
+          .eq('user_id', userId)
+          .eq('test_id', testId)
+          .maybeSingle();
+
+      if (assignmentResponse != null) {
+        return assignmentResponse['assigned_version'] as String;
+      }
+
+      // Assign user to variant
+      final treatmentRatio = (test['treatment_ratio'] as num).toDouble();
+      final assignToTreatment = _random.nextDouble() < treatmentRatio;
+      final assignedVersion = assignToTreatment
+          ? test['treatment_version'] as String
+          : test['control_version'] as String;
+
+      // Save assignment
+      await _supabase.from('user_model_assignments').insert({
+        'user_id': userId,
+        'test_id': testId,
+        'assigned_version': assignedVersion,
+      });
+
+      debugPrint('[ABTesting] Assigned user to: $assignedVersion');
+      return assignedVersion;
+    } catch (e) {
+      debugPrint('[ABTesting] Failed to get user model version: $e');
+      return _getActiveVersion(modelName);
+    }
+  }
+
+  /// End an A/B test
+  Future<void> endTest(String testId) async {
+    try {
+      // Calculate final results
+      final test = await _supabase
+          .from('ab_test_configs')
+          .select()
+          .eq('id', testId)
+          .single();
+
+      final controlStats = await _getModelStats(
+        test['model_name'],
+        test['control_version'],
+      );
+      final treatmentStats = await _getModelStats(
+        test['model_name'],
+        test['treatment_version'],
+      );
+
+      final improvement =
+          treatmentStats.acceptanceRate - controlStats.acceptanceRate;
+
+      await _supabase.from('ab_test_configs').update({
+        'status': 'completed',
+        'end_date': DateTime.now().toIso8601String(),
+        'results': {
+          'improvement': improvement,
+          'control_acceptance': controlStats.acceptanceRate,
+          'treatment_acceptance': treatmentStats.acceptanceRate,
+          'winner': improvement > 0
+              ? test['treatment_version']
+              : test['control_version'],
+        },
+      }).eq('id', testId);
+
+      debugPrint('[ABTesting] Test ended: improvement = ${(improvement * 100).toStringAsFixed(2)}%');
+    } catch (e) {
+      debugPrint('[ABTesting] Failed to end test: $e');
+      rethrow;
+    }
+  }
+
+  /// Create a new A/B Test
+  Future<void> createTest({
+    required String testName,
+    required String modelName,
+    required String controlVersion,
+    required String treatmentVersion,
+    required double treatmentRatio,
+  }) async {
+    try {
+      await _supabase.from('ab_test_configs').insert({
+        'test_name': testName,
+        'model_name': modelName,
+        'control_version': controlVersion,
+        'treatment_version': treatmentVersion,
+        'treatment_ratio': treatmentRatio,
+        'status': 'active',
+        'start_date': DateTime.now().toIso8601String(),
+        'results': {},
+      });
+      debugPrint('[ABTesting] Created test: $testName');
+    } catch (e) {
+      debugPrint('[ABTesting] Failed to create test: $e');
+      rethrow;
+    }
+  }
+
+  /// Get active production version
+  Future<String> _getActiveVersion(String modelName) async {
+    final response = await _supabase
+        .from('model_versions')
+        .select('version')
+        .eq('model_name', modelName)
+        .eq('status', 'active')
+        .eq('region', 'global')
+        .order('deployed_at', ascending: false)
+        .limit(1)
+        .single();
+
+    return response['version'] as String;
+  }
+
+  /// Get model statistics (simplified)
+  Future<ModelStats> _getModelStats(String modelName, String version) async {
+    try {
+      // In production, fetch actual stats from learning events
+      // For now, return simulated stats
+      final totalScans = 500 + _random.nextInt(5000);
+      final acceptedScans = (totalScans * (0.65 + _random.nextDouble() * 0.25)).round();
+
+      return ModelStats(
+        totalScans: totalScans,
+        acceptedScans: acceptedScans,
+        acceptanceRate: acceptedScans / totalScans,
+      );
+    } catch (e) {
+      return ModelStats(totalScans: 0, acceptedScans: 0, acceptanceRate: 0.0);
+    }
+  }
+}
+
+
+// === /Users/debashishdeb/Documents/Flutter_project/cashpilot/lib/features/ml/services/model_retraining_service.dart ===
+
+import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+/// Model Version Information
+class ModelVersion {
+  final String id;
+  final String modelName;
+  final String version;
+  final String region;
+  final String status;
+  final int? trainingDataCount;
+  final Map<String, dynamic>? accuracyMetrics;
+  final Map<String, dynamic>? deploymentConfig;
+  final DateTime? trainedAt;
+  final DateTime? deployedAt;
+  final DateTime createdAt;
+
+  ModelVersion({
+    required this.id,
+    required this.modelName,
+    required this.version,
+    this.region = 'global',
+    required this.status,
+    this.trainingDataCount,
+    this.accuracyMetrics,
+    this.deploymentConfig,
+    this.trainedAt,
+    this.deployedAt,
+    required this.createdAt,
+  });
+
+  factory ModelVersion.fromJson(Map<String, dynamic> json) {
+    return ModelVersion(
+      id: json['id'] as String,
+      modelName: json['model_name'] as String,
+      version: json['version'] as String,
+      region: json['region'] as String? ?? 'global',
+      status: json['status'] as String,
+      trainingDataCount: json['training_data_count'] as int?,
+      accuracyMetrics: json['accuracy_metrics'] as Map<String, dynamic>?,
+      deploymentConfig: json['deployment_config'] as Map<String, dynamic>?,
+      trainedAt: json['trained_at'] != null 
+          ? DateTime.parse(json['trained_at'] as String) 
+          : null,
+      deployedAt: json['deployed_at'] != null
+          ? DateTime.parse(json['deployed_at'] as String)
+          : null,
+      createdAt: DateTime.parse(json['created_at'] as String),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'model_name': modelName,
+        'version': version,
+        'region': region,
+        'status': status,
+        'training_data_count': trainingDataCount,
+        'accuracy_metrics': accuracyMetrics,
+        'deployment_config': deploymentConfig,
+        'trained_at': trainedAt?.toIso8601String(),
+        'deployed_at': deployedAt?.toIso8601String(),
+        'created_at': createdAt.toIso8601String(),
+      };
+}
+
+/// Model Retraining Service - Phase 3
+/// Manages ML model versions, retraining, and deployment
+class ModelRetrainingService {
+  final _supabase = Supabase.instance.client;
+
+  /// Get all model versions for a specific model
+  Future<List<ModelVersion>> getModelVersions(String modelName) async {
+    try {
+      final response = await _supabase
+          .from('model_versions')
+          .select()
+          .eq('model_name', modelName)
+          .order('created_at', ascending: false);
+
+      return (response as List)
+          .map((json) => ModelVersion.fromJson(json))
+          .toList();
+    } catch (e) {
+      debugPrint('[Retraining] Failed to fetch model versions: $e');
+      return [];
+    }
+  }
+
+  /// Get active model version for a region
+  Future<ModelVersion?> getActiveVersion({
+    required String modelName,
+    String region = 'global',
+  }) async {
+    try {
+      final response = await _supabase
+          .from('model_versions')
+          .select()
+          .eq('model_name', modelName)
+          .eq('region', region)
+          .eq('status', 'active')
+          .order('deployed_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      return response != null ? ModelVersion.fromJson(response) : null;
+    } catch (e) {
+      debugPrint('[Retraining] Failed to get active version: $e');
+      return null;
+    }
+  }
+
+  /// Trigger model retraining (simplified - no actual ML training)
+  /// In production, this would call a cloud function to start training
+  Future<String> triggerRetraining({
+    required String modelName,
+    String region = 'global',
+    int minDataPoints = 1000,
+  }) async {
+    try {
+      debugPrint('[Retraining] Starting retraining for $modelName ($region)...');
+
+      // 1. Check if enough learning data
+      final dataCount = await _getlearningDataCount(modelName);
+      if (dataCount < minDataPoints) {
+        throw Exception(
+            'Not enough data for retraining: $dataCount < $minDataPoints');
+      }
+
+      // 2. Create new model version
+      final currentVersion = await getActiveVersion(
+        modelName: modelName,
+        region: region,
+      );
+
+      final newVersion = _incrementVersion(currentVersion?.version ?? 'v1.0');
+
+      final response = await _supabase.from('model_versions').insert({
+        'model_name': modelName,
+        'version': newVersion,
+        'region': region,
+        'status': 'training',
+        'training_data_count': dataCount,
+      }).select().single();
+
+      final versionId = response['id'] as String;
+
+      debugPrint('[Retraining] Created new version: $newVersion (ID: $versionId)');
+
+      // 3. In production: Trigger cloud function for actual training
+      // await _startCloudTrainingJob(versionId);
+
+      // For now: Simulate training completion after a delay
+      _simulateTraining(versionId, modelName, newVersion);
+
+      return versionId;
+    } catch (e) {
+      debugPrint('[Retraining] Failed to trigger retraining: $e');
+      rethrow;
+    }
+  }
+
+  /// Simulate training completion (remove in production)
+  Future<void> _simulateTraining(
+      String versionId, String modelName, String version) async {
+    // Simulate training taking 5 seconds
+    await Future.delayed(const Duration(seconds: 5));
+
+    try {
+      await _supabase.from('model_versions').update({
+        'status': 'testing',
+        'trained_at': DateTime.now().toIso8601String(),
+        'accuracy_metrics': {
+          'precision': 0.87 + (DateTime.now().millisecond % 10) / 100,
+          'recall': 0.84 + (DateTime.now().millisecond % 10) / 100,
+          'f1': 0.855,
+        },
+      }).eq('id', versionId);
+
+      debugPrint('[Retraining] ✅ Training complete for $version');
+    } catch (e) {
+      debugPrint('[Retraining] Failed to update training status: $e');
+    }
+  }
+
+  /// Deploy a model version to production
+  Future<void> deployVersion(String versionId) async {
+    try {
+      final version = await _supabase
+          .from('model_versions')
+          .select()
+          .eq('id', versionId)
+          .single();
+
+      if (version['status'] != 'testing') {
+        throw Exception('Can only deploy models in testing status');
+      }
+
+      // Deprecated current active version
+      await _supabase
+          .from('model_versions')
+          .update({
+            'status': 'deprecated',
+            'deprecated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('model_name', version['model_name'])
+          .eq('region', version['region'])
+          .eq('status', 'active');
+
+      // Deploy new version
+      await _supabase.from('model_versions').update({
+        'status': 'active',
+        'deployed_at': DateTime.now().toIso8601String(),
+      }).eq('id', versionId);
+
+      debugPrint('[Retraining] ✅ Deployed version: ${version['version']}');
+    } catch (e) {
+      debugPrint('[Retraining] Failed to deploy version: $e');
+      rethrow;
+    }
+  }
+
+  /// Get training status
+  Future<ModelVersion?> getTrainingStatus(String versionId) async {
+    try {
+      final response = await _supabase
+          .from('model_versions')
+          .select()
+          .eq('id', versionId)
+          .single();
+
+      return ModelVersion.fromJson(response);
+    } catch (e) {
+      debugPrint('[Retraining] Failed to get training status: $e');
+      return null;
+    }
+  }
+
+  /// Get learning data count for model
+  Future<int> _getlearningDataCount(String modelName) async {
+    try {
+      final tableName = modelName == 'receipt_scanner'
+          ? 'receipt_learning_events'
+          : 'barcode_learning_events';
+
+      final response = await _supabase
+          .from(tableName)
+          .select('id')
+          .count(CountOption.exact);
+
+      return response.count ?? 0;
+    } catch (e) {
+      debugPrint('[Retraining] Failed to get learning data count: $e');
+      return 0;
+    }
+  }
+
+  /// Increment version number
+  String _incrementVersion(String currentVersion) {
+    final match = RegExp(r'v(\d+)\.(\d+)').firstMatch(currentVersion);
+    if (match != null) {
+      final major = int.parse(match.group(1)!);
+      final minor = int.parse(match.group(2)!);
+      return 'v$major.${minor + 1}';
+    }
+    return 'v1.1';
+  }
+}
+
+
+// === /Users/debashishdeb/Documents/Flutter_project/cashpilot/lib/features/ml/services/confidence_optimizer.dart ===
+
+/// Confidence Optimizer - Dynamically adjusts confidence thresholds
+/// Based on user feedback and model performance
+library;
+
+/// Optimized confidence thresholds
+class ConfidenceThresholds {
+  final double minAcceptable;  // Below this, show warning
+  final double highConfidence;  // Above this, auto-fill
+  final double needsReview;    // Below this, force review
+  final String modelVersion;
+  final DateTime optimizedAt;
+  
+  const ConfidenceThresholds({
+    required this.minAcceptable,
+    required this.highConfidence,
+    required this.needsReview,
+    required this.modelVersion,
+    required this.optimizedAt,
+  });
+  
+  /// Default conservative thresholds
+  factory ConfidenceThresholds.defaultThresholds() {
+    return ConfidenceThresholds(
+      minAcceptable: 0.60,
+      highConfidence: 0.85,
+      needsReview: 0.50,
+      modelVersion: 'default',
+      optimizedAt: DateTime.now(),
+    );
+  }
+  
+  Map<String, dynamic> toJson() => {
+    'min_acceptable': minAcceptable,
+    'high_confidence': highConfidence,
+    'needs_review': needsReview,
+    'model_version': modelVersion,
+    'optimized_at': optimizedAt.toIso8601String(),
+  };
+}
+
+/// Service for optimizing confidence thresholds
+class ConfidenceOptimizer {
+  /// Optimize thresholds based on learning data
+  /// 
+  /// Algorithm:
+  /// - Analyze correction patterns
+  /// - Find confidence range where most accepted scans occur
+  /// - Find confidence range where most rejections occur
+  /// - Set thresholds to maximize acceptance while minimizing false positives
+  static Future<ConfidenceThresholds> optimizeThresholds({
+    required Future<List<Map<String, dynamic>>> Function() getLearningEvents,
+    required String modelVersion,
+  }) async {
+    try {
+      final events = await getLearningEvents();
+      
+      if (events.length < 50) {
+        // Not enough data, use defaults
+        return ConfidenceThresholds.defaultThresholds();
+      }
+      
+      // Collect confidence scores by outcome
+      final acceptedConfidences = <double>[];
+      final editedConfidences = <double>[];
+      final rejectedConfidences = <double>[];
+      
+      for (final event in events) {
+        final outcome = event['outcome'] as String;
+        final metadata = event['metadata'] as Map<String, dynamic>?;
+        
+        if (metadata != null && metadata['confidence'] != null) {
+          final confidence = (metadata['confidence'] as num).toDouble();
+          
+          if (outcome == 'accepted') {
+            acceptedConfidences.add(confidence);
+          } else if (outcome == 'edited') {
+            editedConfidences.add(confidence);
+          } else if (outcome == 'rejected') {
+            rejectedConfidences.add(confidence);
+          }
+        }
+      }
+      
+      // Calculate percentiles
+      acceptedConfidences.sort();
+      rejectedConfidences.sort();
+      
+      // High confidence: 90th percentile of accepted scans
+      final highConfidence = acceptedConfidences.isNotEmpty
+          ? _percentile(acceptedConfidences, 0.90)
+          : 0.85;
+      
+      // Min acceptable: 50th percentile of accepted scans
+      final minAcceptable = acceptedConfidences.isNotEmpty
+          ? _percentile(acceptedConfidences, 0.50)
+          : 0.60;
+      
+      // Needs review: 75th percentile of rejected scans (avoid this range)
+      final needsReview = rejectedConfidences.isNotEmpty
+          ? _percentile(rejectedConfidences, 0.75)
+          : 0.50;
+      
+      return ConfidenceThresholds(
+        minAcceptable: minAcceptable.clamp(0.50, 0.75),
+        highConfidence: highConfidence.clamp(0.80,1.00),
+        needsReview: needsReview.clamp(0.30, 0.60),
+        modelVersion: modelVersion,
+        optimizedAt: DateTime.now(),
+      );
+    } catch (e) {
+      print('Failed to optimize thresholds: $e');
+      return ConfidenceThresholds.defaultThresholds();
+    }
+  }
+  
+  /// Calculate percentile
+  static double _percentile(List<double> values, double percentile) {
+    if (values.isEmpty) return 0.0;
+    final index = ((values.length - 1) * percentile).round();
+    return values[index];
+  }
+  
+  /// Recommend optimal threshold adjustments
+  static Map<String, dynamic> recommendAdjustments({
+    required ConfidenceThresholds current,
+    required double currentAcceptanceRate,
+    required double currentRejectionRate,
+  }) {
+    final recommendations = <String, dynamic>{};
+    
+    // If too many rejections, lower thresholds
+    if (currentRejectionRate > 0.20) {
+      recommendations['min_acceptable'] = {
+        'current': current.minAcceptable,
+        'recommended': (current.minAcceptable - 0.05).clamp(0.40, 0.70),
+        'reason': 'High rejection rate - lower threshold to be more lenient',
+      };
+    }
+    
+    // If acceptance rate is low, investigate
+    if (currentAcceptanceRate < 0.60) {
+      recommendations['investigation_needed'] = true;
+      recommendations['reason'] = 'Low acceptance rate suggests model quality issue';
+    }
+    
+    // If very high acceptance, can be more strict
+    if (currentAcceptanceRate > 0.90 && currentRejectionRate < 0.05) {
+      recommendations['high_confidence'] = {
+        'current': current.highConfidence,
+        'recommended': (current.highConfidence + 0.02).clamp(0.85, 0.95),
+        'reason': 'Excellent performance - can raise high confidence bar',
+      };
+    }
+    
+    return recommendations;
+  }
+}
+
+

@@ -1,10 +1,5 @@
-/// Biometric Authentication Service
-/// Handles device biometric authentication with proper error handling
-library;
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/foundation.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:local_auth/error_codes.dart' as auth_error;
 
@@ -27,44 +22,37 @@ class BiometricService {
 
   final LocalAuthentication _auth = LocalAuthentication();
 
-  /// Check if biometric authentication is available on this device
+  /// Check if biometrics are available on device
   Future<bool> isAvailable() async {
     try {
-      final canCheckBiometrics = await _auth.canCheckBiometrics;
       final isDeviceSupported = await _auth.isDeviceSupported();
-      return canCheckBiometrics && isDeviceSupported;
-    } on PlatformException {
+      final canCheckBiometrics = await _auth.canCheckBiometrics;
+      return isDeviceSupported && canCheckBiometrics;
+    } catch (e) {
       return false;
     }
   }
 
-  /// Get available biometric types
-  Future<List<BiometricType>> getAvailableBiometrics() async {
-    try {
-      return await _auth.getAvailableBiometrics();
-    } on PlatformException {
-      return [];
-    }
-  }
-
-  /// Check if device has any biometrics enrolled
+  /// Check if biometrics are enrolled
   Future<bool> hasBiometricsEnrolled() async {
     try {
       final biometrics = await _auth.getAvailableBiometrics();
       return biometrics.isNotEmpty;
-    } on PlatformException {
+    } catch (e) {
       return false;
     }
   }
 
-  /// Get a user-friendly description of available biometrics
-  Future<String> getBiometricTypeDescription() async {
-    final biometrics = await getAvailableBiometrics();
-    
+  /// Get biometric type description (alias for getBiometricType)
+  Future<String> getBiometricTypeDescription() => getBiometricType();
+
+  /// Get available biometric type
+  Future<String> getBiometricType() async {
+    final biometrics = await _auth.getAvailableBiometrics();
     if (biometrics.contains(BiometricType.face)) {
-      return Platform.isIOS ? 'Face ID' : 'Face Recognition';
+      return defaultTargetPlatform == TargetPlatform.iOS ? 'Face ID' : 'Face Recognition';
     } else if (biometrics.contains(BiometricType.fingerprint)) {
-      return Platform.isIOS ? 'Touch ID' : 'Fingerprint';
+      return defaultTargetPlatform == TargetPlatform.iOS ? 'Touch ID' : 'Fingerprint';
     } else if (biometrics.contains(BiometricType.iris)) {
       return 'Iris Scan';
     } else if (biometrics.contains(BiometricType.strong)) {

@@ -1,14 +1,9 @@
-/// Notification Service
-/// Handles local push notifications for bill reminders and recurring expenses
-library;
-
-import 'dart:io';
 import 'dart:async';
-import 'dart:ui' show Color;
+import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
-import 'package:timezone/data/latest.dart' as tz_data;
+import 'package:timezone/data/latest.dart' as tz;
 import 'package:cashpilot/l10n/app_localizations.dart';
 
 class NotificationService {
@@ -19,42 +14,41 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
   bool _isInitialized = false;
 
-  /// Initialize the notification service
+  final _payloadController = StreamController<String?>.broadcast();
+  Stream<String?> get payloadStream => _payloadController.stream;
+
+  /// Initialize notifications
   Future<void> initialize() async {
     if (_isInitialized) return;
 
-    // Initialize timezone
-    tz_data.initializeTimeZones();
+    tz.initializeTimeZones();
 
-    // Android settings
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-
-    // iOS settings
     const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
     );
 
-    final settings = InitializationSettings(
+    const initSettings = InitializationSettings(
       android: androidSettings,
       iOS: iosSettings,
     );
 
     await _notifications.initialize(
-      settings,
+      initSettings,
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
 
     // Request permissions on iOS
-    if (Platform.isIOS) {
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
       await _notifications
           .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
           ?.requestPermissions(alert: true, badge: true, sound: true);
     }
 
     // Request permissions on Android 13+
-    if (Platform.isAndroid) {
+    if (defaultTargetPlatform == TargetPlatform.android) {
       await _notifications
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
           ?.requestNotificationsPermission();
@@ -63,9 +57,6 @@ class NotificationService {
     _isInitialized = true;
     debugPrint('[NotificationService] Initialized');
   }
-
-  final _payloadController = StreamController<String?>.broadcast();
-  Stream<String?> get payloadStream => _payloadController.stream;
 
   /// Handle notification tap
   void _onNotificationTapped(NotificationResponse response) {

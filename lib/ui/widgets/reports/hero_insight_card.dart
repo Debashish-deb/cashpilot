@@ -9,7 +9,7 @@ import '../../../core/managers/format_manager.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../l10n/app_localizations.dart';
 
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/tokens.g.dart';
 import '../../../core/theme/app_typography.dart';
 
 /// Hero Insight Card - The main "at-a-glance" insight for Reports
@@ -45,28 +45,18 @@ class HeroInsightCard extends ConsumerWidget {
         ? ((totalSpent - lastMonthSpent) / lastMonthSpent * 100).round()
         : 0;
     final isIncrease = percentChange > 0;
-    final changeColor = isIncrease ? AppColors.danger : AppColors.success;
+    final changeColor = isIncrease ? AppTokens.semanticDanger : AppTokens.semanticSuccess;
     final changeIcon = isIncrease ? Icons.arrow_upward : Icons.arrow_downward;
 
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-              ? [
-                  theme.primaryColor.withValues(alpha: 0.25),
-                  theme.primaryColor.withValues(alpha: 0.10),
-                ]
-              : [
-                  theme.primaryColor.withValues(alpha: 0.12),
-                  theme.primaryColor.withValues(alpha: 0.04),
-                ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: isDark 
+            ? theme.cardColor 
+            : theme.primaryColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: theme.primaryColor.withValues(alpha: 0.2),
+          color: theme.primaryColor.withValues(alpha: 0.15),
           width: 1,
         ),
       ),

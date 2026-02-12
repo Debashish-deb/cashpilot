@@ -121,7 +121,7 @@ class AuthService {
         'email': user.email,
         'name': user.userMetadata?['name'] ?? user.email?.split('@').first ?? 'User',
         'updated_at': DateTime.now().toIso8601String(),
-      }, onConflict: 'id');
+      }, onConflict: 'id').timeout(const Duration(seconds: 5));
     } catch (e) {
       if (kDebugMode) debugPrint('Profile ensure failed (non-critical): $e');
     }
@@ -145,8 +145,34 @@ class AuthService {
     return response;
   }
 
+  /// Callback to wipe local data (DB, Prefs) on logout
+  Future<void> Function()? onDataWipe;
+
   /// Sign out
+  /// Executes rigorous data wipe sequence:
+  /// 1. Wipe Encryption Keys (Crypto-shredding)
+  /// 2. Wipe Local Database (via callback)
+  /// 3. Sign out from Supabase
   Future<void> signOut() async {
+    _logger.info('Signing out... initiating security wipe.');
+    
+    try {
+      // 1. Crypto-shredding
+      // Cyclic dependency if we import encryption service directly? 
+      // AuthService is usually lower level. 
+      // But EncryptionService is also a singleton service.
+      // Ideally this is handled by onDataWipe too, but let's be explicit if possible.
+      // We will rely on the callback for DB, but keys we can handle if we import, 
+      // OR we just put everything in onDataWipe.
+      // Let's rely on onDataWipe for EVERYTHING to ensure proper ordering and dependency management.
+      if (onDataWipe != null) {
+        await onDataWipe!();
+      }
+    } catch (e) {
+      _logger.error('Data wipe failed during logout', error: e);
+      // Proceed to sign out anyway to at least de-auth the session
+    }
+    
     await client.auth.signOut();
   }
 

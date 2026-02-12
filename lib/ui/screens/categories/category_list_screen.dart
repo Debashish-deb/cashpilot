@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:cashpilot/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/app_snackbar.dart';
@@ -8,13 +9,14 @@ import '../../../core/theme/app_typography.dart';
 import '../../../features/categories/providers/category_providers.dart';
 import '../../../features/categories/providers/category_controller.dart';
 import '../../../data/drift/app_database.dart'; 
-import 'package:cashpilot/l10n/app_localizations.dart'; 
+// Removed invalid import
 
 // Import reusable input widgets
 import '../../widgets/input/category_icon_selector.dart';
 import '../../widgets/input/category_color_selector.dart';
 import '../../widgets/common/app_grade_icons.dart';
 import '../../widgets/common/cp_app_icon.dart';
+import '../../../core/helpers/localized_category_helper.dart';
 import 'category_merge_dialog.dart';
 
 // =============================================================================
@@ -181,57 +183,63 @@ class CategoryListScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: groupedCategoriesAsync.when(
-        data: (grouped) {
-          if (grouped.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                   Icon(Icons.category_outlined, size: 64, color: Theme.of(context).disabledColor),
-                   const SizedBox(height: 16),
-                   Text(l10n.categoryNoCategories, style: AppTypography.titleMedium.copyWith(color: Theme.of(context).disabledColor)),
-                   const SizedBox(height: 24),
-                   FilledButton.icon(
-                     onPressed: () {
-                       HapticFeedback.lightImpact();
-                       _showEditor(context, ref, null);
-                     },
-                     icon: const Icon(Icons.add),
-                     label: Text(l10n.categoryAdd),
-                   ),
-                ],
-              ),
+      body: SafeArea(
+        child: groupedCategoriesAsync.when(
+          data: (grouped) {
+            if (grouped.isEmpty) {
+              return _buildEmptyState(context, l10n, ref);
+            }
+            
+            final parents = grouped.keys.toList();
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final horizontalPadding = constraints.maxWidth < 360 ? 12.0 : 16.0;
+                return ListView.builder(
+                  itemCount: parents.length,
+                  padding: EdgeInsets.all(horizontalPadding),
+                  physics: const BouncingScrollPhysics(),
+                  itemBuilder: (context, index) {
+                    final parent = parents[index];
+                    final children = grouped[parent] ?? [];
+                    
+                    return _CategoryGroupCard(
+                      parent: parent,
+                      children: children,
+                      onEditParent: () => _showEditor(context, ref, parent),
+                      onAddChild: () => _showEditor(context, ref, null, parentId: parent.id),
+                      onEditChild: (child) => _showEditor(context, ref, child),
+                      onDeleteCategory: (cat) => _deleteWithUndo(context, ref, cat),
+                    );
+                  },
+                );
+              },
             );
-          }
-          
-          final parents = grouped.keys.toList();
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final horizontalPadding = constraints.maxWidth < 360 ? 12.0 : 16.0;
-              return ListView.builder(
-                itemCount: parents.length,
-                padding: EdgeInsets.all(horizontalPadding),
-                physics: const BouncingScrollPhysics(),
-            itemBuilder: (context, index) {
-              final parent = parents[index];
-              final children = grouped[parent] ?? [];
-              
-              return _CategoryGroupCard(
-                parent: parent,
-                children: children,
-                onEditParent: () => _showEditor(context, ref, parent),
-                onAddChild: () => _showEditor(context, ref, null, parentId: parent.id),
-                onEditChild: (child) => _showEditor(context, ref, child),
-                onDeleteCategory: (cat) => _deleteWithUndo(context, ref, cat),
-              );
-            },
-          );
-            },
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, stack) => Center(child: Text('Error: $e')),
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, stack) => Center(child: Text(AppLocalizations.of(context)!.commonErrorMessage(e.toString()))),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context, AppLocalizations l10n, WidgetRef ref) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+           Icon(Icons.category_outlined, size: 64, color: Theme.of(context).disabledColor),
+           const SizedBox(height: 16),
+           Text(l10n.categoryNoCategories, style: AppTypography.titleMedium.copyWith(color: Theme.of(context).disabledColor)),
+           const SizedBox(height: 24),
+           FilledButton.icon(
+             onPressed: () {
+               HapticFeedback.lightImpact();
+               _showEditor(context, ref, null);
+             },
+             icon: const Icon(Icons.add),
+             label: Text(l10n.categoryAdd),
+           ),
+        ],
       ),
     );
   }
@@ -304,6 +312,7 @@ class _CategoryGroupCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final parentColor = _parseColor(parent.colorHex);
     final spendingStatsAsync = ref.watch(categorySpendingStatsProvider);
 
@@ -336,14 +345,14 @@ class _CategoryGroupCard extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    AppLocalizations.of(context)!.categoryDeleteTitle,
+                    l10n.categoryDeleteTitle,
                     style: AppTypography.titleLarge.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 8),
                     Text(
-                      AppLocalizations.of(context)!.categoryDeleteMsg(parent.name),
+                      l10n.categoryDeleteMsg(parent.name),
                       style: AppTypography.bodyMedium.copyWith(
                         color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
@@ -353,12 +362,9 @@ class _CategoryGroupCard extends ConsumerWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(c, false),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          child: Text(AppLocalizations.of(context)!.commonCancel),
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(c),
+                          child: Text(l10n.commonCancel),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -369,7 +375,7 @@ class _CategoryGroupCard extends ConsumerWidget {
                             backgroundColor: AppColors.danger,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
-                          child: Text(AppLocalizations.of(context)!.commonDelete),
+                          child: Text(l10n.commonDelete),
                         ),
                       ),
                     ],
@@ -406,7 +412,7 @@ class _CategoryGroupCard extends ConsumerWidget {
               size: 48,
             ),
             title: Text(
-              parent.name,
+              LocalizedCategoryHelper.getLocalizedName(context, parent.name, iconName: parent.iconName),
               style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w600),
             ),
             subtitle: spendingStatsAsync.when(
@@ -422,7 +428,7 @@ class _CategoryGroupCard extends ConsumerWidget {
                 
                 if (groupTotal == 0) {
                    return children.isNotEmpty 
-                      ? Text(AppLocalizations.of(context)!.categorySubCount(children.length), style: AppTypography.bodySmall) 
+                      ? Text(l10n.categorySubCount(children.length), style: AppTypography.bodySmall) 
                       : null;
                 }
                 
@@ -430,11 +436,15 @@ class _CategoryGroupCard extends ConsumerWidget {
                   children: [
                     Icon(Icons.payments_outlined, size: 14, color: Theme.of(context).colorScheme.primary),
                     const SizedBox(width: 4),
-                    Text(
-                      AppLocalizations.of(context)!.categorySpentMonth('₹${groupTotal.toStringAsFixed(0)}'),
-                      style: AppTypography.bodySmall.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w500,
+                    Flexible(
+                      child: Text(
+                        l10n.categorySpentMonth('₹${groupTotal.toStringAsFixed(0)}'),
+                        style: AppTypography.bodySmall.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -463,9 +473,9 @@ class _CategoryGroupCard extends ConsumerWidget {
                       value: 'edit',
                       child: Row(
                         children: [
-                          const Icon(Icons.edit_rounded, size: 20),
+                          const Icon(Icons.edit_outlined, size: 20),
                           const SizedBox(width: 12),
-                          Text(AppLocalizations.of(context)!.commonEdit),
+                          Text(l10n.commonEdit),
                         ],
                       ),
                     ),
@@ -475,7 +485,7 @@ class _CategoryGroupCard extends ConsumerWidget {
                         children: [
                           const Icon(Icons.merge_type_rounded, size: 20),
                           const SizedBox(width: 12),
-                          Text(AppLocalizations.of(context)!.commonMerge),
+                          Text(l10n.commonMerge),
                         ],
                       ),
                     ),
@@ -511,7 +521,14 @@ class _CategoryGroupCard extends ConsumerWidget {
                     title: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(child.name, style: AppTypography.bodyMedium),
+                        Flexible(
+                          child: Text(
+                            LocalizedCategoryHelper.getLocalizedName(context, child.name, iconName: child.iconName),
+                            style: AppTypography.bodyMedium,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                         spendingStatsAsync.when(
                           data: (stats) {
                             final childStats = stats[child.id];
@@ -555,7 +572,7 @@ class _CategoryGroupCard extends ConsumerWidget {
                     onAddChild();
                   },
                   icon: const Icon(Icons.add_rounded, size: 18),
-                  label: Text(AppLocalizations.of(context)!.categoryAddSub),
+                  label: Text(l10n.categoryAddSub),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 40),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -755,6 +772,7 @@ class _CategoryEditorSheetState extends ConsumerState<CategoryEditorSheet>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isEditing = widget.existingCategory != null;
     final accent = _selectedColor ?? Theme.of(context).primaryColor;
     final theme = Theme.of(context);
@@ -892,7 +910,7 @@ class _CategoryEditorSheetState extends ConsumerState<CategoryEditorSheet>
                     ],
                     
                     const SizedBox(height: 32),
-                    Text('Icon', style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w600)),
+                    Text(l10n.categoryIconLabel, style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 16),
                     CategoryIconSelector(
                       selectedIconName: _selectedIconName,
@@ -906,7 +924,7 @@ class _CategoryEditorSheetState extends ConsumerState<CategoryEditorSheet>
                     ),
                     
                     const SizedBox(height: 32),
-                    Text('Color', style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w600)),
+                    Text(l10n.categoryColorLabel, style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 16),
                     CategoryColorSelector(
                       selectedColor: _selectedColor,
@@ -929,7 +947,7 @@ class _CategoryEditorSheetState extends ConsumerState<CategoryEditorSheet>
                                   foregroundColor: Colors.red,
                                   padding: const EdgeInsets.symmetric(vertical: 16),
                                 ),
-                                child: const Text('Delete'),
+                                child: Text(l10n.categoryDelete),
                               ),
                            ),
                            const SizedBox(width: 16),
@@ -948,7 +966,7 @@ class _CategoryEditorSheetState extends ConsumerState<CategoryEditorSheet>
                              ),
                              child: _isLoading 
                                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                               : Text(isEditing ? 'Save Changes' : 'Create Category', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                               : Text(isEditing ? l10n.commonSave : l10n.commonAdd, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                            ),
                          ),
                       ],
@@ -959,7 +977,7 @@ class _CategoryEditorSheetState extends ConsumerState<CategoryEditorSheet>
                        const SizedBox(height: 16),
                        TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: Text('Cancel', style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
+                          child: Text(l10n.commonCancel, style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
                        ),
                     ],
                   ],
@@ -973,16 +991,17 @@ class _CategoryEditorSheetState extends ConsumerState<CategoryEditorSheet>
   }
 
   void _confirmDelete(BuildContext context, Category cat) {
+    final l10n = AppLocalizations.of(context)!;
     HapticFeedback.mediumImpact();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Category?'),
-        content: Text('Are you sure you want to delete "${cat.name}"?'),
+        title: Text(l10n.categoryDeleteTitle),
+        content: Text(l10n.categoryDeleteConfirm(cat.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           TextButton(
             onPressed: () async {
@@ -993,13 +1012,13 @@ class _CategoryEditorSheetState extends ConsumerState<CategoryEditorSheet>
               } catch (e) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e')),
+                    SnackBar(content: Text(AppLocalizations.of(context)!.commonErrorMessage(e.toString()))),
                   );
                 }
               }
             },
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Delete'),
+            child: Text(l10n.categoryDelete),
           ),
         ],
       ),
@@ -1007,6 +1026,7 @@ class _CategoryEditorSheetState extends ConsumerState<CategoryEditorSheet>
   }
 
   Future<void> _save() async {
+    final l10n = AppLocalizations.of(context)!;
     if (!_formKey.currentState!.validate()) return;
     
     HapticFeedback.mediumImpact();
@@ -1029,7 +1049,7 @@ class _CategoryEditorSheetState extends ConsumerState<CategoryEditorSheet>
         if (mounted) {
            ScaffoldMessenger.of(context).showSnackBar(
              SnackBar(
-               content: Text('Category "${_nameController.text}" already exists'),
+               content: Text(l10n.categoryExistsError(_nameController.text)),
                backgroundColor: AppColors.warning,
                behavior: SnackBarBehavior.floating,
              ),

@@ -2,7 +2,6 @@
 /// Registers device with Supabase and enforces device limits per subscription tier.
 library;
 
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -11,6 +10,7 @@ import '../../../services/device_info_service.dart';
 import '../../../services/auth_service.dart';
 import '../../../core/constants/subscription.dart';
 import '../../../services/subscription_service.dart';
+import 'dart:io';
 
 class DeviceGateResult {
   final bool allowed;
@@ -47,6 +47,9 @@ class DeviceGateService {
         );
       }
 
+      // Add timeout to prevent hanging on slow network/bad config
+      const kNetworkTimeout = Duration(seconds: 10);
+
       final deviceId = await _deviceInfoService.getDeviceId();
       final deviceInfo = await _getDeviceInfo();
 
@@ -58,7 +61,8 @@ class DeviceGateService {
         'os': deviceInfo['os'],
         'app_version': deviceInfo['app_version'],
         'last_seen_at': DateTime.now().toIso8601String(),
-      }, onConflict: 'user_id, device_id');
+      }, onConflict: 'user_id, device_id')
+      .timeout(kNetworkTimeout);
 
       if (kDebugMode) {
         debugPrint('[DeviceGate] Registered device: $deviceId');
@@ -68,18 +72,27 @@ class DeviceGateService {
       final tier = SubscriptionService().currentTier;
       final maxDevices = _getMaxDevices(tier);
 
-      final countResponse = await _client
-          .from('devices')
-          .select('device_id')
-          .eq('user_id', userId);
+      // Only check count if there is a limit
+      if (maxDevices != -1) {
+        final countResponse = await _client
+            .from('devices')
+            .select('device_id')
+            .eq('user_id', userId)
+            .timeout(kNetworkTimeout);
 
-      final currentCount = (countResponse as List).length;
+        final currentCount = (countResponse as List).length;
 
-      // -1 means unlimited devices
-      if (maxDevices != -1 && currentCount > maxDevices) {
+        if (currentCount > maxDevices) {
+          return DeviceGateResult(
+            allowed: false,
+            reason: 'Device limit exceeded. Max $maxDevices devices for ${tier.value} tier.',
+            currentDeviceCount: currentCount,
+            maxDevices: maxDevices,
+          );
+        }
+        
         return DeviceGateResult(
-          allowed: false,
-          reason: 'Device limit exceeded. Max $maxDevices devices for ${tier.value} tier.',
+          allowed: true,
           currentDeviceCount: currentCount,
           maxDevices: maxDevices,
         );
@@ -87,9 +100,10 @@ class DeviceGateService {
 
       return DeviceGateResult(
         allowed: true,
-        currentDeviceCount: currentCount,
+        currentDeviceCount: 0,
         maxDevices: maxDevices,
       );
+
     } catch (e) {
       if (kDebugMode) {
         debugPrint('[DeviceGate] Error: $e');
@@ -119,14 +133,20 @@ class DeviceGateService {
     String appVersion = 'Unknown';
 
     try {
-      if (Platform.isAndroid) {
-        final info = await _deviceInfoPlus.androidInfo;
-        deviceName = '${info.brand} ${info.model}';
-        os = 'Android ${info.version.release}';
-      } else if (Platform.isIOS) {
-        final info = await _deviceInfoPlus.iosInfo;
-        deviceName = info.name;
-        os = '${info.systemName} ${info.systemVersion}';
+      if (!kIsWeb) {
+        if (Platform.isAndroid) {
+          final info = await _deviceInfoPlus.androidInfo;
+          deviceName = '${info.brand} ${info.model}';
+          os = 'Android ${info.version.release}';
+        } else if (Platform.isIOS) {
+          final info = await _deviceInfoPlus.iosInfo;
+          deviceName = info.name;
+          os = '${info.systemName} ${info.systemVersion}';
+        }
+      } else {
+        final info = await _deviceInfoPlus.webBrowserInfo;
+        deviceName = info.browserName.name;
+        os = 'Web ${info.appVersion}';
       }
 
       final packageInfo = await PackageInfo.fromPlatform();

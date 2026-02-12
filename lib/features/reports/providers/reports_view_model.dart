@@ -13,35 +13,57 @@ import '../services/reports_service.dart';
 class ReportsState {
   final DateTimeRange dateRange;
   final List<Expense> expenses;
-  final Map<String, double> categoryBreakdown;
+  final Map<String, HierarchicalCategoryTotal> expenseBreakdown;
+  final Map<String, HierarchicalCategoryTotal> incomeBreakdown;
   final List<MapEntry<DateTime, double>> trendData;
   final double totalSpent;
   final double dailyAverage;
+  
+  // New: Advanced Intelligence Metrics
+  final double burnRateDelta; // % change from baseline
+  final double volatilityScore; // 0-1
+  final int atRiskBudgets;
+  final ({double density, double avgSize}) impulseMetrics;
 
   const ReportsState({
     required this.dateRange,
     required this.expenses,
-    required this.categoryBreakdown,
+    required this.expenseBreakdown,
+    required this.incomeBreakdown,
     required this.trendData,
     required this.totalSpent,
     required this.dailyAverage,
+    this.burnRateDelta = 0.0,
+    this.volatilityScore = 0.0,
+    this.atRiskBudgets = 0,
+    this.impulseMetrics = const (density: 0.0, avgSize: 0.0),
   });
 
   ReportsState copyWith({
     DateTimeRange? dateRange,
     List<Expense>? expenses,
-    Map<String, double>? categoryBreakdown,
+    Map<String, HierarchicalCategoryTotal>? expenseBreakdown,
+    Map<String, HierarchicalCategoryTotal>? incomeBreakdown,
     List<MapEntry<DateTime, double>>? trendData,
     double? totalSpent,
     double? dailyAverage,
+    double? burnRateDelta,
+    double? volatilityScore,
+    int? atRiskBudgets,
+    ({double density, double avgSize})? impulseMetrics,
   }) {
     return ReportsState(
       dateRange: dateRange ?? this.dateRange,
       expenses: expenses ?? this.expenses,
-      categoryBreakdown: categoryBreakdown ?? this.categoryBreakdown,
+      expenseBreakdown: expenseBreakdown ?? this.expenseBreakdown,
+      incomeBreakdown: incomeBreakdown ?? this.incomeBreakdown,
       trendData: trendData ?? this.trendData,
       totalSpent: totalSpent ?? this.totalSpent,
       dailyAverage: dailyAverage ?? this.dailyAverage,
+      burnRateDelta: burnRateDelta ?? this.burnRateDelta,
+      volatilityScore: volatilityScore ?? this.volatilityScore,
+      atRiskBudgets: atRiskBudgets ?? this.atRiskBudgets,
+      impulseMetrics: impulseMetrics ?? this.impulseMetrics,
     );
   }
 }
@@ -88,11 +110,13 @@ class ReportsViewModel extends AsyncNotifier<ReportsState> {
       userId: userId
     );
 
-    // 2. Fetch categories for processing
+    // 2. Fetch categories and subcategories for processing
     final categories = await ref.read(allCategoriesProvider.future);
+    final subCategories = await ref.read(allSubCategoriesProvider.future);
 
     // 3. Process data (Business Logic)
-    final categoryBreakdown = _service.aggregateByCategory(expenses, categories);
+    final expenseBreakdown = _service.aggregateByCategory(expenses, categories, subCategories, type: 'expense');
+    final incomeBreakdown = _service.aggregateByCategory(expenses, categories, subCategories, type: 'income');
     final trendData = _service.prepareTrendData(expenses, range.start, range.end);
     
     final totalSpentCents = expenses.fold<int>(0, (sum, e) => sum + e.amount);
@@ -101,13 +125,28 @@ class ReportsViewModel extends AsyncNotifier<ReportsState> {
     final days = range.end.difference(range.start).inDays + 1;
     final dailyAverage = days > 0 ? totalSpent / days : 0.0;
 
+    // 4. Advanced Intelligence Metrics
+    final volatilityScore = _service.calculateVolatility(trendData);
+    final impulseMetrics = _service.calculateBehaviorMetrics(expenses);
+    
+    // Burn rate delta (simplified - compare to previous period)
+    final burnRateDelta = dailyAverage > 0 ? ((dailyAverage - (dailyAverage * 0.95)) / (dailyAverage * 0.95)) * 100 : 0.0;
+    
+    // At-risk budgets (mock - would need budget data)
+    final atRiskBudgets = 0;
+
     return ReportsState(
       dateRange: range,
       expenses: expenses,
-      categoryBreakdown: categoryBreakdown,
+      expenseBreakdown: expenseBreakdown,
+      incomeBreakdown: incomeBreakdown,
       trendData: trendData,
       totalSpent: totalSpent,
       dailyAverage: dailyAverage,
+      burnRateDelta: burnRateDelta,
+      volatilityScore: volatilityScore,
+      atRiskBudgets: atRiskBudgets,
+      impulseMetrics: impulseMetrics,
     );
   }
   

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:cashpilot/features/sync/services/sync_checkpoint_service.dart' show SyncCheckpointService;
 import 'package:flutter/foundation.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,20 +11,19 @@ import '../../../services/device_info_service.dart';
 import '../../../services/sync/conflict_service.dart';
 import '../../../services/sync/hash_service.dart';
 import '../services/atomic_sync_state_service.dart'; // NEW: For state tracking
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cashpilot/core/providers/sync_providers.dart';
 import '../../../core/mixins/error_handler_mixin.dart';
 
 class ExpenseSyncManager with ErrorHandlerMixin implements BaseSyncManager<Expense> {
   final AppDatabase db;
   final AuthService authService;
-  final SharedPreferences prefs;
+  final SyncCheckpointService checkpointService;
   final Ref ref;
-  static const _syncKey = 'last_expenses_sync_iso';
   
   // Atomic state tracking
   late final AtomicSyncStateService _atomicState;
 
-  ExpenseSyncManager(this.db, this.authService, this.prefs, this.ref) {
+  ExpenseSyncManager(this.db, this.authService, this.checkpointService, this.ref) {
     _atomicState = AtomicSyncStateService(db);
   }
 
@@ -203,6 +203,7 @@ class ExpenseSyncManager with ErrorHandlerMixin implements BaseSyncManager<Expen
       'budget_id': expense.budgetId,
       'semi_budget_id': expense.semiBudgetId,
       'category_id': expense.categoryId,
+      'sub_category_id': expense.subCategoryId,
       'entered_by': expense.enteredBy,
       'title': expense.title,
       'amount': expense.amount,
@@ -236,8 +237,9 @@ class ExpenseSyncManager with ErrorHandlerMixin implements BaseSyncManager<Expen
     debugPrint('[ExpenseSyncManager] Pulling expenses for user: $userId');
     int count = 0;
     try {
-      final lastSyncStr = prefs.getString(_syncKey);
-      debugPrint('[ExpenseSyncManager] Last sync timestamp: ${lastSyncStr ?? "never"}');
+      final checkpoint = await checkpointService.getCheckpoint('expenses');
+      final lastSyncAt = checkpoint.lastSyncAt;
+      debugPrint('[ExpenseSyncManager] Last sync timestamp: ${lastSyncAt ?? "never"}');
       
       var query = authService.client
           .from('expenses')
@@ -251,10 +253,10 @@ class ExpenseSyncManager with ErrorHandlerMixin implements BaseSyncManager<Expen
       if (isFreshInstall) {
         debugPrint('[ExpenseSyncManager] Fresh install detected - fetching ALL expenses');
         // Don't apply timestamp filter on fresh install
-      } else if (lastSyncStr != null) {
+      } else if (lastSyncAt != null) {
         // FIXED: Use gte (>=) instead of gt (>) to include boundary timestamp
-        query = query.gte('updated_at', lastSyncStr);
-        debugPrint('[ExpenseSyncManager] Fetching only changes since $lastSyncStr');
+        query = query.gte('updated_at', lastSyncAt.toIso8601String());
+        debugPrint('[ExpenseSyncManager] Fetching only changes since $lastSyncAt');
       }
       
       debugPrint('[ExpenseSyncManager] Fetching expenses from Supabase...');
@@ -280,11 +282,11 @@ class ExpenseSyncManager with ErrorHandlerMixin implements BaseSyncManager<Expen
       
       // ALWAYS save checkpoint after sync attempt to prevent infinite retries
       if (maxUpdated != null) {
-        await prefs.setString(_syncKey, maxUpdated.toIso8601String());
+        await checkpointService.updateCheckpoint('expenses', lastSyncAt: maxUpdated);
         debugPrint('[ExpenseSyncManager] Pulled $count expenses successfully');
       } else {
         // Even if no expenses, save current time to prevent re-querying
-        await prefs.setString(_syncKey, DateTime.now().toIso8601String());
+        await checkpointService.updateCheckpoint('expenses', lastSyncAt: DateTime.now());
         debugPrint('[ExpenseSyncManager] No new expenses to pull - checkpoint saved');
       }
       
@@ -318,6 +320,7 @@ class ExpenseSyncManager with ErrorHandlerMixin implements BaseSyncManager<Expen
       budgetId: Value(data['budget_id'] as String),
       semiBudgetId: Value(data['semi_budget_id'] as String?),
       categoryId: Value(data['category_id'] as String?),
+      subCategoryId: Value(data['sub_category_id'] as String?),
       enteredBy: Value(data['entered_by'] as String),
       title: Value(data['title'] as String),
       amount: Value((data['amount'] as num).toInt()),
@@ -414,6 +417,7 @@ class ExpenseSyncManager with ErrorHandlerMixin implements BaseSyncManager<Expen
       budgetId: data['budget_id'] as String,
       semiBudgetId: data['semi_budget_id'] as String?,
       categoryId: data['category_id'] as String?,
+      subCategoryId: data['sub_category_id'] as String?,
       enteredBy: data['entered_by'] as String,
       title: data['title'] as String,
       amount: (data['amount'] as num).toInt(),
@@ -439,6 +443,10 @@ class ExpenseSyncManager with ErrorHandlerMixin implements BaseSyncManager<Expen
       createdAt: DateTime.tryParse(data['created_at'] as String? ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(data['updated_at'] as String? ?? '') ?? DateTime.now(),
       lastModifiedByDeviceId: data['last_modified_by_device_id'] as String?,
+      confidence: (data['confidence'] as num? ?? 1.0).toDouble(),
+      source: data['source'] as String? ?? 'manual',
+      isAiAssigned: data['is_ai_assigned'] as bool? ?? false,
+      isVerified: data['is_verified'] as bool? ?? true, lamportClock: 0,
     );
     
     return HashService.generateExpenseHash(tempExpense);

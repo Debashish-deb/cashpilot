@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:cashpilot/l10n/app_localizations.dart';
 
 import '../providers/app_providers.dart';
 import '../utils/bengali_numerals.dart';
@@ -154,15 +155,15 @@ class FormatManager {
   }
 
   /// Returns "Today", "Yesterday", or formatted date
-  String formatRelativeDate(DateTime date) {
+  String formatRelativeDate(DateTime date, AppLocalizations l10n) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final input = DateTime(date.year, date.month, date.day);
 
     if (input == today) {
-      return locale == 'bn' ? 'আজ' : 'Today';
+      return l10n.commonToday;
     } else if (input == today.subtract(const Duration(days: 1))) {
-      return locale == 'bn' ? 'গতকাল' : 'Yesterday';
+      return l10n.commonYesterday;
     } else {
       return formatDate(date);
     }

@@ -2,15 +2,15 @@
 /// Manage shared family budgets and members
 library;
 
+import 'package:cashpilot/core/utils/app_snackbar.dart' show AppSnackBar;
 import 'package:go_router/go_router.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../widgets/family/family_tree_graph.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
-import '../../../features/family/screens/contact_picker_screen.dart';
 
-import '../../../core/utils/app_snackbar.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/providers/app_providers.dart';
@@ -38,6 +38,18 @@ final pendingInvitesProvider = StreamProvider<List<BudgetMember>>((ref) {
   // For pending invites, we need to query by email which requires auth state
   // This will be implemented via direct query
   return Stream.value([]);
+});
+
+// NEW: Global Family Contacts Provider
+final globalFamilyContactsProvider = StreamProvider<List<FamilyContact>>((ref) {
+  final repo = ref.watch(familyRepositoryProvider);
+  return repo.watchFamilyContacts();
+});
+
+// NEW: All Relationships Provider
+final allFamilyRelationsProvider = FutureProvider<List<FamilyRelation>>((ref) async {
+  final repo = ref.watch(familyRepositoryProvider);
+  return repo.getRelations();
 });
 
 // NEW: Group members by budget for hierarchical display
@@ -78,7 +90,12 @@ class FamilySharingScreen extends ConsumerWidget {
         if (snapshot.data == false) {
           // Not Pro Plus - show upgrade screen
           return Scaffold(
-            appBar: AppBar(title: const Text('Family Sharing')),
+            appBar: AppBar(
+              title: Text(l10n.familySharingTitle),
+              centerTitle: true,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+            ),
             body: Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
@@ -127,7 +144,7 @@ class FamilySharingScreen extends ConsumerWidget {
                     ElevatedButton.icon(
                       onPressed: () => context.push(AppRoutes.paywall),
                       icon: const Icon(Icons.workspace_premium),
-                      label: const Text('Upgrade to Pro Plus'),
+                      label: Text(l10n.commonUpgrade),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.gold,
                         foregroundColor: Colors.white,
@@ -150,32 +167,70 @@ class FamilySharingScreen extends ConsumerWidget {
         }
 
         // User has Pro - show normal screen
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Family Sharing'),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.help_outline),
-                onPressed: () => _showHelpDialog(context),
+        return DefaultTabController(
+          length: 2,
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text(l10n.familySharingTitle),
+              centerTitle: true,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              bottom: const TabBar(
+                tabs: [
+                  Tab(text: 'Members', icon: Icon(Icons.people_outline)),
+                  Tab(text: 'Family Tree', icon: Icon(Icons.account_tree_outlined)),
+                ],
               ),
-            ],
-          ),
-          body: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              // Feature overview card
-              _buildFeatureCard(context),
-
-              const SizedBox(height: 24),
-
-              // Family members grouped by budget
-              _buildGroupedMembersView(context, ref),
-            ],
-          ),
-          floatingActionButton: FloatingActionButton.extended(
-            onPressed: () => _showInviteSheet(context, ref),
-            icon: const Icon(Icons.person_add_outlined),
-            label: const Text('Invite'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.help_outline),
+                  onPressed: () => _showHelpDialog(context),
+                ),
+              ],
+            ),
+            body: SafeArea(
+              child: TabBarView(
+                children: [
+                  // Tab 1: Members List
+                  ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      // Feature overview card
+                      _buildFeatureCard(context),
+                      const SizedBox(height: 24),
+                      // Family members grouped by budget
+                      _buildGroupedMembersView(context, ref),
+                    ],
+                  ),
+                  
+                  // Tab 2: Family Tree
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final contactsAsync = ref.watch(globalFamilyContactsProvider);
+                      final relationsAsync = ref.watch(allFamilyRelationsProvider);
+                      
+                      return contactsAsync.when(
+                        data: (contacts) => relationsAsync.when(
+                          data: (relations) => FamilyTreeGraph(
+                            contacts: contacts,
+                            relations: relations,
+                          ),
+                          loading: () => const Center(child: CircularProgressIndicator()),
+                          error: (e, _) => Center(child: Text('Error loading relations: $e')),
+                        ),
+                        loading: () => const Center(child: CircularProgressIndicator()),
+                        error: (e, _) => Center(child: Text('Error loading contacts: $e')),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            floatingActionButton: FloatingActionButton.extended(
+              onPressed: () => _showInviteSheet(context, ref),
+              icon: const Icon(Icons.person_add_outlined),
+              label: Text(l10n.commonInvite),
+            ),
           ),
         );
       },
@@ -249,11 +304,12 @@ class FamilySharingScreen extends ConsumerWidget {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
+      error: (e, _) => Center(child: Text(AppLocalizations.of(context)!.commonErrorMessage(e.toString()))),
     );
   }
   
   void _showInviteSheetForBudget(BuildContext context, WidgetRef ref, Budget budget) {
+    final l10n = AppLocalizations.of(context)!;
     final emailController = TextEditingController();
     String role = 'editor';
     
@@ -304,9 +360,9 @@ class FamilySharingScreen extends ConsumerWidget {
                   labelText: 'Access Level',
                   border: OutlineInputBorder(),
                 ),
-                items: const [
-                  DropdownMenuItem(value: 'editor', child: Text('Editor - Can add expenses')),
-                  DropdownMenuItem(value: 'viewer', child: Text('Viewer - Read only')),
+                items: [
+                  DropdownMenuItem(value: 'editor', child: Text(l10n.familyRoleEditor)),
+                  DropdownMenuItem(value: 'viewer', child: Text(l10n.familyRoleViewer)),
                 ],
                 onChanged: (v) {
                   if (v != null) setState(() => role = v);
@@ -332,7 +388,7 @@ class FamilySharingScreen extends ConsumerWidget {
                         memberEmail: email,
                         role: role,
                         status: const Value('pending'),
-                        invitedBy: const Value('me'),
+                        invitedBy: Value(ref.read(currentUserIdProvider)!),
                         invitedAt: Value(DateTime.now()),
                       ));
                       
@@ -355,19 +411,19 @@ class FamilySharingScreen extends ConsumerWidget {
                       
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Invitation sent to $email')),
+                          SnackBar(content: Text(l10n.commonInviteSent(email))),
                         );
                       }
                     } catch (e) {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Failed to invite: $e')),
+                          SnackBar(content: Text(l10n.commonInviteFailed(e.toString()))),
                         );
                       }
                     }
                   },
                   icon: const Icon(Icons.send),
-                  label: const Text('Send Invite'),
+                  label: Text(l10n.commonSendInvite),
                 ),
               ),
             ],
@@ -479,6 +535,7 @@ class FamilySharingScreen extends ConsumerWidget {
   }
 
   Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
@@ -509,7 +566,7 @@ class FamilySharingScreen extends ConsumerWidget {
           ElevatedButton.icon(
             onPressed: () => _showInviteSheet(context, ref),
             icon: const Icon(Icons.person_add_outlined),
-            label: const Text('Invite First Member'),
+            label: Text(l10n.familyInviteFirst),
           ),
         ],
       ),
@@ -528,17 +585,18 @@ class FamilySharingScreen extends ConsumerWidget {
   }
 
   void _showChangeRoleDialog(BuildContext context, WidgetRef ref, BudgetMember member) {
+    final l10n = AppLocalizations.of(context)!;
     String selectedRole = member.role;
     
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('Change Role'),
+          title: Text(l10n.familyChangeRole),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Change role for ${member.memberName ?? member.memberEmail}'),
+              Text(l10n.familyChangeRoleFor(member.memberName ?? member.memberEmail)),
               const SizedBox(height: 16),
               ...['admin', 'member', 'viewer'].map((role) => RadioListTile<String>(
                 title: Text(role.toUpperCase()),
@@ -552,7 +610,7 @@ class FamilySharingScreen extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(l10n.commonCancel),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -577,7 +635,7 @@ class FamilySharingScreen extends ConsumerWidget {
                   AppSnackBar.showSuccess(context, 'Role updated');
                 }
               },
-              child: const Text('Save'),
+              child: Text(l10n.commonSave),
             ),
           ],
         ),
@@ -586,6 +644,7 @@ class FamilySharingScreen extends ConsumerWidget {
   }
 
   void _showRemoveMemberDialog(BuildContext context, WidgetRef ref, BudgetMember member) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (c) => Dialog(
@@ -632,7 +691,7 @@ class FamilySharingScreen extends ConsumerWidget {
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: const Text('Cancel'),
+                      child: Text(l10n.commonCancel),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -658,7 +717,7 @@ class FamilySharingScreen extends ConsumerWidget {
                         backgroundColor: AppColors.danger,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: const Text('Remove'),
+                      child: Text(l10n.commonRemove),
                     ),
                   ),
                 ],
@@ -680,22 +739,23 @@ class FamilySharingScreen extends ConsumerWidget {
   }
 
   void _showHelpDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Family Sharing'),
-        content: const Column(
+        title: Text(l10n.familyAboutTitle),
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Family sharing allows you to:'),
+            Text(l10n.familyAboutDesc),
             SizedBox(height: 12),
             Text('• Share budgets with family members'),
             Text('• Track expenses together'),
             Text('• Set spending limits per member'),
             Text('• Get real-time notifications'),
             SizedBox(height: 12),
-            Text('Roles:'),
+            Text(l10n.familyRolesTitle),
             Text('• Owner: Full control'),
             Text('• Admin: Can edit budgets'),  
             Text('• Member: Can add expenses'),
@@ -705,7 +765,7 @@ class FamilySharingScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Got it'),
+            child: Text(l10n.commonGotIt),
           ),
         ],
       ),

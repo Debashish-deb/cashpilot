@@ -165,16 +165,16 @@ Future<HealthScoreData> healthScore(Ref ref, String budgetId) async {
     final helper = _HealthScoreHelper();
     
     // Calculate component scores with null safety
-    final utilizationPercent = stats.utilizationPercent ?? 0.0;
+    final utilizationPercent = stats.utilizationPercent;
     final usageScore = helper._calculateUsageScore(utilizationPercent);
-    final balanceScore = helper._calculateBalanceScore(breakdown ?? []);
+    final balanceScore = helper._calculateBalanceScore(breakdown);
     
     // Consistency score (simplified - based on variance from daily average)
-    final dailyAverage = stats.dailyAverage ?? 0.0;
+    final dailyAverage = stats.dailyAverage;
     final consistencyScore = dailyAverage > 0 ? 75.0 : 50.0;
     
     // Recurring score (simplified - assume 80 if on track)
-    final onTrack = stats.onTrack ?? true;
+    final onTrack = stats.onTrack;
     final recurringScore = onTrack ? 80.0 : 60.0;
     
     // Overall score
@@ -243,7 +243,7 @@ Future<int> _calculateTrend(
     
     final prevTotal = prevExpenses.fold<double>(
       0.0,
-      (sum, e) => sum + (e.amount.toDouble() / 100),
+      (sum, e) => sum + ((e.amount ?? 0).toDouble() / 100),
     );
     final budgetLimit = budget.totalLimit?.toDouble() ?? 1.0;
     final prevUtilization = (prevTotal / (budgetLimit / 100) * 100).clamp(0.0, 100.0);

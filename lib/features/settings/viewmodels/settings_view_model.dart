@@ -1,7 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../../core/providers/app_providers.dart';
 import '../../../../features/auth/providers/auth_provider.dart';
 import '../../../../features/subscription/providers/subscription_providers.dart';
 

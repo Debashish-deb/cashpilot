@@ -1,3 +1,4 @@
+import 'package:cashpilot/l10n/app_localizations.dart' show AppLocalizations;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cashpilot/features/ml/providers/ab_testing_providers.dart';
@@ -67,7 +68,7 @@ class _CreateTestDialogState extends ConsumerState<CreateTestDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Create A/B Test'),
+      title: Text(AppLocalizations.of(context)!.adminNewTest),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -137,7 +138,7 @@ class _CreateTestDialogState extends ConsumerState<CreateTestDialog> {
           onPressed: _isLoading ? null : _submit,
           child: _isLoading 
               ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-              : const Text('Create Test'),
+              : Text(AppLocalizations.of(context)!.commonAdd),
         ),
       ],
     );

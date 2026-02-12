@@ -12,7 +12,8 @@ class SecureLocalStorage extends LocalStorage {
             encryptedSharedPreferences: true,
           ),
           iOptions: IOSOptions(
-            accessibility: KeychainAccessibility.first_unlock,
+            // P0 SECURITY: Session tokens must never leave the device or be accessible without passcode
+            accessibility: KeychainAccessibility.first_unlock_this_device,
           ),
         );
 

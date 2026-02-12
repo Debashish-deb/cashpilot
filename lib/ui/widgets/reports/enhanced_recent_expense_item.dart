@@ -2,16 +2,18 @@
 /// Category icon, merchant, bold amount, relative time
 library;
 
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/managers/format_manager.dart';
 import '../../../core/providers/app_providers.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/tokens.g.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/drift/app_database.dart';
 
 import '../common/app_grade_icons.dart';
+import '../common/cp_app_icon.dart';
 import 'package:cashpilot/l10n/app_localizations.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../core/helpers/localized_category_helper.dart';
@@ -34,7 +36,7 @@ class EnhancedRecentExpenseItem extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final color = categoryColor ?? AppColors.primaryGreen;
+    final color = categoryColor ?? AppTokens.brandPrimary;
     final iconData = AppGradeIcons.getIcon(categoryIconName);
     
     // Use FormatManager for currency
@@ -50,10 +52,10 @@ class EnhancedRecentExpenseItem extends ConsumerWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: AppColors.danger.withValues(alpha: 0.1),
+          color: AppTokens.semanticDanger.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(14),
         ),
-        child: Icon(Icons.delete_outline, color: AppColors.danger),
+        child: Icon(Icons.delete_outline, color: AppTokens.semanticDanger),
       ),
       confirmDismiss: (_) async {
         HapticFeedback.mediumImpact();
@@ -78,19 +80,15 @@ class EnhancedRecentExpenseItem extends ConsumerWidget {
           child: Row(
             children: [
               // Category icon
+              // Category icon
               Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Icon(
-                    iconData,
-                    size: 24,
-                    color: color,
-                  ),
+                child: CPAppIcon(
+                  icon: iconData,
+                  color: color,
+                  size: 44,
+                  iconSize: 22,
+                  useGradient: false,
+                  useShadow: false,
                 ),
               ),
               const SizedBox(width: 14),

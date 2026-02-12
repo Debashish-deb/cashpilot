@@ -4,6 +4,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cashpilot/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/utils/app_snackbar.dart';
@@ -41,7 +42,7 @@ class _BankConnectionFlowScreenState extends ConsumerState<BankConnectionFlowScr
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Connect Your Bank'),
+        title: Text(AppLocalizations.of(context)!.bankingConnectTitle),
         elevation: 0,
       ),
       body: Column(
@@ -248,7 +249,7 @@ class _BankConnectionFlowScreenState extends ConsumerState<BankConnectionFlowScr
                 height: 24,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : const Text('Connect Bank'),
+            : Text(AppLocalizations.of(context)!.bankingConnectButton),
       ),
     );
   }
@@ -262,7 +263,7 @@ class _BankConnectionFlowScreenState extends ConsumerState<BankConnectionFlowScr
       // Initiate connection
       final init = await bankConnectionService.initiateConnection(
         institutionId: _selectedBank!.id,
-        redirectUrl: 'cashpilot://bank-callback',
+        redirectUrl: 'cashpilot://bank/callback',
       );
       
       // Open bank auth in WebView

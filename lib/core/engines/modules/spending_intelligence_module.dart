@@ -60,7 +60,7 @@ class SpendingIntelligenceModule extends plugin.IntelligencePlugin {
     // Calculate average daily spending
     final totalSpent = expenses.fold<int>(
       0,
-      (sum, e) => sum + e.amount.toInt(),
+      (sum, e) => sum + e.amount,
     );
     final days = dateRange.end.difference(dateRange.start).inDays + 1;
     final averageDaily = totalSpent / days;
@@ -137,7 +137,7 @@ class SpendingIntelligenceModule extends plugin.IntelligencePlugin {
     for (final entry in merchantGroups.entries) {
       if (entry.value.length >= 4) {
         final avgAmount = entry.value
-            .map((e) => e.amount.toInt())
+            .map((e) => e.amount)
             .reduce((a, b) => a + b) ~/ entry.value.length;
         
         patterns.add(SpendingPattern(
@@ -158,9 +158,9 @@ class SpendingIntelligenceModule extends plugin.IntelligencePlugin {
     for (final expense in expenses) {
       final weekday = expense.date.weekday;
       if (weekday >= 6) {
-        weekendSpending.add(expense.amount.toInt());
+        weekendSpending.add(expense.amount);
       } else {
-        weekdaySpending.add(expense.amount.toInt());
+        weekdaySpending.add(expense.amount);
       }
     }
     
@@ -189,7 +189,7 @@ class SpendingIntelligenceModule extends plugin.IntelligencePlugin {
     
     for (final expense in expenses) {
       final category = expense.semiBudgetId ?? 'uncategorized';
-      categoryTotals[category] = (categoryTotals[category] ?? 0) + expense.amount.toInt();
+      categoryTotals[category] = (categoryTotals[category] ?? 0) + expense.amount;
     }
     
     // Sort and take top 5
@@ -205,7 +205,7 @@ class SpendingIntelligenceModule extends plugin.IntelligencePlugin {
     
     for (final expense in expenses) {
       final weekday = (expense.date.weekday - 1) % 7; // 0=Mon, 6=Sun
-      dailyTotals[weekday] += expense.amount.toInt();
+      dailyTotals[weekday] += expense.amount;
     }
     
     // Find days above average

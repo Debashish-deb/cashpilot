@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,9 +6,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../services/auth_service.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/providers/sync_providers.dart';
 import '../../services/device_info_service.dart';
 import '../../features/subscription/providers/subscription_providers.dart';
-import '../../core/constants/subscription.dart';
 
 import 'managers/expense_sync_manager.dart';
 import 'managers/budget_sync_manager.dart';
@@ -67,24 +66,7 @@ final realtimeStatusProvider = StateProvider<RealtimeConnectionStatus>(
   (ref) => RealtimeConnectionStatus.disconnected,
 );
 
-class _SyncQueueItem {
-  final String table;
-  final DateTime timestamp;
-
-  _SyncQueueItem(this.table, this.timestamp);
-
-  Map<String, dynamic> toJson() => {
-        'table': table,
-        'timestamp': timestamp.toIso8601String(),
-      };
-
-  factory _SyncQueueItem.fromJson(Map<String, dynamic> json) {
-    return _SyncQueueItem(
-      json['table'],
-      DateTime.tryParse(json['timestamp'] as String? ?? '') ?? DateTime.now(),
-    );
-  }
-}
+// _SyncQueueItem removed (Persistence upgrade)
 
 /// ---------------------------------------------------------------------------
 /// SYNC MANAGER (STRUCTURE PRESERVED)
@@ -110,14 +92,15 @@ class SyncManager {
   SyncManager(this.ref) {
     final db = ref.read(databaseProvider);
     final prefs = ref.read(sharedPreferencesProvider);
+    final checkpointService = ref.read(syncCheckpointServiceProvider);
 
-    expenseSync = ExpenseSyncManager(db, authService, prefs, ref);
-    budgetSync = BudgetSyncManager(db, authService, prefs, ref);
-    accountSync = AccountSyncManager(db, authService, prefs);
-    semiBudgetSync = SemiBudgetSyncManager(db, authService, prefs);
-    savingsGoalSync = SavingsGoalSyncManager(db, authService, prefs);
-    categorySync = CategorySyncManager(db, authService, prefs);
-    budgetMemberSync = BudgetMemberSyncManager(db, authService, prefs);
+    expenseSync = ExpenseSyncManager(db, authService, checkpointService, ref);
+    budgetSync = BudgetSyncManager(db, authService, checkpointService, ref);
+    accountSync = AccountSyncManager(db, authService, checkpointService);
+    semiBudgetSync = SemiBudgetSyncManager(db, authService, checkpointService);
+    savingsGoalSync = SavingsGoalSyncManager(db, authService, checkpointService);
+    categorySync = CategorySyncManager(db, authService, checkpointService);
+    budgetMemberSync = BudgetMemberSyncManager(db, authService, checkpointService);
   }
 
   /// -------------------------------------------------------------------------
@@ -378,13 +361,13 @@ class SyncManager {
       return;
     }
 
-    // PREMIUM GATING: Only Pro and Pro+ users get realtime sync
-    // Free users rely on periodic sync only
+    // PREMIUM GATING: Only users with cloud access get realtime sync (Pro, Pro+, or family members)
+    // Free users without family access rely on periodic sync only
     try {
       final subscriptionService = ref.read(subscriptionServiceProvider);
-      final isPremium = subscriptionService.currentTier != SubscriptionTier.free;
+      final hasCloudAccess = subscriptionService.hasCloudAccess;
       
-      if (!isPremium) {
+      if (!hasCloudAccess) {
         _log(' Realtime: Premium feature - Free users use periodic sync only');
         ref.read(realtimeStatusProvider.notifier).state = RealtimeConnectionStatus.disconnected;
         return;
@@ -460,6 +443,18 @@ class SyncManager {
 
       // Subscribe with improved error handling
       _realtimeChannel!.subscribe((status, error) {
+        // Detect Offline Mode (SocketException)
+        final isOffline = error != null && 
+            (error.toString().contains('SocketException') || 
+             error.toString().contains('Failed host lookup'));
+
+        if (isOffline) {
+           _log('[Realtime] ⚠️ Offline Mode: Cannot reach server. Will retry automatically.');
+           ref.read(realtimeStatusProvider.notifier).state = RealtimeConnectionStatus.disconnected; 
+           _attemptReconnect(); // Retry with backoff
+           return;
+        }
+
         _log('[Realtime] Status: $status ${error != null ? '- Error: $error' : ''}');
         
         if (status == RealtimeSubscribeStatus.subscribed) {
@@ -483,10 +478,18 @@ class SyncManager {
         }
       });
     } catch (e, stackTrace) {
-      _log('Realtime: Setup failed with exception: $e');
-      _log('Stack trace: $stackTrace');
-      ref.read(realtimeStatusProvider.notifier).state = RealtimeConnectionStatus.error;
-      _attemptReconnect();
+      final isOffline = e.toString().contains('SocketException') || e.toString().contains('Failed host lookup');
+      
+      if (isOffline) {
+         _log('[Realtime] ⚠️ Setup skipped (Offline Mode)');
+         ref.read(realtimeStatusProvider.notifier).state = RealtimeConnectionStatus.disconnected;
+         _attemptReconnect();
+      } else {
+         _log('Realtime: Setup failed with exception: $e');
+         _log('Stack trace: $stackTrace');
+         ref.read(realtimeStatusProvider.notifier).state = RealtimeConnectionStatus.error;
+         _attemptReconnect();
+      }
     }
   }
   
@@ -594,33 +597,14 @@ setupRealtime();
 
 
   Future<void> _replayOfflineQueue() async {
-    final prefs = ref.read(sharedPreferencesProvider);
-    final raw = prefs.getStringList('sync_queue') ?? [];
-    if (raw.isEmpty) return;
-
-    final tablesToSync = <String>{};
-
-    for (final item in raw) {
-      try {
-        final parsed = _SyncQueueItem.fromJson(jsonDecode(item));
-        tablesToSync.add(parsed.table);
-      } catch (e) {
-        _log(' Malformed sync queue item: $e');
-      }
+    // Legacy 'sync_queue' (SharedPreferences) removed in favor of DataBatchSync (Drift/DB).
+    // DataBatchSync automatically scans for 'dirty' records in the database, 
+    // so no separate queue is needed.
+    
+    // We simply trigger the Orchestrator to check for any pending work.
+    if (onPerformSync != null && authService.isAuthenticated) {
+      _log(' Checking for pending offline changes (DataBatchSync)...');
+      await onPerformSync!();
     }
-
-    if (tablesToSync.isNotEmpty) {
-      _log(' Replaying offline changes for tables: $tablesToSync');
-      
-      // Trigger pulls for unique tables
-      if (tablesToSync.contains('expenses')) await expenseSync.pullChanges();
-      if (tablesToSync.contains('budgets')) await budgetSync.pullChanges();
-      if (tablesToSync.contains('accounts')) await accountSync.pullChanges();
-      if (tablesToSync.contains('semi_budgets')) await semiBudgetSync.pullChanges();
-      if (tablesToSync.contains('savings_goals')) await savingsGoalSync.pullChanges();
-      if (tablesToSync.contains('categories')) await categorySync.pullChanges();
-    }
-
-    await prefs.remove('sync_queue');
   }
 }

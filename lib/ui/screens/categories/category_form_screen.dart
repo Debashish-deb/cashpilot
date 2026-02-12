@@ -49,6 +49,9 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen>
   int _priority = 3;
   bool _isLoading = false;
   String? _suggestedIconName;
+  String? _parentCategoryId;
+  String? _masterCategoryId;
+  final bool _isPremiumUser = false; // For limiting subcategories if needed
 
   late AnimationController _springController;
   late Animation<double> _springAnimation;
@@ -128,6 +131,8 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen>
             ? Color(int.parse(category.colorHex!.replaceFirst('#', '0xFF')))
             : null;
         _priority = category.priority;
+        _parentCategoryId = category.parentCategoryId;
+        _masterCategoryId = category.masterCategoryId;
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -172,6 +177,10 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen>
               physics: const BouncingScrollPhysics(),
           children: [
             _buildPreview(accent),
+            const SizedBox(height: 24),
+
+            // Parent Category Selector (Hierarchy)
+            _buildParentCategorySelector(),
             const SizedBox(height: 24),
 
             // Master Category Selector
@@ -277,19 +286,22 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen>
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
                 child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                    ? const CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2)
                     : Text(
                         isEditing ? l10n.categorySaveChanges : l10n.categoryAdd,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
                       ),
               ),
             ),
           ],
         ),
       );
-  }
-    ));
-  }
+    },
+  ),
+);
+}
 
   // ---------------------------------------------------------------------------
   // UI PARTS
@@ -309,52 +321,24 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen>
         child: Row(
           children: [
             // Apple-grade icon with depth
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [accent.withOpacity(0.9), accent],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(56 * 0.22),
-                boxShadow: [
-                  BoxShadow(
-                    color: accent.withOpacity(0.4),
-                    blurRadius: 16,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Stack(
-                children: [
-                  // Reflection
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: 24,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(56 * 0.22)),
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.white.withOpacity(0.3),
-                            Colors.white.withOpacity(0.05),
-                          ],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                        ),
-                      ),
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: accent,
+                  borderRadius: BorderRadius.circular(56 * 0.22),
+                  boxShadow: [
+                    BoxShadow(
+                      color: accent.withOpacity(0.4),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
                     ),
-                  ),
-                  Center(
-                    child: Icon(AppGradeIcons.getIcon(_selectedIconName), color: Colors.white, size: 28),
-                  ),
-                ],
+                  ],
+                ),
+                child: Center(
+                  child: Icon(AppGradeIcons.getIcon(_selectedIconName), color: Colors.white, size: 28),
+                ),
               ),
-            ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -475,6 +459,76 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen>
     );
   }
 
+  Widget _buildParentCategorySelector() {
+    final semiBudgetsAsync = ref.watch(semiBudgetsProvider(widget.budgetId));
+    final l10n = AppLocalizations.of(context)!;
+
+    return semiBudgetsAsync.when(
+      data: (semiBudgets) {
+        // Only show root categories as potential parents
+        // Also exclude the current category itself if editing
+        final potentialParents = semiBudgets.where((s) => 
+          s.parentCategoryId == null && s.id != widget.categoryId
+        ).toList();
+
+        if (potentialParents.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildLabel(l10n.reportsCategories), // Reusing l10n or adding more
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String?>(
+                  value: _parentCategoryId,
+                  isExpanded: true,
+                  hint: const Text('Main Category (Optional)'),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('No Parent (Top Level)'),
+                    ),
+                    ...potentialParents.map((s) => DropdownMenuItem<String?>(
+                      value: s.id,
+                      child: Row(
+                        children: [
+                          Icon(AppGradeIcons.getIcon(s.iconName ?? s.name), size: 18),
+                          const SizedBox(width: 8),
+                          Text(s.name),
+                        ],
+                      ),
+                    )),
+                  ],
+                  onChanged: (val) {
+                    setState(() => _parentCategoryId = val);
+                    HapticFeedback.selectionClick();
+                  },
+                ),
+              ),
+            ),
+            if (_parentCategoryId != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8, left: 4),
+                child: Text(
+                  'This will be a subcategory',
+                  style: AppTypography.labelSmall.copyWith(
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
   void _autoFillFromMaster(Category cat) {
     setState(() {
       _nameController.text = cat.name;
@@ -484,6 +538,7 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen>
           _selectedColor = Color(int.parse(cat.colorHex!.replaceFirst('#', '0xFF')));
         } catch (_) {}
       }
+      _masterCategoryId = cat.id;
     });
     _springController.reset();
     _springController.forward();
@@ -514,7 +569,7 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen>
         prefixIcon: Icon(icon),
         prefixText: prefixText,
         filled: true,
-        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
@@ -546,7 +601,7 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen>
               } catch (e) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e')),
+                    SnackBar(content: Text(AppLocalizations.of(context)!.commonErrorMessage(e.toString()))),
                   );
                 }
               }
@@ -577,8 +632,9 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen>
           name: _nameController.text,
           limitAmount: limit,
           priority: _priority,
-          iconName: _selectedIconName,
           colorHex: colorHex,
+          parentCategoryId: _parentCategoryId,
+          masterCategoryId: _masterCategoryId,
         );
       } else {
         await controller.createSemiBudget(
@@ -588,6 +644,8 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen>
           priority: _priority,
           iconName: _selectedIconName,
           colorHex: colorHex,
+          parentCategoryId: _parentCategoryId,
+          masterCategoryId: _masterCategoryId,
         );
       }
 

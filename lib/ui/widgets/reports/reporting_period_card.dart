@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/tokens.g.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../features/expenses/providers/expense_providers.dart';
 import 'package:cashpilot/l10n/app_localizations.dart';
@@ -43,18 +43,13 @@ class ReportingPeriodCard extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(20),
-          // Slight elevation y=1-2
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
           border: Border.all(
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+            color: isDark 
+                ? Colors.white.withValues(alpha: 0.1) 
+                : Colors.black.withValues(alpha: 0.05),
+            width: 1.2,
           ),
         ),
         child: Row(
@@ -63,12 +58,12 @@ class ReportingPeriodCard extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                color: AppTokens.brandPrimary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
                 Icons.calendar_today_rounded,
-                color: AppColors.primaryGreen,
+                color: AppTokens.brandPrimary,
                 size: 22,
               ),
             ),
@@ -88,7 +83,9 @@ class ReportingPeriodCard extends ConsumerWidget {
                   const SizedBox(height: 4),
                   // Value: titleMedium
                   Text(
-                    _formatDateRange(),
+                    _formatDateRange(l10n),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: AppTypography.titleMedium.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -117,7 +114,7 @@ class ReportingPeriodCard extends ConsumerWidget {
         ),
       ),
     );
-  }
+}
 
   Widget _buildTrendIndicator(BuildContext context, PeriodComparisonData data) {
     final l10n = AppLocalizations.of(context)!;
@@ -127,8 +124,8 @@ class ReportingPeriodCard extends ConsumerWidget {
     
     // For expenses: Decrease is Green/Good, Increase is Red/Bad
     final color = isNeutral 
-        ? Theme.of(context).cardColor.withOpacity(0.5) 
-        : (isIncrease ? Colors.red : AppColors.primaryGreen);
+        ? Theme.of(context).cardColor.withValues(alpha: 0.5) 
+        : (isIncrease ? AppTokens.semanticDanger : AppTokens.brandPrimary);
         
     final icon = isNeutral
         ? Icons.remove
@@ -157,9 +154,9 @@ class ReportingPeriodCard extends ConsumerWidget {
     );
   }
 
-  String _formatDateRange() {
-    final start = DateFormat('MMM d').format(dateRange.start);
-    final end = DateFormat('MMM d, yyyy').format(dateRange.end);
+  String _formatDateRange(AppLocalizations l10n) {
+    final start = DateFormat('MMM d', l10n.localeName).format(dateRange.start);
+    final end = DateFormat('MMM d, yyyy', l10n.localeName).format(dateRange.end);
     return '$start – $end';
   }
 }

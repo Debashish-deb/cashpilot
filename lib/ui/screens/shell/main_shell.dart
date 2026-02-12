@@ -11,7 +11,7 @@ import '../../../core/constants/app_routes.dart';
 import '../../../core/theme/accent_colors.dart';
 import '../../widgets/navigation/curved_bottom_bar.dart';
 
-class MainShell extends ConsumerWidget {
+class MainShell extends ConsumerStatefulWidget {
   final Widget child;
   final String currentPath;
 
@@ -22,23 +22,83 @@ class MainShell extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final currentIndex = _calculateSelectedIndex(context);
+  ConsumerState<MainShell> createState() => _MainShellState();
+}
 
-    return Scaffold(
-      body: child,
-      extendBody: false, // Don't extend behind bottom nav
-      bottomNavigationBar: _AppleGradeBottomNav(
-        currentIndex: currentIndex,
-        onItemTapped: (index) => _onItemTapped(context, index),
+class _MainShellState extends ConsumerState<MainShell> {
+  DateTime? _lastBackPressTime;
+
+  @override
+  Widget build(BuildContext context) {
+    final currentIndex = _calculateSelectedIndex(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    // Using PopScope for modern Flutter back handling
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        
+        // If we are NOT on home tab, back button should go to Home first?
+        // User didn't specify, but standard Android is: Back -> Home -> Exit.
+        // User said "twice will close the app".
+        // Let's implement: If not on Home, go Home. If on Home, double-back to exit.
+        
+        if (currentIndex != 0) {
+           context.go(AppRoutes.home);
+           return;
+        }
+
+        final now = DateTime.now();
+        if (_lastBackPressTime == null || 
+            now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+          _lastBackPressTime = now;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.closeAppDoubleTap ?? 'Tap back again to exit'),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Theme.of(context).colorScheme.inverseSurface,
+            ),
+          );
+        } else {
+          // Exit the app
+          SystemNavigator.pop();
+        }
+      },
+      child: GestureDetector(
+        // "Sideways swap will take to next possible tab"
+        onHorizontalDragEnd: (details) {
+          if (details.primaryVelocity == null) return;
+          
+          if (details.primaryVelocity! > 300) {
+             // Swiping Right -> Go Previous
+             if (currentIndex > 0) {
+               _onItemTapped(context, currentIndex - 1);
+             }
+          } else if (details.primaryVelocity! < -300) {
+            // Swiping Left -> Go Next
+            if (currentIndex < 3) {
+              _onItemTapped(context, currentIndex + 1);
+            }
+          }
+        },
+        child: Scaffold(
+          body: widget.child,
+          extendBody: false,
+          bottomNavigationBar: _AppleGradeBottomNav(
+            currentIndex: currentIndex,
+            onItemTapped: (index) => _onItemTapped(context, index),
+          ),
+          floatingActionButton: _buildFAB(context, ref, currentIndex),
+          floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        ),
       ),
-      floatingActionButton: _buildFAB(context, ref, currentIndex),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 
   // =======================================================================
-  // FLOATING ACTION BUTTON - Center docked in nav bar
+  // FLOATING ACTION BUTTON
   // =======================================================================
 
   Widget _buildFAB(BuildContext context, WidgetRef ref, int currentIndex) {
@@ -81,8 +141,7 @@ class MainShell extends ConsumerWidget {
                 customBorder: const CircleBorder(),
                 onTap: () {
                   HapticFeedback.mediumImpact();
-                  final index = _calculateSelectedIndex(context);
-                  if (index == 1) {
+                  if (currentIndex == 1) {
                     context.push(AppRoutes.budgetCreate);
                   } else {
                     context.push(AppRoutes.addExpense);
@@ -90,7 +149,7 @@ class MainShell extends ConsumerWidget {
                 },
                 child: Center(
                   child: Icon(
-                    _calculateSelectedIndex(context) == 1
+                    currentIndex == 1
                         ? Icons.post_add_rounded
                         : Icons.add_rounded,
                     size: 32,
@@ -110,9 +169,9 @@ class MainShell extends ConsumerWidget {
   // =======================================================================
 
   int _calculateSelectedIndex(BuildContext context) {
-    if (currentPath.startsWith('/budgets')) return 1;
-    if (currentPath.startsWith('/reports')) return 2;
-    if (currentPath.startsWith('/settings')) return 3;
+    if (widget.currentPath.startsWith('/budgets')) return 1;
+    if (widget.currentPath.startsWith('/reports')) return 2;
+    if (widget.currentPath.startsWith('/settings')) return 3;
     return 0;
   }
 
@@ -156,7 +215,7 @@ class _AppleGradeBottomNav extends ConsumerWidget {
     final accentColor = ref.watch(accentConfigProvider).primary;
 
     return SmoothCurvedBottomBar(
-      backgroundColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       borderColor: accentColor.withValues(alpha: 0.3),
       height: 70,
       child: Row(

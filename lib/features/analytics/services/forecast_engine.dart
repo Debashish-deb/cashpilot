@@ -118,8 +118,6 @@ class ForecastEngine {
         return 'Limited data available. Estimate based on available spending '
                'of \$$recentFormatted/day may not be accurate';
     }
-    // Fallback in case a new enum value is added in the future
-    return 'Forecast reason unavailable due to unknown confidence level.';
   }
   
   // ========================================================================
