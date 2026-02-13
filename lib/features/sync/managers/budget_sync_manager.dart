@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'base_sync_manager.dart';
 import '../../../data/drift/app_database.dart';
 import '../../../services/auth_service.dart';
-import 'package:cashpilot/core/providers/sync_providers.dart';
+import '../sync_providers.dart';
 import '../../../services/device_info_service.dart';
 import '../../../services/sync/conflict_service.dart';
 import '../../../services/sync/hash_service.dart';

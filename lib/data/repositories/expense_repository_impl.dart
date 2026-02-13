@@ -235,4 +235,60 @@ class ExpenseRepositoryImpl implements IExpenseRepository {
   Stream<List<Expense>> watchExpensesBySemiBudget(String semiBudgetId) {
     return _db.watchExpensesBySemiBudgetId(semiBudgetId);
   }
+  @override
+  Future<String> createSplitExpense({
+    required String budgetId,
+    required String title,
+    required int totalAmount,
+    required String currency,
+    required DateTime date,
+    required String enteredBy,
+    required List<({String semiBudgetId, int amount, String? notes})> splits,
+    String? accountId,
+    String? merchantName,
+    String? notes,
+  }) async {
+    final id = _uuid.v4();
+
+    await _db.createSplitExpense(
+      id: id,
+      budgetId: budgetId,
+      title: title,
+      totalAmount: totalAmount,
+      currency: currency,
+      date: date,
+      enteredBy: enteredBy,
+      splits: splits,
+      accountId: accountId,
+      merchantName: merchantName,
+      notes: notes,
+    );
+
+    // Queue for sync
+    try {
+      await _outbox.queueEvent(
+        entityType: 'expense',
+        entityId: id,
+        operation: 'create_split',
+        payload: {
+          'budgetId': budgetId,
+          'title': title,
+          'amount': totalAmount,
+          'currency': currency,
+          'date': date.toIso8601String(),
+          'splits': splits.map((s) => {
+            'semiBudgetId': s.semiBudgetId,
+            'amount': s.amount,
+            'notes': s.notes,
+          }).toList(),
+          'merchantName': merchantName,
+        },
+        baseRevision: 0,
+      );
+    } catch (e) {
+      print('Repository: Outbox queue failed: $e');
+    }
+
+    return id;
+  }
 }

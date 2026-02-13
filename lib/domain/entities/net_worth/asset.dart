@@ -11,7 +11,7 @@ class Asset with _$Asset {
     required String userId,
     required String name,
     required AssetType type,
-    required int currentValue, // in cents
+    required int currentValue, 
     @Default('EUR') String currency,
     
     // Metadata

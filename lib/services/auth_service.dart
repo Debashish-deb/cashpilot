@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/config/supabase_config.dart';
 import '../core/security/secure_local_storage.dart';
 import '../core/logging/logger.dart';
+import '../core/network/certificate_pinner.dart';
 
 /// Auth service for Supabase authentication
 class AuthService {
@@ -34,10 +35,16 @@ class AuthService {
       'Set liveUrl and liveAnonKey in SupabaseConfig or use dart-define.'
     );
 
+    // CRITICAL: Use certificate pinning in production
+    final httpClient = kReleaseMode 
+        ? await CertificatePinner.getSupabaseClient() 
+        : null;
+
     // CRITICAL: Use activeUrl/activeAnonKey (environment-aware, not hardcoded test values)
     await Supabase.initialize(
       url: SupabaseConfig.activeUrl,
       anonKey: SupabaseConfig.activeAnonKey,
+      httpClient: httpClient,
       authOptions: const FlutterAuthClientOptions(
         authFlowType: AuthFlowType.pkce,
         localStorage: SecureLocalStorage(),

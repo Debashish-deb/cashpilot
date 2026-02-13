@@ -3,6 +3,7 @@
 library;
 
 import 'package:flutter/foundation.dart';
+import 'pii_sanitizer.dart';
 
 /// Log levels
 enum LogLevel {
@@ -138,12 +139,15 @@ class Logger {
       return;
     }
 
+    final sanitizedMessage = PIISanitizer.sanitize(message);
+    final sanitizedContext = context != null ? PIISanitizer.sanitizeMap(context) : null;
+
     final entry = LogEntry(
       timestamp: DateTime.now(),
       level: level,
       module: module,
-      message: message,
-      context: context,
+      message: sanitizedMessage,
+      context: sanitizedContext,
       error: error,
       stackTrace: stackTrace,
     );
@@ -207,4 +211,5 @@ class Loggers {
   static final expense = LoggerFactory.getLogger('Expense');
   static final subscription = LoggerFactory.getLogger('Subscription');
   static final storage = LoggerFactory.getLogger('Storage');
+  static final sharing = LoggerFactory.getLogger('Sharing');
 }

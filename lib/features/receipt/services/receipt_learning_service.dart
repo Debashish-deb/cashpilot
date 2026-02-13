@@ -76,7 +76,13 @@ class ReceiptLearningService {
           .eq('model_version', modelVersion);
 
       return ModelHealthReport.from(res as List);
-    } catch (_) {
+    } catch (e) {
+      if (e.toString().contains('42501')) {
+        // Permission denied - expected if user is not authorized to see global ML health
+        // logger.info('[ML] Health check skipped: Permission denied (RLS)');
+      } else {
+        // logger.warning('[ML] Health check failed: $e');
+      }
       return const ModelHealthReport(total: 0, acceptance: 0, correction: 0, rejection: 0);
     }
   }

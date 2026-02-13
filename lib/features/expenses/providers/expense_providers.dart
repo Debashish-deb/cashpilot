@@ -6,6 +6,7 @@ import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import 'package:drift/drift.dart' show Value;
 import '../../../data/drift/app_database.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/logging/logger.dart';
@@ -35,6 +36,12 @@ final expensesByBudgetProvider = StreamProvider.family<List<Expense>, String>((r
 final expensesBySemiBudgetProvider = StreamProvider.family<List<Expense>, String>((ref, semiBudgetId) {
   final db = ref.watch(databaseProvider);
   return db.watchExpensesBySemiBudgetId(semiBudgetId);
+});
+
+/// Stream of expenses for a specific account
+final expensesByAccountProvider = StreamProvider.family<List<Expense>, String>((ref, accountId) {
+  final db = ref.watch(databaseProvider);
+  return db.watchExpensesByAccountId(accountId);
 });
 
 /// Recent expenses for the current user (Real-time updates)
@@ -430,6 +437,25 @@ class ExpenseController {
       'merchant': merchantName,
     });
 
+    // --- P0 FAMILY SPENDING LIMIT & RBAC CHECK ---
+    final db = _ref.read(databaseProvider);
+    final member = await db.getBudgetMember(budgetId, userId);
+    
+    if (member != null) {
+      // RBAC: Prevent viewers from creating expenses
+      if (member.role == 'viewer') {
+        throw Exception('Viewers are not allowed to create expenses');
+      }
+
+      // Spending Limit
+      if (member.spendingLimit != null) {
+        final currentSpent = await db.getMemberSpendingInBudget(budgetId, userId);
+        if (currentSpent + amount > member.spendingLimit!) {
+          throw Exception('Member spending limit exceeded for this budget');
+        }
+      }
+    }
+
     if (!skipDuplicateCheck) {
       final db = _ref.read(databaseProvider);
       final recentExpenses = await db.getRecentExpenses(userId, limit: 50);
@@ -553,6 +579,67 @@ class ExpenseController {
   Future<void> deleteExpense(String id) async {
     await _deleteExpenseUseCase.execute(id);
     _ref.invalidate(recentExpensesProvider);
+  }
+
+  /// Toggle reconciliation status (P0 Financial Integrity)
+  Future<void> toggleReconciled(String id, bool reconciled) async {
+    final db = _ref.read(databaseProvider);
+    await db.updateExpense(ExpensesCompanion(
+      id: Value(id),
+      isReconciled: Value(reconciled),
+    ));
+    _ref.invalidate(recentExpensesProvider);
+  }
+
+  /// Create a split expense across multiple categories
+  Future<String> createSplitExpense({
+    required String budgetId,
+    required String title,
+    required int totalAmount,
+    required String currency,
+    required DateTime date,
+    required List<({String semiBudgetId, int amount, String? notes})> splits,
+    String? accountId,
+    String? merchantName,
+    String? notes,
+  }) async {
+    final userId = _ref.read(currentUserIdProvider);
+    if (userId == null) throw Exception('User not logged in');
+
+    _logger.info('Creating split expense', context: {
+      'title': title,
+      'total': totalAmount,
+      'splits': splits.length,
+    });
+
+    // Simple validation: Sum of splits must match total
+    final sum = splits.fold<int>(0, (prev, element) => prev + element.amount);
+    if (sum != totalAmount) {
+      throw Exception('Split amounts ($sum) do not match total amount ($totalAmount)');
+    }
+
+    final id = await _ref.read(expenseRepositoryProvider).createSplitExpense(
+      budgetId: budgetId,
+      title: title,
+      totalAmount: totalAmount,
+      currency: currency,
+      date: date,
+      enteredBy: userId,
+      splits: splits,
+      accountId: accountId,
+      merchantName: merchantName,
+      notes: notes,
+    );
+
+    _ref.invalidate(recentExpensesProvider);
+
+    try {
+      _ref.read(syncOrchestratorProvider).requestSync(SyncReason.manualUserAction);
+    } catch (e) {
+      _logger.warning('Sync trigger failed: $e');
+    }
+
+    return id;
   }
 }
 

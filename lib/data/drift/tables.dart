@@ -244,6 +244,13 @@ class Expenses extends Table {
   // BANK SYNC DEDUPLICATION (Nordigen)
   TextColumn get bankTransactionId => text().nullable().unique()();
 
+  // P0 FINANCIAL INTEGRITY
+  BoolColumn get isTransfer => boolean().withDefault(const Constant(false))();
+  BoolColumn get isReconciled => boolean().withDefault(const Constant(false))();
+  
+  // PHASE 6: ADVANCED BUDGETING
+  BoolColumn get isRefund => boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -277,6 +284,9 @@ class BudgetMembers extends Table {
   // Phase 8: Distributed State
   IntColumn get lamportClock => integer().withDefault(const Constant(0))();
   TextColumn get versionVector => text().nullable()(); // JSON Map<DeviceId, Clock>
+
+  // P0 FAMILY SHARING
+  IntColumn get spendingLimit => integer().nullable()(); // in cents
 
   @override
   Set<Column> get primaryKey => {id};
@@ -777,6 +787,27 @@ class SyncRecoveryState extends Table {
 }
 
 /// Sync Operations Log - Idempotency tracking
+// ============================================================
+// SPLIT TRANSACTIONS TABLE
+// ============================================================
+
+/// Supports allocating a single expense across multiple categories
+class SplitTransactions extends Table {
+  TextColumn get id => text()();
+  TextColumn get expenseId => text().references(Expenses, #id, onDelete: KeyAction.cascade)();
+  TextColumn get semiBudgetId => text().references(SemiBudgets, #id, onDelete: KeyAction.cascade)();
+  IntColumn get amount => integer()(); // in cents
+  TextColumn get notes => text().nullable()();
+  
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  IntColumn get revision => integer().withDefault(const Constant(0))();
+  TextColumn get syncState => text().withDefault(const Constant('clean'))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DataClassName('SyncOperationLog')
 class SyncOperationsLog extends Table {
   TextColumn get operationId => text().withLength(min: 36, max: 36)();

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cashpilot/l10n/app_localizations.dart';
-import '../../../core/providers/sync_providers.dart';
+import '../../../features/sync/sync_providers.dart';
 import '../../../services/sync/conflict_service.dart';
 
 /// Conflict Resolution Dialog

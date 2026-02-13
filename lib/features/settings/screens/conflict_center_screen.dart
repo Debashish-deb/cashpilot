@@ -3,7 +3,7 @@
 library;
 
 import 'dart:convert';
-import 'package:cashpilot/core/providers/sync_providers.dart' show conflictListProvider, conflictServiceProvider, openConflictsProvider;
+import 'package:cashpilot/features/sync/sync_providers.dart' show conflictListProvider, conflictServiceProvider, openConflictsProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';

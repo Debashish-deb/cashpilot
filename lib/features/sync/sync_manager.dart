@@ -6,7 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../services/auth_service.dart';
 import '../../core/providers/app_providers.dart';
-import '../../core/providers/sync_providers.dart';
+import 'sync_providers.dart';
 import '../../services/device_info_service.dart';
 import '../../features/subscription/providers/subscription_providers.dart';
 

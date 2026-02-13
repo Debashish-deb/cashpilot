@@ -50,13 +50,15 @@ class KillSwitchService {
       for (var row in response) {
         final String key = row['key'];
         final bool value = row['value'] == 'true';
-        // In an enterprise app, we would verify the 'signature' here
-        // to prevent unauthorized kill-switch tampering.
         _killSwitches[key] = value;
       }
-        } catch (e) {
-      // Silent fail - use cached/default values
-      debugPrint('[KillSwitch] Refresh failed: $e');
+    } catch (e) {
+      if (e.toString().contains('PGRST205')) {
+        // Table not found - expected in some environments where system_config is not yet deployed
+        logger.info('[KillSwitch] Remote config table not found. Using local defaults.');
+      } else {
+        logger.warning('[KillSwitch] Refresh failed: $e');
+      }
     }
   }
 

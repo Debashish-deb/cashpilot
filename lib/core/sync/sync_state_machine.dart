@@ -86,10 +86,20 @@ class SyncStateMachine {
   /// Transition history
   List<StateTransition> get history => _logger.history;
 
+  String? _lastError;
+
+  /// Get the last error recorded by the state machine
+  String? get lastError => _lastError;
+
+  /// Clear the last error
+  void clearError() {
+    _lastError = null;
+  }
+
   /// Attempt to transition to a new state
   /// 
   /// Throws [InvalidStateTransitionException] if transition is not allowed
-  Future<void> transition(SyncEngineState to, {String? context, String? sessionId}) async {
+  Future<void> transition(SyncEngineState to, {String? context, String? sessionId, String? error}) async {
     if (!_isValidTransition(_currentState, to)) {
       throw InvalidStateTransitionException(
         _currentState,
@@ -98,12 +108,20 @@ class SyncStateMachine {
       );
     }
 
+    // Capture error if entering an error state
+    if (to == SyncEngineState.errorAuth || to == SyncEngineState.errorFatal) {
+      _lastError = error ?? 'Unknown sync error';
+    } else if (to == SyncEngineState.idle || to == SyncEngineState.ready) {
+      // Clear error on fresh start or reset to idle
+      _lastError = null;
+    }
+
     final from = _currentState;
     final transitionRecord = StateTransition(
       from: from,
       to: to,
       timestamp: DateTime.now(),
-      context: context,
+      context: context ?? _lastError,
       sessionId: sessionId,
     );
     

@@ -460,6 +460,32 @@ class CurrencyConverterService {
     }
   }
 
+  /// Aggregates multiple amounts in different currencies into a single target currency
+  /// Example: [{amount: 100, currency: 'USD'}, {amount: 50, currency: 'EUR'}] -> Total in GBP
+  Future<double> aggregateMultiCurrency({
+    required List<({double amount, String currency})> items,
+    required String targetCurrency,
+  }) async {
+    if (items.isEmpty) return 0.0;
+    
+    // Ensure we have some rates
+    if (_snapshot == null || _snapshot!.isExpired) {
+      await refreshRates(targetCurrency);
+    }
+
+    double total = 0.0;
+    for (final item in items) {
+      final converted = convert(
+        amount: item.amount,
+        fromCurrency: item.currency,
+        toCurrency: targetCurrency,
+      );
+      total += converted ?? 0.0; // Fallback to 0 if rate not available
+    }
+    
+    return _round(total, 2);
+  }
+
   // ============================================================
   // UTILITIES
   // ============================================================

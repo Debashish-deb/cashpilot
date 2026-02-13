@@ -17,6 +17,7 @@ import '../../../services/auth_service.dart';
 import '../../../services/subscription_service.dart';
 import '../../../core/errors/error_taxonomy.dart';
 import '../models/budget_state.dart';
+import '../../expenses/providers/expense_providers.dart' show upcomingBillsProvider;
 
 const _uuid = Uuid();
 
@@ -33,7 +34,7 @@ final budgetsStreamProvider = StreamProvider<List<Budget>>((ref) {
     return Stream.value([]);
   }
   
-  final userEmail = authService.currentUser?.email ?? '';
+  final userEmail = AuthService().currentUser?.email ?? '';
   return db.watchAccessibleBudgets(userId, userEmail);
 });
 
@@ -352,6 +353,12 @@ final budgetByIdProvider = StreamProvider.family<Budget?, String>((ref, id) {
   return db.watchBudgetById(id);
 });
 
+/// Stream of semi-budgets for a budget
+final semiBudgetsByBudgetIdProvider = StreamProvider.family<List<SemiBudget>, String>((ref, budgetId) {
+  final db = ref.watch(databaseProvider);
+  return db.watchSemiBudgetsByBudgetId(budgetId);
+});
+
 /// Stream of total spent in a budget
 final budgetTotalSpentProvider = StreamProvider.family<int, String>((ref, budgetId) {
   final db = ref.watch(databaseProvider);
@@ -367,13 +374,15 @@ final budgetSemiBudgetSpendingProvider = StreamProvider.family<Map<String, int>,
 /// Provider for budget with its semi-budgets - REACTIVE
 final budgetWithSemiBudgetsProvider = Provider.family<AsyncValue<BudgetWithSemiBudgets?>, String>((ref, budgetId) {
   final budgetAsync = ref.watch(budgetByIdProvider(budgetId));
-  final semiBudgetsAsync = ref.watch(semiBudgetsProvider(budgetId));
+  final semiBudgetsAsync = ref.watch(semiBudgetsByBudgetIdProvider(budgetId));
   final totalSpentAsync = ref.watch(budgetTotalSpentProvider(budgetId));
   final spendingMapAsync = ref.watch(budgetSemiBudgetSpendingProvider(budgetId));
+  final recurringExpensesAsync = ref.watch(upcomingBillsProvider);
   
   // Return loading if any valid stream is loading (and no previous data)
   if (budgetAsync.isLoading || semiBudgetsAsync.isLoading || 
-      totalSpentAsync.isLoading || spendingMapAsync.isLoading) {
+      totalSpentAsync.isLoading || spendingMapAsync.isLoading || 
+      recurringExpensesAsync.isLoading) {
     if (!budgetAsync.hasValue && !semiBudgetsAsync.hasValue) {
        return const AsyncValue.loading();
     }
@@ -387,12 +396,14 @@ final budgetWithSemiBudgetsProvider = Provider.family<AsyncValue<BudgetWithSemiB
   final semiBudgets = semiBudgetsAsync.valueOrNull ?? [];
   final totalSpent = totalSpentAsync.valueOrNull ?? 0;
   final spendingMap = spendingMapAsync.valueOrNull ?? {};
+  final recurringExpenses = recurringExpensesAsync.valueOrNull ?? [];
   
   return AsyncValue.data(BudgetWithSemiBudgets(
     budget: budget,
     semiBudgets: semiBudgets,
     totalSpent: totalSpent,
     semiBudgetSpending: spendingMap,
+    recurringExpenses: recurringExpenses,
   ));
 });
 
@@ -402,12 +413,14 @@ class BudgetWithSemiBudgets {
   final List<SemiBudget> semiBudgets;
   final int totalSpent;
   final Map<String, int> semiBudgetSpending;
+  final List<RecurringExpense> recurringExpenses;
 
   BudgetWithSemiBudgets({
     required this.budget,
     required this.semiBudgets,
     required this.totalSpent,
     required this.semiBudgetSpending,
+    required this.recurringExpenses,
   });
 
   double get spentPercentage {
@@ -418,6 +431,55 @@ class BudgetWithSemiBudgets {
   int get remaining {
     if (budget.totalLimit == null) return 0;
     return budget.totalLimit! - totalSpent;
+  }
+
+  // --- P0 BUDGET MATH ENHANCEMENTS ---
+
+  /// Percentage of time elapsed in this budget period
+  double get elapsedTimePercentage {
+    final now = DateTime.now();
+    if (now.isBefore(budget.startDate)) return 0.0;
+    if (now.isAfter(budget.endDate)) return 1.0;
+    
+    final totalDuration = budget.endDate.difference(budget.startDate).inSeconds;
+    final elapsedDuration = now.difference(budget.startDate).inSeconds;
+    
+    if (totalDuration == 0) return 0.0;
+    return (elapsedDuration / totalDuration).clamp(0.0, 1.0);
+  }
+
+  /// The amount that "should" have been spent by now if spending was linear
+  int get proratedLimit {
+    if (budget.totalLimit == null) return 0;
+    return (budget.totalLimit! * elapsedTimePercentage).toInt();
+  }
+
+  /// Whether the user is over their linear spending allowance
+  bool get isProratedOverBudget => totalSpent > proratedLimit;
+
+  /// Projected end-of-period total including known recurring expenses
+  int get projectedSpent {
+    int projected = totalSpent;
+    
+    final now = DateTime.now();
+    for (final recurring in recurringExpenses) {
+      if (!recurring.isActive) continue;
+      
+      // Heuristic: If next due date is within the budget period, add it to projection
+      // but only if it hasn't been paid/recorded yet in this period.
+      // This is a simplified projection as requested in P0.
+      if (recurring.nextDueDate.isAfter(now) && 
+          recurring.nextDueDate.isBefore(budget.endDate)) {
+        projected += recurring.amount;
+      }
+    }
+    
+    return projected;
+  }
+
+  double get projectedSpentPercentage {
+    if (budget.totalLimit == null || budget.totalLimit == 0) return 0;
+    return projectedSpent / budget.totalLimit!;
   }
 
   /// Groups semi-budgets by parent ID.

@@ -34,19 +34,18 @@ class BankTransactionProcessingService {
       // 3. Transfer Detection
       final isTransfer = _detectTransfer(tx);
 
-      // 4. Handle account-specific logic (e.g., Credit Card sign inversion)
-      bool isIncome = tx.amount > 0;
-      if (accountType == 'credit' || accountType == 'CREDIT') {
-        // Many credit card APIs return spending as positive numbers.
-        // We assume Nordigen standard (outflow = negative) unless explicitly inverted.
-        // For now, we trust the amount sign but flag for review.
-      }
+      // 4. Refund Detection
+      final isRefund = _detectRefund(tx, isTransfer);
 
+      // 5. Handle account-specific logic (e.g., Credit Card sign inversion)
+      bool isIncome = tx.amount > 0 && !isRefund; // Refunds aren't "Income" in budget terms
+      
       processed.add(ProcessedTransaction(
         rawTransaction: tx,
         normalizedMerchant: normalizedMerchant,
         category: category,
         isTransfer: isTransfer,
+        isRefund: isRefund,
         isIncome: isIncome,
         accountType: accountType,
       ));
@@ -128,6 +127,19 @@ class BankTransactionProcessingService {
     return desc.contains('transfer') || desc.contains('internal') || desc.contains('own account');
   }
 
+  bool _detectRefund(BankTransaction tx, bool isTransfer) {
+    if (isTransfer) return false;
+    if (tx.amount <= 0) return false; // Spending/Outflow
+    
+    final desc = (tx.description ?? '').toLowerCase();
+    final merchant = (tx.creditorName ?? '').toLowerCase();
+    
+    return desc.contains('refund') || 
+           desc.contains('reversal') || 
+           desc.contains('returned') ||
+           merchant.contains('refund');
+  }
+
   /// Persist processed transactions to the app database with deduplication
   Future<int> persistTransactions(
     AppDatabase db,
@@ -163,6 +175,7 @@ class BankTransactionProcessingService {
             bankTransactionId: Value(raw.id),
             source: const Value('bank_sync'),
             isVerified: const Value(false), // Needs user review
+            isRefund: Value(pt.isRefund),
             syncState: const Value('dirty'),
             createdAt: Value(DateTime.now()),
             updatedAt: Value(DateTime.now()),
@@ -180,6 +193,7 @@ class ProcessedTransaction {
   final String normalizedMerchant;
   final String category;
   final bool isTransfer;
+  final bool isRefund;
   final bool isIncome;
   final String? accountType;
 
@@ -188,6 +202,7 @@ class ProcessedTransaction {
     required this.normalizedMerchant,
     required this.category,
     required this.isTransfer,
+    required this.isRefund,
     required this.isIncome,
     this.accountType,
   });

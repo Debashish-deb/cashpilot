@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:cashpilot/core/providers/sync_providers.dart' show conflictServiceProvider;
+import 'package:cashpilot/features/sync/sync_providers.dart' show conflictServiceProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cashpilot/data/drift/app_database.dart';

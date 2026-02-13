@@ -121,8 +121,8 @@ class AppConstants {
 
   static const String databaseName = 'cashpilot.db';
 
-  /// V21: Fintech-Grade Evolution (Canonical Ledger, Consents, Ingestion Logs)
-  static const int databaseVersion = 21;
+  /// V23: Advanced Budgeting (Refunds, Split Transactions, Multi-Currency Aggregation)
+  static const int databaseVersion = 23;
 
   // PAGINATION
 

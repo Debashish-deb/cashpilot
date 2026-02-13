@@ -25,7 +25,7 @@ mixin _$Asset {
   String get userId => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   AssetType get type => throw _privateConstructorUsedError;
-  int get currentValue => throw _privateConstructorUsedError; // in cents
+  int get currentValue => throw _privateConstructorUsedError;
   String get currency => throw _privateConstructorUsedError; // Metadata
   DateTime get createdAt => throw _privateConstructorUsedError;
   DateTime get updatedAt => throw _privateConstructorUsedError;
@@ -285,7 +285,6 @@ class _$AssetImpl implements _Asset {
   final AssetType type;
   @override
   final int currentValue;
-  // in cents
   @override
   @JsonKey()
   final String currency;
@@ -396,7 +395,7 @@ abstract class _Asset implements Asset {
   @override
   AssetType get type;
   @override
-  int get currentValue; // in cents
+  int get currentValue;
   @override
   String get currency; // Metadata
   @override

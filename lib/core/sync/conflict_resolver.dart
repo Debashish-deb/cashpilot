@@ -97,7 +97,6 @@ class ConflictResolver {
   /// Core deterministic resolution logic with 4-step tie-breaker
   ConflictResolutionResult _resolveDeterministic(ConflictRecord conflict) {
     // 0. Safety Check: If NO metadata is present on either side (valid for some edge cases)
-    // We cannot safely determine a winner automatically without risking data loss/overwrite.
     if (conflict.localVersion == null && conflict.remoteVersion == null &&
         conflict.localUpdatedAt == null && conflict.remoteUpdatedAt == null) {
       return const ManualResolutionRequired(
@@ -112,11 +111,16 @@ class ConflictResolver {
       if (remoteV > localV) return AcceptRemote(conflict.remoteData);
       if (localV > remoteV) return AcceptLocal(conflict.localData);
     }
-    // Handle partial version cases (prefer versioned over unversioned)
     else if (remoteV != null && localV == null) return AcceptRemote(conflict.remoteData);
     else if (localV != null && remoteV == null) return AcceptLocal(conflict.localData);
 
-    // 2. Timestamp Comparison (Newer wins)
+    // 2. Tie-break: Attempt field-level merge if versions are identical
+    final merged = _mergeData(conflict.localData, conflict.remoteData);
+    if (merged != null) {
+      return MergeVersions(merged);
+    }
+
+    // 3. Timestamp Comparison (Newer wins)
     final localT = conflict.localUpdatedAt;
     final remoteT = conflict.remoteUpdatedAt;
     
@@ -124,22 +128,20 @@ class ConflictResolver {
       if (remoteT.isAfter(localT)) return AcceptRemote(conflict.remoteData);
       if (localT.isAfter(remoteT)) return AcceptLocal(conflict.localData);
     }
-    // Handle partial timestamp cases
     else if (remoteT != null && localT == null) return AcceptRemote(conflict.remoteData);
     else if (localT != null && remoteT == null) return AcceptLocal(conflict.localData);
 
-    // 3. Device ID Comparison (Lexicographical sort)
+    // 4. Device ID Comparison (Lexicographical sort)
     final localDev = conflict.localDeviceId ?? '';
     final remoteDev = conflict.remoteDeviceId ?? '';
     
-    // Skip if both empty
     if (localDev.isNotEmpty || remoteDev.isNotEmpty) {
       final comparison = remoteDev.compareTo(localDev);
       if (comparison > 0) return AcceptRemote(conflict.remoteData);
       if (comparison < 0) return AcceptLocal(conflict.localData);
     }
 
-    // 4. Operation ID Comparison (Lexicographical sort)
+    // 5. Operation ID Comparison (Lexicographical sort)
     final localOp = conflict.localOpId ?? '';
     final remoteOp = conflict.remoteOpId ?? '';
     
@@ -149,10 +151,39 @@ class ConflictResolver {
       if (comparison < 0) return AcceptLocal(conflict.localData);
     }
     
-    // 5. Fallback: If absolutely identical in metadata, assume remote wins (safest convergence)
-    // or manual resolution if suspicious.
-    // For syncing, converging to server is safer.
+    // 6. Fallback: Converge to server
     return AcceptRemote(conflict.remoteData);
+  }
+
+  /// Simple field-level merge for scalar values
+  /// Returns null if there are conflicting changes on the same field
+  Map<String, dynamic>? _mergeData(Map<String, dynamic> local, Map<String, dynamic> remote) {
+    final merged = Map<String, dynamic>.from(local);
+    bool hasConflicts = false;
+
+    final skipFields = {'revision', 'updated_at', 'server_updated_at', 'last_modified_by_device_id', 'operation_id'};
+    
+    remote.forEach((key, remoteVal) {
+      if (skipFields.contains(key)) return;
+      
+      final localVal = local[key];
+      if (localVal != remoteVal) {
+        // If local is null/empty but remote has value, take remote
+        if ((localVal == null || localVal == '') && (remoteVal != null && remoteVal != '')) {
+          merged[key] = remoteVal;
+        } 
+        // If remote is null/empty but local has value, keep local (already in merged)
+        else if ((remoteVal == null || remoteVal == '') && (localVal != null && localVal != '')) {
+          // Keep local
+        }
+        else {
+          // Real conflict on this field
+          hasConflicts = true;
+        }
+      }
+    });
+
+    return hasConflicts ? null : merged;
   }
 
   /// Detect if two records are in conflict

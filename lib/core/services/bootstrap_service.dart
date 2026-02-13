@@ -16,108 +16,97 @@ import '../../services/stripe_service.dart';
 /// It sets up error reporting, logging, and core services before running the app.
 class BootstrapService {
   static Future<void> run(Widget app, {List<Override> overrides = const []}) async {
-    // Redirect Flutter errors to our reporter
-    FlutterError.onError = (details) {
-      FlutterError.presentError(details);
-      errorReporter.reportFlutterError(details);
-    };
+    // 🎯 CRITICAL: Everything must run in the same zone to prevent Zone Mismatch
+    await runZonedGuarded(
+      () async {
+        // 1. Initialize Flutter binding first in this zone
+        WidgetsFlutterBinding.ensureInitialized();
 
-    // Initialize Flutter binding
-    WidgetsFlutterBinding.ensureInitialized();
-
-    // Custom Error Widget for production (shows a clean error UI instead of gray screen)
-    ErrorWidget.builder = (FlutterErrorDetails details) {
-      if (kDebugMode) {
-        return ErrorWidget(details.exception);
-      }
-      return const SizedBox.shrink(); // ErrorBoundary will catch and show better UI
-    };
-
-    // Initialize ErrorReporter
-    try {
-      await errorReporter.initialize();
-      if (kDebugMode) debugPrint('✅ ErrorReporter initialized');
-    } catch (e) {
-      if (kDebugMode) debugPrint('⚠️ ErrorReporter initialization failed: $e');
-    }
-
-    // Set production log level
-    if (kReleaseMode) {
-      Logger.setGlobalLevel(LogLevel.info);
-    }
-
-    // Wrap app with Sentry for error tracking
-    await SentryFlutter.init(
-      (options) {
-        // Sentry DSN for CashPilot error tracking
-        options.dsn = kReleaseMode
-            ? 'https://b26a6be0565221ad8a707d4bafea8ff3@o4510645425340416.ingest.de.sentry.io/4510645429338192'
-            : ''; // Disable in debug mode
-        options.environment = kReleaseMode ? 'production' : 'development';
-        options.tracesSampleRate = 1.0;
-        options.enableAutoSessionTracking = true;
-
-        // Filter out noisy errors
-        options.beforeSend = (event, hint) async {
-          // Don't send errors in debug mode when DSN is empty
-          if (!kReleaseMode || (options.dsn?.isEmpty ?? true)) {
-            return null;
-          }
-          return event;
+        // 2. Redirect Flutter errors to our reporter
+        FlutterError.onError = (details) {
+          FlutterError.presentError(details);
+          errorReporter.reportFlutterError(details);
         };
+
+        // 3. Set production log level
+        if (kReleaseMode) {
+          Logger.setGlobalLevel(LogLevel.info);
+        }
+
+        // 4. Initialize Sentry (without appRunner to stay in this zone)
+        await SentryFlutter.init(
+          (options) {
+            options.dsn = kReleaseMode
+                ? 'https://b26a6be0565221ad8a707d4bafea8ff3@o4510645425340416.ingest.de.sentry.io/4510645429338192'
+                : '';
+            options.environment = kReleaseMode ? 'production' : 'development';
+            options.tracesSampleRate = 1.0;
+            options.enableAutoSessionTracking = true;
+            options.beforeSend = (event, hint) async {
+              if (!kReleaseMode || (options.dsn?.isEmpty ?? true)) return null;
+              return event;
+            };
+          },
+        );
+
+        // 5. Initialize ErrorReporter
+        try {
+          await errorReporter.initialize();
+          if (kDebugMode) debugPrint('✅ ErrorReporter initialized');
+        } catch (e) {
+          if (kDebugMode) debugPrint('⚠️ ErrorReporter initialization failed: $e');
+        }
+
+        // 6. Custom Error Widget
+        ErrorWidget.builder = (FlutterErrorDetails details) {
+          if (kDebugMode) return ErrorWidget(details.exception);
+          return const SizedBox.shrink();
+        };
+
+        // 7. Initialize Core Services (AppManager)
+        final sharedPreferences = await AppManager.instance.initialize();
+
+        // 8. Initialize Stripe (STUBBED)
+        await stripeService.initialize();
+
+        // 9. Image cache tuning
+        PaintingBinding.instance.imageCache.maximumSizeBytes = 100 * 1024 * 1024;
+        PaintingBinding.instance.imageCache.maximumSize = 200;
+
+        // 10. Run the App
+        runApp(
+          ProviderScope(
+            overrides: [
+              sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+              ...overrides,
+            ],
+            child: app,
+          ),
+        );
       },
-      appRunner: () => runZonedGuarded(
-        () async {
-          // Initialize app manager
-          final sharedPreferences = await AppManager.instance.initialize();
+      (error, stackTrace) {
+        // Suppress offline errors
+        final sError = error.toString();
+        final isOffline = sError.contains('SocketException') || 
+                         sError.contains('Failed host lookup') ||
+                         sError.contains('Network is unreachable') ||
+                         sError.contains('AuthRetryableFetchException');
 
-          // Initialize Stripe (STUBBED)
-          await stripeService.initialize();
+        if (isOffline) {
+          if (kDebugMode) debugPrint('⚠️ [Bootstrap] Suppressed offline error: $error');
+          return;
+        }
 
-          // Image cache tuning
-          PaintingBinding.instance.imageCache.maximumSizeBytes = 100 * 1024 * 1024;
-          PaintingBinding.instance.imageCache.maximumSize = 200;
+        try {
+          crashReporter.reportError(error, stackTrace);
+          errorReporter.reportException(error, stackTrace: stackTrace);
+        } catch (_) {}
 
-          runApp(
-            ProviderScope(
-              overrides: [
-                sharedPreferencesProvider.overrideWithValue(sharedPreferences),
-                ...overrides,
-              ],
-              child: app,
-            ),
-          );
-        },
-        (error, stackTrace) {
-          // Filter out noisy offline errors from logs and crash reporting
-          final sError = error.toString();
-          final isOffline = sError.contains('SocketException') || 
-                           sError.contains('Failed host lookup') ||
-                           sError.contains('Network is unreachable') ||
-                           sError.contains('AuthRetryableFetchException'); // Supabase Auth retry noise
-
-          if (isOffline) {
-            if (kDebugMode) {
-              debugPrint('⚠️ [Bootstrap] Suppressed offline error (expected): $error');
-            }
-            return; // Don't report to Crashlytics/Sentry or print full stack trace
-          }
-
-          // Report to both old and new error reporting systems
-          try {
-            crashReporter.reportError(error, stackTrace);
-          } catch (_) {}
-
-          try {
-            errorReporter.reportException(error, stackTrace: stackTrace);
-          } catch (_) {}
-
-          if (kDebugMode) {
-            debugPrint('❌ Uncaught error: $error');
-            debugPrint(stackTrace.toString());
-          }
-        },
-      ),
+        if (kDebugMode) {
+          debugPrint('❌ Uncaught error: $error');
+          debugPrint(stackTrace.toString());
+        }
+      },
     );
   }
 }

@@ -11,7 +11,7 @@ import '../../../services/device_info_service.dart';
 import '../../../services/sync/conflict_service.dart';
 import '../../../services/sync/hash_service.dart';
 import '../services/atomic_sync_state_service.dart'; // NEW: For state tracking
-import 'package:cashpilot/core/providers/sync_providers.dart';
+import '../sync_providers.dart';
 import '../../../core/mixins/error_handler_mixin.dart';
 
 class ExpenseSyncManager with ErrorHandlerMixin implements BaseSyncManager<Expense> {
@@ -46,6 +46,25 @@ class ExpenseSyncManager with ErrorHandlerMixin implements BaseSyncManager<Expen
         if (remoteSemiBudget == null) {
           debugPrint('[ExpenseSyncManager] Semi-budget ${expense.semiBudgetId} not on server, keeping expense $id dirty');
           return; // Stay dirty - batch sync will handle it
+        }
+      }
+
+      // IDEMPOTENCY CHECK: Prevent duplicate pushes if operation_id matches
+      if (expense.operationId != null) {
+        final idempotentResult = await authService.client
+            .from('expenses')
+            .select('id, revision')
+            .eq('operation_id', expense.operationId!)
+            .maybeSingle();
+        
+        if (idempotentResult != null) {
+          debugPrint('[ExpenseSyncManager] Idempotency Hit: Operation ${expense.operationId} already applied to ${idempotentResult['id']}');
+          await (db.update(db.expenses)..where((e) => e.id.equals(id)))
+              .write(ExpensesCompanion(
+                syncState: const Value('clean'),
+                revision: Value((idempotentResult['revision'] as num).toInt()),
+              ));
+          return;
         }
       }
 
@@ -429,6 +448,9 @@ class ExpenseSyncManager with ErrorHandlerMixin implements BaseSyncManager<Expen
       receiptUrl: data['receipt_url'] as String?,
       barcodeValue: data['barcode_value'] as String?,
       ocrText: data['ocr_text'] as String?,
+      isTransfer: data['is_transfer'] as bool? ?? false,
+      isRefund: data['is_refund'] as bool? ?? false,
+      isReconciled: data['is_reconciled'] as bool? ?? false,
       attachments: data['attachments'] as String?,
       notes: data['notes'] as String?,
       locationName: data['location_name'] as String?,

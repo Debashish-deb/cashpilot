@@ -600,6 +600,9 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
         source: _fromOCR ? 'ocr' : 'manual',
         isAiAssigned: false,
         isVerified: true,
+        isTransfer: false,
+        isRefund: false,
+        isReconciled: false,
       );
 
       // NOTE: Original save logic above already handled create/update via Repo

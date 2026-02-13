@@ -62,6 +62,7 @@ part 'app_database.g.dart';
   CanonicalLedger,
   UserConsents,
   FinancialIngestionLogs,
+  SplitTransactions,
 ])
 class AppDatabase extends _$AppDatabase {
   // Default constructor uses platform-specific connection
@@ -199,6 +200,22 @@ class AppDatabase extends _$AppDatabase {
           await customStatement('CREATE INDEX IF NOT EXISTS idx_expenses_merchant ON expenses(merchant_name);');
         }
 
+        if (from < 22) {
+          // P0 FINANCIAL INTEGRITY
+          await m.addColumn(expenses, expenses.isTransfer);
+          await m.addColumn(expenses, expenses.isReconciled);
+          
+          // P0 FAMILY SHARING
+          await m.addColumn(budgetMembers, budgetMembers.spendingLimit);
+        }
+
+        if (from < 23) {
+          // PHASE 6: ADVANCED BUDGETING
+          await m.addColumn(expenses, expenses.isRefund);
+          await m.createTable(splitTransactions);
+          
+          debugPrint('[AppDatabase] Migration V23: Added isRefund and created SplitTransactions table');
+        }
         // Version 5: V6 Schema - Add new columns to categories
         if (from < 5) {
           try {
@@ -906,44 +923,81 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Stream<int> watchTotalSpentInBudget(String budgetId) {
+    final netAmount = expenses.isRefund.caseMatch<int>(
+      when: {const Constant(true): expenses.amount * const Constant(-1)},
+      orElse: expenses.amount,
+    );
+    final sumColumn = netAmount.sum();
+    
     return (selectOnly(expenses)
-          ..addColumns([expenses.amount.sum()])
-          ..where(expenses.budgetId.equals(budgetId) & expenses.isDeleted.equals(false)))
+          ..addColumns([sumColumn])
+          ..where(expenses.budgetId.equals(budgetId) & 
+                 expenses.isDeleted.equals(false) & 
+                 expenses.isTransfer.equals(false)))
         .watchSingle()
-        .map((row) => row.read(expenses.amount.sum()) ?? 0);
+        .map((row) => row.read(sumColumn) ?? 0);
   }
 
   /// Get total spent in a budget within a specific date range
   Future<int> getTotalSpentInBudgetDateRange(String budgetId, DateTime start, DateTime end) async {
+    final netAmount = expenses.isRefund.caseMatch<int>(
+      when: {const Constant(true): expenses.amount * const Constant(-1)},
+      orElse: expenses.amount,
+    );
+    final sumColumn = netAmount.sum();
+
     final result = await (selectOnly(expenses)
-          ..addColumns([expenses.amount.sum()])
+          ..addColumns([sumColumn])
           ..where(expenses.budgetId.equals(budgetId) &
               expenses.isDeleted.equals(false) &
+              expenses.isTransfer.equals(false) &
               expenses.date.isBiggerOrEqualValue(start) &
               expenses.date.isSmallerOrEqualValue(end)))
         .getSingle();
-    return result.read(expenses.amount.sum()) ?? 0;
+    return result.read(sumColumn) ?? 0;
   }
 
   Future<int> getTotalSpentInBudget(String budgetId) async {
+    final netAmount = expenses.isRefund.caseMatch<int>(
+      when: {const Constant(true): expenses.amount * const Constant(-1)},
+      orElse: expenses.amount,
+    );
+    final sumColumn = netAmount.sum();
+
     final result = await (selectOnly(expenses)
-          ..addColumns([expenses.amount.sum()])
-          ..where(expenses.budgetId.equals(budgetId) & expenses.isDeleted.equals(false)))
+          ..addColumns([sumColumn])
+          ..where(expenses.budgetId.equals(budgetId) & 
+                 expenses.isDeleted.equals(false) & 
+                 expenses.isTransfer.equals(false)))
         .getSingle();
-    return result.read(expenses.amount.sum()) ?? 0;
+    return result.read(sumColumn) ?? 0;
   }
 
   Stream<int> watchTotalSpentInSemiBudget(String semiBudgetId) {
+    final netAmount = expenses.isRefund.caseMatch<int>(
+      when: {const Constant(true): expenses.amount * const Constant(-1)},
+      orElse: expenses.amount,
+    );
+    final sumColumn = netAmount.sum();
+
     return (selectOnly(expenses)
-          ..addColumns([expenses.amount.sum()])
-          ..where(expenses.semiBudgetId.equals(semiBudgetId) & expenses.isDeleted.equals(false)))
+          ..addColumns([sumColumn])
+          ..where(expenses.semiBudgetId.equals(semiBudgetId) & 
+                 expenses.isDeleted.equals(false) & 
+                 expenses.isTransfer.equals(false)))
         .watchSingle()
-        .map((row) => row.read(expenses.amount.sum()) ?? 0);
+        .map((row) => row.read(sumColumn) ?? 0);
   }
 
   Stream<Map<String, int>> watchSemiBudgetSpending(String budgetId) {
+    final netAmount = expenses.isRefund.caseMatch<int>(
+      when: {const Constant(true): expenses.amount * const Constant(-1)},
+      orElse: expenses.amount,
+    );
+    final sumColumn = netAmount.sum();
+
     return (selectOnly(expenses)
-          ..addColumns([expenses.semiBudgetId, expenses.amount.sum()])
+          ..addColumns([expenses.semiBudgetId, sumColumn])
           ..where(expenses.budgetId.equals(budgetId) & 
                  expenses.semiBudgetId.isNotNull() & 
                  expenses.isDeleted.equals(false))
@@ -953,7 +1007,7 @@ class AppDatabase extends _$AppDatabase {
           final map = <String, int>{};
           for (final row in rows) {
             final id = row.read(expenses.semiBudgetId);
-            final amount = row.read(expenses.amount.sum()) ?? 0;
+            final amount = row.read(sumColumn) ?? 0;
             if (id != null) {
               map[id] = amount;
             }
@@ -963,11 +1017,78 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<int> getTotalSpentInSemiBudget(String semiBudgetId) async {
+    final netAmount = expenses.isRefund.caseMatch<int>(
+      when: {const Constant(true): expenses.amount * const Constant(-1)},
+      orElse: expenses.amount,
+    );
+    final sumColumn = netAmount.sum();
+
     final result = await (selectOnly(expenses)
-          ..addColumns([expenses.amount.sum()])
+          ..addColumns([sumColumn])
           ..where(expenses.semiBudgetId.equals(semiBudgetId) & expenses.isDeleted.equals(false)))
         .getSingle();
-    return result.read(expenses.amount.sum()) ?? 0;
+    return result.read(sumColumn) ?? 0;
+  }
+
+  Future<void> createSplitExpense({
+    required String id,
+    required String budgetId,
+    required String title,
+    required int totalAmount,
+    required String currency,
+    required DateTime date,
+    required String enteredBy,
+    required List<({String semiBudgetId, int amount, String? notes})> splits,
+    String? accountId,
+    String? merchantName,
+    String? notes,
+  }) async {
+    await transaction(() async {
+      // 1. Insert main expense (amount is total)
+      await into(expenses).insert(ExpensesCompanion.insert(
+        id: id,
+        budgetId: budgetId,
+        enteredBy: enteredBy,
+        title: title,
+        amount: totalAmount,
+        currency: Value(currency),
+        date: date,
+        accountId: Value(accountId),
+        merchantName: Value(merchantName),
+        notes: Value(notes),
+        syncState: const Value('dirty'),
+        createdAt: Value(DateTime.now()),
+        updatedAt: Value(DateTime.now()),
+        revision: const Value(1),
+      ));
+
+      // 2. Insert splits
+      for (final split in splits) {
+        final splitId = const Uuid().v4();
+        await into(splitTransactions).insert(SplitTransactionsCompanion.insert(
+          id: splitId,
+          expenseId: id,
+          semiBudgetId: split.semiBudgetId,
+          amount: split.amount,
+          notes: Value(split.notes),
+          createdAt: Value(DateTime.now()),
+          updatedAt: Value(DateTime.now()),
+          syncState: const Value('dirty'),
+        ));
+      }
+
+      // 3. Log event
+      await logLedgerEvent(
+        entityType: 'expense',
+        entityId: id,
+        eventType: 'SPLIT_EXPENSE_CREATED',
+        data: {
+          'id': id,
+          'total': totalAmount,
+          'splitsCount': splits.length,
+        },
+      );
+    });
   }
 
   Future<int> insertExpense(ExpensesCompanion expense) async {
@@ -1260,8 +1381,51 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<BudgetMember>> getBudgetMembers(String budgetId) {
     return (select(budgetMembers)
-          ..where((t) => t.budgetId.equals(budgetId)))
+          ..where((t) => t.budgetId.equals(budgetId) & t.isDeleted.equals(false)))
         .get();
+  }
+
+  Future<BudgetMember?> getBudgetMember(String budgetId, String userId) {
+    return (select(budgetMembers)
+          ..where((t) => t.budgetId.equals(budgetId) & t.userId.equals(userId) & t.isDeleted.equals(false)))
+        .getSingleOrNull();
+  }
+
+  Future<int> getMemberSpendingInBudget(String budgetId, String userId) async {
+    final result = await (selectOnly(expenses)
+          ..addColumns([expenses.amount.sum()])
+          ..where(expenses.budgetId.equals(budgetId) & 
+                 expenses.enteredBy.equals(userId) & 
+                 expenses.isDeleted.equals(false) & 
+                 expenses.isTransfer.equals(false)))
+        .getSingle();
+    return result.read(expenses.amount.sum()) ?? 0;
+  }
+
+  Future<void> acceptInvitation(String memberId) async {
+    await updateBudgetMember(BudgetMembersCompanion(
+      id: Value(memberId),
+      status: const Value('active'),
+      acceptedAt: Value(DateTime.now()),
+    ));
+  }
+
+  Future<void> declineInvitation(String memberId) async {
+    await updateBudgetMember(BudgetMembersCompanion(
+      id: Value(memberId),
+      status: const Value('declined'),
+    ));
+  }
+
+  Stream<List<Expense>> watchExpensesByAccountId(String accountId) {
+    return (select(expenses)..where((t) => t.accountId.equals(accountId) & t.isDeleted.equals(false))).watch();
+  }
+
+  Stream<List<AuditLog>> watchAuditLogsByEntity(String entityType, String entityId) {
+    return (select(auditLogs)
+          ..where((t) => t.entityType.equals(entityType) & t.entityId.equals(entityId))
+          ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+        .watch();
   }
 
   Future<int> insertBudgetMember(BudgetMembersCompanion member) async {
@@ -1292,6 +1456,30 @@ class AppDatabase extends _$AppDatabase {
     );
 
     return res;
+  }
+
+  Future<void> inviteMember({
+    required String budgetId,
+    required String email,
+    String? name,
+    String role = 'editor',
+    String? invitedBy,
+    int? spendingLimit,
+  }) async {
+    final memberId = const Uuid().v4();
+    await insertBudgetMember(BudgetMembersCompanion(
+      id: Value(memberId),
+      budgetId: Value(budgetId),
+      userId: const Value(''), // Will be linked when user accepts
+      memberEmail: Value(email),
+      memberName: Value(name ?? email),
+      role: Value(role),
+      status: const Value('pending'),
+      invitedBy: Value(invitedBy),
+      spendingLimit: Value(spendingLimit),
+      invitedAt: Value(DateTime.now()),
+      isDeleted: const Value(false),
+    ));
   }
 
   Future<bool> updateBudgetMember(BudgetMembersCompanion member) async {

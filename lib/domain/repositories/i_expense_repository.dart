@@ -54,6 +54,20 @@ abstract class IExpenseRepository {
   /// Helper for duplicate detection
   Future<List<Map<String, dynamic>>> getRecentExpensesMaps({required String userId, int limit = 50});
 
+  /// Create a split expense across multiple categories
+  Future<String> createSplitExpense({
+    required String budgetId,
+    required String title,
+    required int totalAmount,
+    required String currency,
+    required DateTime date,
+    required String enteredBy,
+    required List<({String semiBudgetId, int amount, String? notes})> splits,
+    String? accountId,
+    String? merchantName,
+    String? notes,
+  });
+
   // ---------------------------------------------------------------------------
   // STREAMS (Reactive Data)
   // ---------------------------------------------------------------------------

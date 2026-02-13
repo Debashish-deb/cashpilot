@@ -7951,6 +7951,51 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
         requiredDuringInsert: false,
         defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
       );
+  static const VerificationMeta _isTransferMeta = const VerificationMeta(
+    'isTransfer',
+  );
+  @override
+  late final GeneratedColumn<bool> isTransfer = GeneratedColumn<bool>(
+    'is_transfer',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_transfer" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isReconciledMeta = const VerificationMeta(
+    'isReconciled',
+  );
+  @override
+  late final GeneratedColumn<bool> isReconciled = GeneratedColumn<bool>(
+    'is_reconciled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_reconciled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isRefundMeta = const VerificationMeta(
+    'isRefund',
+  );
+  @override
+  late final GeneratedColumn<bool> isRefund = GeneratedColumn<bool>(
+    'is_refund',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_refund" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -7996,6 +8041,9 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
     mood,
     socialContext,
     bankTransactionId,
+    isTransfer,
+    isReconciled,
+    isRefund,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -8327,6 +8375,27 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
         ),
       );
     }
+    if (data.containsKey('is_transfer')) {
+      context.handle(
+        _isTransferMeta,
+        isTransfer.isAcceptableOrUnknown(data['is_transfer']!, _isTransferMeta),
+      );
+    }
+    if (data.containsKey('is_reconciled')) {
+      context.handle(
+        _isReconciledMeta,
+        isReconciled.isAcceptableOrUnknown(
+          data['is_reconciled']!,
+          _isReconciledMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_refund')) {
+      context.handle(
+        _isRefundMeta,
+        isRefund.isAcceptableOrUnknown(data['is_refund']!, _isRefundMeta),
+      );
+    }
     return context;
   }
 
@@ -8510,6 +8579,18 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
         DriftSqlType.string,
         data['${effectivePrefix}bank_transaction_id'],
       ),
+      isTransfer: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_transfer'],
+      )!,
+      isReconciled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_reconciled'],
+      )!,
+      isRefund: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_refund'],
+      )!,
     );
   }
 
@@ -8568,6 +8649,9 @@ class Expense extends DataClass implements Insertable<Expense> {
   final String? mood;
   final String? socialContext;
   final String? bankTransactionId;
+  final bool isTransfer;
+  final bool isReconciled;
+  final bool isRefund;
   const Expense({
     required this.id,
     required this.budgetId,
@@ -8612,6 +8696,9 @@ class Expense extends DataClass implements Insertable<Expense> {
     this.mood,
     this.socialContext,
     this.bankTransactionId,
+    required this.isTransfer,
+    required this.isReconciled,
+    required this.isRefund,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -8711,6 +8798,9 @@ class Expense extends DataClass implements Insertable<Expense> {
     if (!nullToAbsent || bankTransactionId != null) {
       map['bank_transaction_id'] = Variable<String>(bankTransactionId);
     }
+    map['is_transfer'] = Variable<bool>(isTransfer);
+    map['is_reconciled'] = Variable<bool>(isReconciled);
+    map['is_refund'] = Variable<bool>(isRefund);
     return map;
   }
 
@@ -8803,6 +8893,9 @@ class Expense extends DataClass implements Insertable<Expense> {
       bankTransactionId: bankTransactionId == null && nullToAbsent
           ? const Value.absent()
           : Value(bankTransactionId),
+      isTransfer: Value(isTransfer),
+      isReconciled: Value(isReconciled),
+      isRefund: Value(isRefund),
     );
   }
 
@@ -8859,6 +8952,9 @@ class Expense extends DataClass implements Insertable<Expense> {
       bankTransactionId: serializer.fromJson<String?>(
         json['bankTransactionId'],
       ),
+      isTransfer: serializer.fromJson<bool>(json['isTransfer']),
+      isReconciled: serializer.fromJson<bool>(json['isReconciled']),
+      isRefund: serializer.fromJson<bool>(json['isRefund']),
     );
   }
   @override
@@ -8910,6 +9006,9 @@ class Expense extends DataClass implements Insertable<Expense> {
       'mood': serializer.toJson<String?>(mood),
       'socialContext': serializer.toJson<String?>(socialContext),
       'bankTransactionId': serializer.toJson<String?>(bankTransactionId),
+      'isTransfer': serializer.toJson<bool>(isTransfer),
+      'isReconciled': serializer.toJson<bool>(isReconciled),
+      'isRefund': serializer.toJson<bool>(isRefund),
     };
   }
 
@@ -8957,6 +9056,9 @@ class Expense extends DataClass implements Insertable<Expense> {
     Value<String?> mood = const Value.absent(),
     Value<String?> socialContext = const Value.absent(),
     Value<String?> bankTransactionId = const Value.absent(),
+    bool? isTransfer,
+    bool? isReconciled,
+    bool? isRefund,
   }) => Expense(
     id: id ?? this.id,
     budgetId: budgetId ?? this.budgetId,
@@ -9015,6 +9117,9 @@ class Expense extends DataClass implements Insertable<Expense> {
     bankTransactionId: bankTransactionId.present
         ? bankTransactionId.value
         : this.bankTransactionId,
+    isTransfer: isTransfer ?? this.isTransfer,
+    isReconciled: isReconciled ?? this.isReconciled,
+    isRefund: isRefund ?? this.isRefund,
   );
   Expense copyWithCompanion(ExpensesCompanion data) {
     return Expense(
@@ -9107,6 +9212,13 @@ class Expense extends DataClass implements Insertable<Expense> {
       bankTransactionId: data.bankTransactionId.present
           ? data.bankTransactionId.value
           : this.bankTransactionId,
+      isTransfer: data.isTransfer.present
+          ? data.isTransfer.value
+          : this.isTransfer,
+      isReconciled: data.isReconciled.present
+          ? data.isReconciled.value
+          : this.isReconciled,
+      isRefund: data.isRefund.present ? data.isRefund.value : this.isRefund,
     );
   }
 
@@ -9155,7 +9267,10 @@ class Expense extends DataClass implements Insertable<Expense> {
           ..write('isVerified: $isVerified, ')
           ..write('mood: $mood, ')
           ..write('socialContext: $socialContext, ')
-          ..write('bankTransactionId: $bankTransactionId')
+          ..write('bankTransactionId: $bankTransactionId, ')
+          ..write('isTransfer: $isTransfer, ')
+          ..write('isReconciled: $isReconciled, ')
+          ..write('isRefund: $isRefund')
           ..write(')'))
         .toString();
   }
@@ -9205,6 +9320,9 @@ class Expense extends DataClass implements Insertable<Expense> {
     mood,
     socialContext,
     bankTransactionId,
+    isTransfer,
+    isReconciled,
+    isRefund,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -9252,7 +9370,10 @@ class Expense extends DataClass implements Insertable<Expense> {
           other.isVerified == this.isVerified &&
           other.mood == this.mood &&
           other.socialContext == this.socialContext &&
-          other.bankTransactionId == this.bankTransactionId);
+          other.bankTransactionId == this.bankTransactionId &&
+          other.isTransfer == this.isTransfer &&
+          other.isReconciled == this.isReconciled &&
+          other.isRefund == this.isRefund);
 }
 
 class ExpensesCompanion extends UpdateCompanion<Expense> {
@@ -9299,6 +9420,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
   final Value<String?> mood;
   final Value<String?> socialContext;
   final Value<String?> bankTransactionId;
+  final Value<bool> isTransfer;
+  final Value<bool> isReconciled;
+  final Value<bool> isRefund;
   final Value<int> rowid;
   const ExpensesCompanion({
     this.id = const Value.absent(),
@@ -9344,6 +9468,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     this.mood = const Value.absent(),
     this.socialContext = const Value.absent(),
     this.bankTransactionId = const Value.absent(),
+    this.isTransfer = const Value.absent(),
+    this.isReconciled = const Value.absent(),
+    this.isRefund = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ExpensesCompanion.insert({
@@ -9390,6 +9517,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     this.mood = const Value.absent(),
     this.socialContext = const Value.absent(),
     this.bankTransactionId = const Value.absent(),
+    this.isTransfer = const Value.absent(),
+    this.isReconciled = const Value.absent(),
+    this.isRefund = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        budgetId = Value(budgetId),
@@ -9441,6 +9571,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     Expression<String>? mood,
     Expression<String>? socialContext,
     Expression<String>? bankTransactionId,
+    Expression<bool>? isTransfer,
+    Expression<bool>? isReconciled,
+    Expression<bool>? isRefund,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -9488,6 +9621,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       if (mood != null) 'mood': mood,
       if (socialContext != null) 'social_context': socialContext,
       if (bankTransactionId != null) 'bank_transaction_id': bankTransactionId,
+      if (isTransfer != null) 'is_transfer': isTransfer,
+      if (isReconciled != null) 'is_reconciled': isReconciled,
+      if (isRefund != null) 'is_refund': isRefund,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -9536,6 +9672,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     Value<String?>? mood,
     Value<String?>? socialContext,
     Value<String?>? bankTransactionId,
+    Value<bool>? isTransfer,
+    Value<bool>? isReconciled,
+    Value<bool>? isRefund,
     Value<int>? rowid,
   }) {
     return ExpensesCompanion(
@@ -9583,6 +9722,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       mood: mood ?? this.mood,
       socialContext: socialContext ?? this.socialContext,
       bankTransactionId: bankTransactionId ?? this.bankTransactionId,
+      isTransfer: isTransfer ?? this.isTransfer,
+      isReconciled: isReconciled ?? this.isReconciled,
+      isRefund: isRefund ?? this.isRefund,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -9723,6 +9865,15 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     if (bankTransactionId.present) {
       map['bank_transaction_id'] = Variable<String>(bankTransactionId.value);
     }
+    if (isTransfer.present) {
+      map['is_transfer'] = Variable<bool>(isTransfer.value);
+    }
+    if (isReconciled.present) {
+      map['is_reconciled'] = Variable<bool>(isReconciled.value);
+    }
+    if (isRefund.present) {
+      map['is_refund'] = Variable<bool>(isRefund.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -9775,6 +9926,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
           ..write('mood: $mood, ')
           ..write('socialContext: $socialContext, ')
           ..write('bankTransactionId: $bankTransactionId, ')
+          ..write('isTransfer: $isTransfer, ')
+          ..write('isReconciled: $isReconciled, ')
+          ..write('isRefund: $isRefund, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -10009,6 +10163,17 @@ class $BudgetMembersTable extends BudgetMembers
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _spendingLimitMeta = const VerificationMeta(
+    'spendingLimit',
+  );
+  @override
+  late final GeneratedColumn<int> spendingLimit = GeneratedColumn<int>(
+    'spending_limit',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -10030,6 +10195,7 @@ class $BudgetMembersTable extends BudgetMembers
     syncState,
     lamportClock,
     versionVector,
+    spendingLimit,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -10168,6 +10334,15 @@ class $BudgetMembersTable extends BudgetMembers
         ),
       );
     }
+    if (data.containsKey('spending_limit')) {
+      context.handle(
+        _spendingLimitMeta,
+        spendingLimit.isAcceptableOrUnknown(
+          data['spending_limit']!,
+          _spendingLimitMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -10255,6 +10430,10 @@ class $BudgetMembersTable extends BudgetMembers
         DriftSqlType.string,
         data['${effectivePrefix}version_vector'],
       ),
+      spendingLimit: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}spending_limit'],
+      ),
     );
   }
 
@@ -10289,6 +10468,7 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
   final String syncState;
   final int lamportClock;
   final String? versionVector;
+  final int? spendingLimit;
   const BudgetMember({
     required this.id,
     required this.budgetId,
@@ -10309,6 +10489,7 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
     required this.syncState,
     required this.lamportClock,
     this.versionVector,
+    this.spendingLimit,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -10350,6 +10531,9 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
     if (!nullToAbsent || versionVector != null) {
       map['version_vector'] = Variable<String>(versionVector);
     }
+    if (!nullToAbsent || spendingLimit != null) {
+      map['spending_limit'] = Variable<int>(spendingLimit);
+    }
     return map;
   }
 
@@ -10388,6 +10572,9 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
       versionVector: versionVector == null && nullToAbsent
           ? const Value.absent()
           : Value(versionVector),
+      spendingLimit: spendingLimit == null && nullToAbsent
+          ? const Value.absent()
+          : Value(spendingLimit),
     );
   }
 
@@ -10418,6 +10605,7 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
       syncState: serializer.fromJson<String>(json['syncState']),
       lamportClock: serializer.fromJson<int>(json['lamportClock']),
       versionVector: serializer.fromJson<String?>(json['versionVector']),
+      spendingLimit: serializer.fromJson<int?>(json['spendingLimit']),
     );
   }
   @override
@@ -10445,6 +10633,7 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
       'syncState': serializer.toJson<String>(syncState),
       'lamportClock': serializer.toJson<int>(lamportClock),
       'versionVector': serializer.toJson<String?>(versionVector),
+      'spendingLimit': serializer.toJson<int?>(spendingLimit),
     };
   }
 
@@ -10468,6 +10657,7 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
     String? syncState,
     int? lamportClock,
     Value<String?> versionVector = const Value.absent(),
+    Value<int?> spendingLimit = const Value.absent(),
   }) => BudgetMember(
     id: id ?? this.id,
     budgetId: budgetId ?? this.budgetId,
@@ -10492,6 +10682,9 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
     versionVector: versionVector.present
         ? versionVector.value
         : this.versionVector,
+    spendingLimit: spendingLimit.present
+        ? spendingLimit.value
+        : this.spendingLimit,
   );
   BudgetMember copyWithCompanion(BudgetMembersCompanion data) {
     return BudgetMember(
@@ -10526,6 +10719,9 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
       versionVector: data.versionVector.present
           ? data.versionVector.value
           : this.versionVector,
+      spendingLimit: data.spendingLimit.present
+          ? data.spendingLimit.value
+          : this.spendingLimit,
     );
   }
 
@@ -10550,7 +10746,8 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
           ..write('revision: $revision, ')
           ..write('syncState: $syncState, ')
           ..write('lamportClock: $lamportClock, ')
-          ..write('versionVector: $versionVector')
+          ..write('versionVector: $versionVector, ')
+          ..write('spendingLimit: $spendingLimit')
           ..write(')'))
         .toString();
   }
@@ -10576,6 +10773,7 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
     syncState,
     lamportClock,
     versionVector,
+    spendingLimit,
   );
   @override
   bool operator ==(Object other) =>
@@ -10599,7 +10797,8 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
           other.revision == this.revision &&
           other.syncState == this.syncState &&
           other.lamportClock == this.lamportClock &&
-          other.versionVector == this.versionVector);
+          other.versionVector == this.versionVector &&
+          other.spendingLimit == this.spendingLimit);
 }
 
 class BudgetMembersCompanion extends UpdateCompanion<BudgetMember> {
@@ -10622,6 +10821,7 @@ class BudgetMembersCompanion extends UpdateCompanion<BudgetMember> {
   final Value<String> syncState;
   final Value<int> lamportClock;
   final Value<String?> versionVector;
+  final Value<int?> spendingLimit;
   final Value<int> rowid;
   const BudgetMembersCompanion({
     this.id = const Value.absent(),
@@ -10643,6 +10843,7 @@ class BudgetMembersCompanion extends UpdateCompanion<BudgetMember> {
     this.syncState = const Value.absent(),
     this.lamportClock = const Value.absent(),
     this.versionVector = const Value.absent(),
+    this.spendingLimit = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   BudgetMembersCompanion.insert({
@@ -10665,6 +10866,7 @@ class BudgetMembersCompanion extends UpdateCompanion<BudgetMember> {
     this.syncState = const Value.absent(),
     this.lamportClock = const Value.absent(),
     this.versionVector = const Value.absent(),
+    this.spendingLimit = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        budgetId = Value(budgetId),
@@ -10690,6 +10892,7 @@ class BudgetMembersCompanion extends UpdateCompanion<BudgetMember> {
     Expression<String>? syncState,
     Expression<int>? lamportClock,
     Expression<String>? versionVector,
+    Expression<int>? spendingLimit,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -10713,6 +10916,7 @@ class BudgetMembersCompanion extends UpdateCompanion<BudgetMember> {
       if (syncState != null) 'sync_state': syncState,
       if (lamportClock != null) 'lamport_clock': lamportClock,
       if (versionVector != null) 'version_vector': versionVector,
+      if (spendingLimit != null) 'spending_limit': spendingLimit,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -10737,6 +10941,7 @@ class BudgetMembersCompanion extends UpdateCompanion<BudgetMember> {
     Value<String>? syncState,
     Value<int>? lamportClock,
     Value<String?>? versionVector,
+    Value<int?>? spendingLimit,
     Value<int>? rowid,
   }) {
     return BudgetMembersCompanion(
@@ -10760,6 +10965,7 @@ class BudgetMembersCompanion extends UpdateCompanion<BudgetMember> {
       syncState: syncState ?? this.syncState,
       lamportClock: lamportClock ?? this.lamportClock,
       versionVector: versionVector ?? this.versionVector,
+      spendingLimit: spendingLimit ?? this.spendingLimit,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -10828,6 +11034,9 @@ class BudgetMembersCompanion extends UpdateCompanion<BudgetMember> {
     if (versionVector.present) {
       map['version_vector'] = Variable<String>(versionVector.value);
     }
+    if (spendingLimit.present) {
+      map['spending_limit'] = Variable<int>(spendingLimit.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -10856,6 +11065,7 @@ class BudgetMembersCompanion extends UpdateCompanion<BudgetMember> {
           ..write('syncState: $syncState, ')
           ..write('lamportClock: $lamportClock, ')
           ..write('versionVector: $versionVector, ')
+          ..write('spendingLimit: $spendingLimit, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -33729,6 +33939,567 @@ class FinancialIngestionLogsCompanion
   }
 }
 
+class $SplitTransactionsTable extends SplitTransactions
+    with TableInfo<$SplitTransactionsTable, SplitTransaction> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SplitTransactionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _expenseIdMeta = const VerificationMeta(
+    'expenseId',
+  );
+  @override
+  late final GeneratedColumn<String> expenseId = GeneratedColumn<String>(
+    'expense_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES expenses (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _semiBudgetIdMeta = const VerificationMeta(
+    'semiBudgetId',
+  );
+  @override
+  late final GeneratedColumn<String> semiBudgetId = GeneratedColumn<String>(
+    'semi_budget_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES semi_budgets (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<int> amount = GeneratedColumn<int>(
+    'amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _revisionMeta = const VerificationMeta(
+    'revision',
+  );
+  @override
+  late final GeneratedColumn<int> revision = GeneratedColumn<int>(
+    'revision',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _syncStateMeta = const VerificationMeta(
+    'syncState',
+  );
+  @override
+  late final GeneratedColumn<String> syncState = GeneratedColumn<String>(
+    'sync_state',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('clean'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    expenseId,
+    semiBudgetId,
+    amount,
+    notes,
+    createdAt,
+    updatedAt,
+    revision,
+    syncState,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'split_transactions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SplitTransaction> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('expense_id')) {
+      context.handle(
+        _expenseIdMeta,
+        expenseId.isAcceptableOrUnknown(data['expense_id']!, _expenseIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_expenseIdMeta);
+    }
+    if (data.containsKey('semi_budget_id')) {
+      context.handle(
+        _semiBudgetIdMeta,
+        semiBudgetId.isAcceptableOrUnknown(
+          data['semi_budget_id']!,
+          _semiBudgetIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_semiBudgetIdMeta);
+    }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_amountMeta);
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('revision')) {
+      context.handle(
+        _revisionMeta,
+        revision.isAcceptableOrUnknown(data['revision']!, _revisionMeta),
+      );
+    }
+    if (data.containsKey('sync_state')) {
+      context.handle(
+        _syncStateMeta,
+        syncState.isAcceptableOrUnknown(data['sync_state']!, _syncStateMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SplitTransaction map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SplitTransaction(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      expenseId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}expense_id'],
+      )!,
+      semiBudgetId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}semi_budget_id'],
+      )!,
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}amount'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      revision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}revision'],
+      )!,
+      syncState: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_state'],
+      )!,
+    );
+  }
+
+  @override
+  $SplitTransactionsTable createAlias(String alias) {
+    return $SplitTransactionsTable(attachedDatabase, alias);
+  }
+}
+
+class SplitTransaction extends DataClass
+    implements Insertable<SplitTransaction> {
+  final String id;
+  final String expenseId;
+  final String semiBudgetId;
+  final int amount;
+  final String? notes;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final int revision;
+  final String syncState;
+  const SplitTransaction({
+    required this.id,
+    required this.expenseId,
+    required this.semiBudgetId,
+    required this.amount,
+    this.notes,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.revision,
+    required this.syncState,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['expense_id'] = Variable<String>(expenseId);
+    map['semi_budget_id'] = Variable<String>(semiBudgetId);
+    map['amount'] = Variable<int>(amount);
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['revision'] = Variable<int>(revision);
+    map['sync_state'] = Variable<String>(syncState);
+    return map;
+  }
+
+  SplitTransactionsCompanion toCompanion(bool nullToAbsent) {
+    return SplitTransactionsCompanion(
+      id: Value(id),
+      expenseId: Value(expenseId),
+      semiBudgetId: Value(semiBudgetId),
+      amount: Value(amount),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      revision: Value(revision),
+      syncState: Value(syncState),
+    );
+  }
+
+  factory SplitTransaction.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SplitTransaction(
+      id: serializer.fromJson<String>(json['id']),
+      expenseId: serializer.fromJson<String>(json['expenseId']),
+      semiBudgetId: serializer.fromJson<String>(json['semiBudgetId']),
+      amount: serializer.fromJson<int>(json['amount']),
+      notes: serializer.fromJson<String?>(json['notes']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      revision: serializer.fromJson<int>(json['revision']),
+      syncState: serializer.fromJson<String>(json['syncState']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'expenseId': serializer.toJson<String>(expenseId),
+      'semiBudgetId': serializer.toJson<String>(semiBudgetId),
+      'amount': serializer.toJson<int>(amount),
+      'notes': serializer.toJson<String?>(notes),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'revision': serializer.toJson<int>(revision),
+      'syncState': serializer.toJson<String>(syncState),
+    };
+  }
+
+  SplitTransaction copyWith({
+    String? id,
+    String? expenseId,
+    String? semiBudgetId,
+    int? amount,
+    Value<String?> notes = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    int? revision,
+    String? syncState,
+  }) => SplitTransaction(
+    id: id ?? this.id,
+    expenseId: expenseId ?? this.expenseId,
+    semiBudgetId: semiBudgetId ?? this.semiBudgetId,
+    amount: amount ?? this.amount,
+    notes: notes.present ? notes.value : this.notes,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    revision: revision ?? this.revision,
+    syncState: syncState ?? this.syncState,
+  );
+  SplitTransaction copyWithCompanion(SplitTransactionsCompanion data) {
+    return SplitTransaction(
+      id: data.id.present ? data.id.value : this.id,
+      expenseId: data.expenseId.present ? data.expenseId.value : this.expenseId,
+      semiBudgetId: data.semiBudgetId.present
+          ? data.semiBudgetId.value
+          : this.semiBudgetId,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      revision: data.revision.present ? data.revision.value : this.revision,
+      syncState: data.syncState.present ? data.syncState.value : this.syncState,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SplitTransaction(')
+          ..write('id: $id, ')
+          ..write('expenseId: $expenseId, ')
+          ..write('semiBudgetId: $semiBudgetId, ')
+          ..write('amount: $amount, ')
+          ..write('notes: $notes, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('revision: $revision, ')
+          ..write('syncState: $syncState')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    expenseId,
+    semiBudgetId,
+    amount,
+    notes,
+    createdAt,
+    updatedAt,
+    revision,
+    syncState,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SplitTransaction &&
+          other.id == this.id &&
+          other.expenseId == this.expenseId &&
+          other.semiBudgetId == this.semiBudgetId &&
+          other.amount == this.amount &&
+          other.notes == this.notes &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.revision == this.revision &&
+          other.syncState == this.syncState);
+}
+
+class SplitTransactionsCompanion extends UpdateCompanion<SplitTransaction> {
+  final Value<String> id;
+  final Value<String> expenseId;
+  final Value<String> semiBudgetId;
+  final Value<int> amount;
+  final Value<String?> notes;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> revision;
+  final Value<String> syncState;
+  final Value<int> rowid;
+  const SplitTransactionsCompanion({
+    this.id = const Value.absent(),
+    this.expenseId = const Value.absent(),
+    this.semiBudgetId = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.revision = const Value.absent(),
+    this.syncState = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SplitTransactionsCompanion.insert({
+    required String id,
+    required String expenseId,
+    required String semiBudgetId,
+    required int amount,
+    this.notes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.revision = const Value.absent(),
+    this.syncState = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       expenseId = Value(expenseId),
+       semiBudgetId = Value(semiBudgetId),
+       amount = Value(amount);
+  static Insertable<SplitTransaction> custom({
+    Expression<String>? id,
+    Expression<String>? expenseId,
+    Expression<String>? semiBudgetId,
+    Expression<int>? amount,
+    Expression<String>? notes,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? revision,
+    Expression<String>? syncState,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (expenseId != null) 'expense_id': expenseId,
+      if (semiBudgetId != null) 'semi_budget_id': semiBudgetId,
+      if (amount != null) 'amount': amount,
+      if (notes != null) 'notes': notes,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (revision != null) 'revision': revision,
+      if (syncState != null) 'sync_state': syncState,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SplitTransactionsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? expenseId,
+    Value<String>? semiBudgetId,
+    Value<int>? amount,
+    Value<String?>? notes,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? revision,
+    Value<String>? syncState,
+    Value<int>? rowid,
+  }) {
+    return SplitTransactionsCompanion(
+      id: id ?? this.id,
+      expenseId: expenseId ?? this.expenseId,
+      semiBudgetId: semiBudgetId ?? this.semiBudgetId,
+      amount: amount ?? this.amount,
+      notes: notes ?? this.notes,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      revision: revision ?? this.revision,
+      syncState: syncState ?? this.syncState,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (expenseId.present) {
+      map['expense_id'] = Variable<String>(expenseId.value);
+    }
+    if (semiBudgetId.present) {
+      map['semi_budget_id'] = Variable<String>(semiBudgetId.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<int>(amount.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (revision.present) {
+      map['revision'] = Variable<int>(revision.value);
+    }
+    if (syncState.present) {
+      map['sync_state'] = Variable<String>(syncState.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SplitTransactionsCompanion(')
+          ..write('id: $id, ')
+          ..write('expenseId: $expenseId, ')
+          ..write('semiBudgetId: $semiBudgetId, ')
+          ..write('amount: $amount, ')
+          ..write('notes: $notes, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('revision: $revision, ')
+          ..write('syncState: $syncState, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -33792,6 +34563,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $UserConsentsTable userConsents = $UserConsentsTable(this);
   late final $FinancialIngestionLogsTable financialIngestionLogs =
       $FinancialIngestionLogsTable(this);
+  late final $SplitTransactionsTable splitTransactions =
+      $SplitTransactionsTable(this);
   late final Index idxBudgetsOwner = Index(
     'idx_budgets_owner',
     'CREATE INDEX idx_budgets_owner ON budgets (owner_id)',
@@ -33970,6 +34743,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     canonicalLedger,
     userConsents,
     financialIngestionLogs,
+    splitTransactions,
     idxBudgetsOwner,
     idxBudgetsDates,
     idxBudgetsType,
@@ -34117,6 +34891,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('budget_health_snapshots', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'expenses',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('split_transactions', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'semi_budgets',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('split_transactions', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -39005,6 +39793,30 @@ final class $$SemiBudgetsTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$SplitTransactionsTable, List<SplitTransaction>>
+  _splitTransactionsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.splitTransactions,
+        aliasName: $_aliasNameGenerator(
+          db.semiBudgets.id,
+          db.splitTransactions.semiBudgetId,
+        ),
+      );
+
+  $$SplitTransactionsTableProcessedTableManager get splitTransactionsRefs {
+    final manager = $$SplitTransactionsTableTableManager(
+      $_db,
+      $_db.splitTransactions,
+    ).filter((f) => f.semiBudgetId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _splitTransactionsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$SemiBudgetsTableFilterComposer
@@ -39206,6 +40018,31 @@ class $$SemiBudgetsTableFilterComposer
           }) => $$ExpensesTableFilterComposer(
             $db: $db,
             $table: $db.expenses,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> splitTransactionsRefs(
+    Expression<bool> Function($$SplitTransactionsTableFilterComposer f) f,
+  ) {
+    final $$SplitTransactionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.splitTransactions,
+      getReferencedColumn: (t) => t.semiBudgetId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SplitTransactionsTableFilterComposer(
+            $db: $db,
+            $table: $db.splitTransactions,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -39576,6 +40413,32 @@ class $$SemiBudgetsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> splitTransactionsRefs<T extends Object>(
+    Expression<T> Function($$SplitTransactionsTableAnnotationComposer a) f,
+  ) {
+    final $$SplitTransactionsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.splitTransactions,
+          getReferencedColumn: (t) => t.semiBudgetId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$SplitTransactionsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.splitTransactions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$SemiBudgetsTableTableManager
@@ -39596,6 +40459,7 @@ class $$SemiBudgetsTableTableManager
             bool parentCategoryId,
             bool masterCategoryId,
             bool expensesRefs,
+            bool splitTransactionsRefs,
           })
         > {
   $$SemiBudgetsTableTableManager(_$AppDatabase db, $SemiBudgetsTable table)
@@ -39727,10 +40591,14 @@ class $$SemiBudgetsTableTableManager
                 parentCategoryId = false,
                 masterCategoryId = false,
                 expensesRefs = false,
+                splitTransactionsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
-                  explicitlyWatchedTables: [if (expensesRefs) db.expenses],
+                  explicitlyWatchedTables: [
+                    if (expensesRefs) db.expenses,
+                    if (splitTransactionsRefs) db.splitTransactions,
+                  ],
                   addJoins:
                       <
                         T extends TableManagerState<
@@ -39818,6 +40686,27 @@ class $$SemiBudgetsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (splitTransactionsRefs)
+                        await $_getPrefetchedData<
+                          SemiBudget,
+                          $SemiBudgetsTable,
+                          SplitTransaction
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SemiBudgetsTableReferences
+                              ._splitTransactionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SemiBudgetsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).splitTransactionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.semiBudgetId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -39843,6 +40732,7 @@ typedef $$SemiBudgetsTableProcessedTableManager =
         bool parentCategoryId,
         bool masterCategoryId,
         bool expensesRefs,
+        bool splitTransactionsRefs,
       })
     >;
 typedef $$AccountsTableCreateCompanionBuilder =
@@ -41550,6 +42440,9 @@ typedef $$ExpensesTableCreateCompanionBuilder =
       Value<String?> mood,
       Value<String?> socialContext,
       Value<String?> bankTransactionId,
+      Value<bool> isTransfer,
+      Value<bool> isReconciled,
+      Value<bool> isRefund,
       Value<int> rowid,
     });
 typedef $$ExpensesTableUpdateCompanionBuilder =
@@ -41597,6 +42490,9 @@ typedef $$ExpensesTableUpdateCompanionBuilder =
       Value<String?> mood,
       Value<String?> socialContext,
       Value<String?> bankTransactionId,
+      Value<bool> isTransfer,
+      Value<bool> isReconciled,
+      Value<bool> isRefund,
       Value<int> rowid,
     });
 
@@ -41753,6 +42649,30 @@ final class $$ExpensesTableReferences
 
     final cache = $_typedResult.readTableOrNull(
       _canonicalLedgerRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$SplitTransactionsTable, List<SplitTransaction>>
+  _splitTransactionsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.splitTransactions,
+        aliasName: $_aliasNameGenerator(
+          db.expenses.id,
+          db.splitTransactions.expenseId,
+        ),
+      );
+
+  $$SplitTransactionsTableProcessedTableManager get splitTransactionsRefs {
+    final manager = $$SplitTransactionsTableTableManager(
+      $_db,
+      $_db.splitTransactions,
+    ).filter((f) => f.expenseId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _splitTransactionsRefsTable($_db),
     );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
@@ -41959,6 +42879,21 @@ class $$ExpensesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get isTransfer => $composableBuilder(
+    column: $table.isTransfer,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isReconciled => $composableBuilder(
+    column: $table.isReconciled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isRefund => $composableBuilder(
+    column: $table.isRefund,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$BudgetsTableFilterComposer get budgetId {
     final $$BudgetsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -42138,6 +43073,31 @@ class $$ExpensesTableFilterComposer
           }) => $$CanonicalLedgerTableFilterComposer(
             $db: $db,
             $table: $db.canonicalLedger,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> splitTransactionsRefs(
+    Expression<bool> Function($$SplitTransactionsTableFilterComposer f) f,
+  ) {
+    final $$SplitTransactionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.splitTransactions,
+      getReferencedColumn: (t) => t.expenseId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SplitTransactionsTableFilterComposer(
+            $db: $db,
+            $table: $db.splitTransactions,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -42339,6 +43299,21 @@ class $$ExpensesTableOrderingComposer
 
   ColumnOrderings<String> get bankTransactionId => $composableBuilder(
     column: $table.bankTransactionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isTransfer => $composableBuilder(
+    column: $table.isTransfer,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isReconciled => $composableBuilder(
+    column: $table.isReconciled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isRefund => $composableBuilder(
+    column: $table.isRefund,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -42642,6 +43617,19 @@ class $$ExpensesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get isTransfer => $composableBuilder(
+    column: $table.isTransfer,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isReconciled => $composableBuilder(
+    column: $table.isReconciled,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isRefund =>
+      $composableBuilder(column: $table.isRefund, builder: (column) => column);
+
   $$BudgetsTableAnnotationComposer get budgetId {
     final $$BudgetsTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -42829,6 +43817,32 @@ class $$ExpensesTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> splitTransactionsRefs<T extends Object>(
+    Expression<T> Function($$SplitTransactionsTableAnnotationComposer a) f,
+  ) {
+    final $$SplitTransactionsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.splitTransactions,
+          getReferencedColumn: (t) => t.expenseId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$SplitTransactionsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.splitTransactions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$ExpensesTableTableManager
@@ -42853,6 +43867,7 @@ class $$ExpensesTableTableManager
             bool accountId,
             bool expenseLocationsRefs,
             bool canonicalLedgerRefs,
+            bool splitTransactionsRefs,
           })
         > {
   $$ExpensesTableTableManager(_$AppDatabase db, $ExpensesTable table)
@@ -42911,6 +43926,9 @@ class $$ExpensesTableTableManager
                 Value<String?> mood = const Value.absent(),
                 Value<String?> socialContext = const Value.absent(),
                 Value<String?> bankTransactionId = const Value.absent(),
+                Value<bool> isTransfer = const Value.absent(),
+                Value<bool> isReconciled = const Value.absent(),
+                Value<bool> isRefund = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ExpensesCompanion(
                 id: id,
@@ -42956,6 +43974,9 @@ class $$ExpensesTableTableManager
                 mood: mood,
                 socialContext: socialContext,
                 bankTransactionId: bankTransactionId,
+                isTransfer: isTransfer,
+                isReconciled: isReconciled,
+                isRefund: isRefund,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -43003,6 +44024,9 @@ class $$ExpensesTableTableManager
                 Value<String?> mood = const Value.absent(),
                 Value<String?> socialContext = const Value.absent(),
                 Value<String?> bankTransactionId = const Value.absent(),
+                Value<bool> isTransfer = const Value.absent(),
+                Value<bool> isReconciled = const Value.absent(),
+                Value<bool> isRefund = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ExpensesCompanion.insert(
                 id: id,
@@ -43048,6 +44072,9 @@ class $$ExpensesTableTableManager
                 mood: mood,
                 socialContext: socialContext,
                 bankTransactionId: bankTransactionId,
+                isTransfer: isTransfer,
+                isReconciled: isReconciled,
+                isRefund: isRefund,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -43068,12 +44095,14 @@ class $$ExpensesTableTableManager
                 accountId = false,
                 expenseLocationsRefs = false,
                 canonicalLedgerRefs = false,
+                splitTransactionsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (expenseLocationsRefs) db.expenseLocations,
                     if (canonicalLedgerRefs) db.canonicalLedger,
+                    if (splitTransactionsRefs) db.splitTransactions,
                   ],
                   addJoins:
                       <
@@ -43216,6 +44245,27 @@ class $$ExpensesTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (splitTransactionsRefs)
+                        await $_getPrefetchedData<
+                          Expense,
+                          $ExpensesTable,
+                          SplitTransaction
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ExpensesTableReferences
+                              ._splitTransactionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ExpensesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).splitTransactionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.expenseId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -43245,6 +44295,7 @@ typedef $$ExpensesTableProcessedTableManager =
         bool accountId,
         bool expenseLocationsRefs,
         bool canonicalLedgerRefs,
+        bool splitTransactionsRefs,
       })
     >;
 typedef $$BudgetMembersTableCreateCompanionBuilder =
@@ -43268,6 +44319,7 @@ typedef $$BudgetMembersTableCreateCompanionBuilder =
       Value<String> syncState,
       Value<int> lamportClock,
       Value<String?> versionVector,
+      Value<int?> spendingLimit,
       Value<int> rowid,
     });
 typedef $$BudgetMembersTableUpdateCompanionBuilder =
@@ -43291,6 +44343,7 @@ typedef $$BudgetMembersTableUpdateCompanionBuilder =
       Value<String> syncState,
       Value<int> lamportClock,
       Value<String?> versionVector,
+      Value<int?> spendingLimit,
       Value<int> rowid,
     });
 
@@ -43449,6 +44502,11 @@ class $$BudgetMembersTableFilterComposer
 
   ColumnFilters<String> get versionVector => $composableBuilder(
     column: $table.versionVector,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get spendingLimit => $composableBuilder(
+    column: $table.spendingLimit,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -43611,6 +44669,11 @@ class $$BudgetMembersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get spendingLimit => $composableBuilder(
+    column: $table.spendingLimit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$BudgetsTableOrderingComposer get budgetId {
     final $$BudgetsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -43751,6 +44814,11 @@ class $$BudgetMembersTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<int> get spendingLimit => $composableBuilder(
+    column: $table.spendingLimit,
+    builder: (column) => column,
+  );
+
   $$BudgetsTableAnnotationComposer get budgetId {
     final $$BudgetsTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -43868,6 +44936,7 @@ class $$BudgetMembersTableTableManager
                 Value<String> syncState = const Value.absent(),
                 Value<int> lamportClock = const Value.absent(),
                 Value<String?> versionVector = const Value.absent(),
+                Value<int?> spendingLimit = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => BudgetMembersCompanion(
                 id: id,
@@ -43889,6 +44958,7 @@ class $$BudgetMembersTableTableManager
                 syncState: syncState,
                 lamportClock: lamportClock,
                 versionVector: versionVector,
+                spendingLimit: spendingLimit,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -43912,6 +44982,7 @@ class $$BudgetMembersTableTableManager
                 Value<String> syncState = const Value.absent(),
                 Value<int> lamportClock = const Value.absent(),
                 Value<String?> versionVector = const Value.absent(),
+                Value<int?> spendingLimit = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => BudgetMembersCompanion.insert(
                 id: id,
@@ -43933,6 +45004,7 @@ class $$BudgetMembersTableTableManager
                 syncState: syncState,
                 lamportClock: lamportClock,
                 versionVector: versionVector,
+                spendingLimit: spendingLimit,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -58742,6 +59814,510 @@ typedef $$FinancialIngestionLogsTableProcessedTableManager =
       FinancialIngestionLog,
       PrefetchHooks Function()
     >;
+typedef $$SplitTransactionsTableCreateCompanionBuilder =
+    SplitTransactionsCompanion Function({
+      required String id,
+      required String expenseId,
+      required String semiBudgetId,
+      required int amount,
+      Value<String?> notes,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> revision,
+      Value<String> syncState,
+      Value<int> rowid,
+    });
+typedef $$SplitTransactionsTableUpdateCompanionBuilder =
+    SplitTransactionsCompanion Function({
+      Value<String> id,
+      Value<String> expenseId,
+      Value<String> semiBudgetId,
+      Value<int> amount,
+      Value<String?> notes,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> revision,
+      Value<String> syncState,
+      Value<int> rowid,
+    });
+
+final class $$SplitTransactionsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $SplitTransactionsTable,
+          SplitTransaction
+        > {
+  $$SplitTransactionsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $ExpensesTable _expenseIdTable(_$AppDatabase db) =>
+      db.expenses.createAlias(
+        $_aliasNameGenerator(db.splitTransactions.expenseId, db.expenses.id),
+      );
+
+  $$ExpensesTableProcessedTableManager get expenseId {
+    final $_column = $_itemColumn<String>('expense_id')!;
+
+    final manager = $$ExpensesTableTableManager(
+      $_db,
+      $_db.expenses,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_expenseIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $SemiBudgetsTable _semiBudgetIdTable(_$AppDatabase db) =>
+      db.semiBudgets.createAlias(
+        $_aliasNameGenerator(
+          db.splitTransactions.semiBudgetId,
+          db.semiBudgets.id,
+        ),
+      );
+
+  $$SemiBudgetsTableProcessedTableManager get semiBudgetId {
+    final $_column = $_itemColumn<String>('semi_budget_id')!;
+
+    final manager = $$SemiBudgetsTableTableManager(
+      $_db,
+      $_db.semiBudgets,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_semiBudgetIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$SplitTransactionsTableFilterComposer
+    extends Composer<_$AppDatabase, $SplitTransactionsTable> {
+  $$SplitTransactionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get revision => $composableBuilder(
+    column: $table.revision,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncState => $composableBuilder(
+    column: $table.syncState,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ExpensesTableFilterComposer get expenseId {
+    final $$ExpensesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.expenseId,
+      referencedTable: $db.expenses,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpensesTableFilterComposer(
+            $db: $db,
+            $table: $db.expenses,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SemiBudgetsTableFilterComposer get semiBudgetId {
+    final $$SemiBudgetsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.semiBudgetId,
+      referencedTable: $db.semiBudgets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SemiBudgetsTableFilterComposer(
+            $db: $db,
+            $table: $db.semiBudgets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SplitTransactionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SplitTransactionsTable> {
+  $$SplitTransactionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get revision => $composableBuilder(
+    column: $table.revision,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncState => $composableBuilder(
+    column: $table.syncState,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ExpensesTableOrderingComposer get expenseId {
+    final $$ExpensesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.expenseId,
+      referencedTable: $db.expenses,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpensesTableOrderingComposer(
+            $db: $db,
+            $table: $db.expenses,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SemiBudgetsTableOrderingComposer get semiBudgetId {
+    final $$SemiBudgetsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.semiBudgetId,
+      referencedTable: $db.semiBudgets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SemiBudgetsTableOrderingComposer(
+            $db: $db,
+            $table: $db.semiBudgets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SplitTransactionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SplitTransactionsTable> {
+  $$SplitTransactionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get revision =>
+      $composableBuilder(column: $table.revision, builder: (column) => column);
+
+  GeneratedColumn<String> get syncState =>
+      $composableBuilder(column: $table.syncState, builder: (column) => column);
+
+  $$ExpensesTableAnnotationComposer get expenseId {
+    final $$ExpensesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.expenseId,
+      referencedTable: $db.expenses,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpensesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.expenses,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SemiBudgetsTableAnnotationComposer get semiBudgetId {
+    final $$SemiBudgetsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.semiBudgetId,
+      referencedTable: $db.semiBudgets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SemiBudgetsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.semiBudgets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SplitTransactionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SplitTransactionsTable,
+          SplitTransaction,
+          $$SplitTransactionsTableFilterComposer,
+          $$SplitTransactionsTableOrderingComposer,
+          $$SplitTransactionsTableAnnotationComposer,
+          $$SplitTransactionsTableCreateCompanionBuilder,
+          $$SplitTransactionsTableUpdateCompanionBuilder,
+          (SplitTransaction, $$SplitTransactionsTableReferences),
+          SplitTransaction,
+          PrefetchHooks Function({bool expenseId, bool semiBudgetId})
+        > {
+  $$SplitTransactionsTableTableManager(
+    _$AppDatabase db,
+    $SplitTransactionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SplitTransactionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SplitTransactionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SplitTransactionsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> expenseId = const Value.absent(),
+                Value<String> semiBudgetId = const Value.absent(),
+                Value<int> amount = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> revision = const Value.absent(),
+                Value<String> syncState = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SplitTransactionsCompanion(
+                id: id,
+                expenseId: expenseId,
+                semiBudgetId: semiBudgetId,
+                amount: amount,
+                notes: notes,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                revision: revision,
+                syncState: syncState,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String expenseId,
+                required String semiBudgetId,
+                required int amount,
+                Value<String?> notes = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> revision = const Value.absent(),
+                Value<String> syncState = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SplitTransactionsCompanion.insert(
+                id: id,
+                expenseId: expenseId,
+                semiBudgetId: semiBudgetId,
+                amount: amount,
+                notes: notes,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                revision: revision,
+                syncState: syncState,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$SplitTransactionsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({expenseId = false, semiBudgetId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (expenseId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.expenseId,
+                                referencedTable:
+                                    $$SplitTransactionsTableReferences
+                                        ._expenseIdTable(db),
+                                referencedColumn:
+                                    $$SplitTransactionsTableReferences
+                                        ._expenseIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+                    if (semiBudgetId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.semiBudgetId,
+                                referencedTable:
+                                    $$SplitTransactionsTableReferences
+                                        ._semiBudgetIdTable(db),
+                                referencedColumn:
+                                    $$SplitTransactionsTableReferences
+                                        ._semiBudgetIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$SplitTransactionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SplitTransactionsTable,
+      SplitTransaction,
+      $$SplitTransactionsTableFilterComposer,
+      $$SplitTransactionsTableOrderingComposer,
+      $$SplitTransactionsTableAnnotationComposer,
+      $$SplitTransactionsTableCreateCompanionBuilder,
+      $$SplitTransactionsTableUpdateCompanionBuilder,
+      (SplitTransaction, $$SplitTransactionsTableReferences),
+      SplitTransaction,
+      PrefetchHooks Function({bool expenseId, bool semiBudgetId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -58834,4 +60410,6 @@ class $AppDatabaseManager {
         _db,
         _db.financialIngestionLogs,
       );
+  $$SplitTransactionsTableTableManager get splitTransactions =>
+      $$SplitTransactionsTableTableManager(_db, _db.splitTransactions);
 }

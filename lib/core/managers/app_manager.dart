@@ -50,7 +50,7 @@ class AppManager {
     }
 
     try {
-      WidgetsFlutterBinding.ensureInitialized();
+      // Binding is now initialized in BootstrapService.run zone
 
       // PHASE 1: Critical synchronous setup
 
