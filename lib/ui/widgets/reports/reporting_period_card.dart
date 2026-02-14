@@ -25,8 +25,10 @@ class ReportingPeriodCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return const SizedBox.shrink();
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final l10n = AppLocalizations.of(context)!;
     
     // Calculate comparison data
     final comparisonAsync = ref.watch(_periodComparisonProvider(dateRange));
@@ -47,8 +49,8 @@ class ReportingPeriodCard extends ConsumerWidget {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isDark 
-                ? Colors.white.withValues(alpha: 0.1) 
-                : Colors.black.withValues(alpha: 0.05),
+                ? Colors.white.withOpacity(0.1) 
+                : Colors.black.withOpacity(0.05),
             width: 1.2,
           ),
         ),
@@ -58,7 +60,7 @@ class ReportingPeriodCard extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppTokens.brandPrimary.withValues(alpha: 0.1),
+                color: AppTokens.brandPrimary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
@@ -76,7 +78,7 @@ class ReportingPeriodCard extends ConsumerWidget {
                   Text(
                     l10n.reportsPeriod,
                     style: AppTypography.labelSmall.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                       letterSpacing: 0.3,
                     ),
                   ),
@@ -107,7 +109,7 @@ class ReportingPeriodCard extends ConsumerWidget {
             ),
             Icon(
               Icons.chevron_right_rounded,
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
               size: 24,
             ),
           ],
@@ -117,7 +119,8 @@ class ReportingPeriodCard extends ConsumerWidget {
 }
 
   Widget _buildTrendIndicator(BuildContext context, PeriodComparisonData data) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return const SizedBox.shrink();
     // Determine color and icon based on change (spending less is good!)
     final isIncrease = data.percentChange > 0;
     final isNeutral = data.percentChange == 0;

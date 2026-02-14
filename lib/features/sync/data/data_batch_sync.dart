@@ -92,46 +92,55 @@ class DataBatchSync {
             // final userId = client.auth.currentUser?.id; // REMOVED: Managed by Orchestrator
             // if (userId == null) { ... }
       
-            _logger.info('Gathering dirty records', span: prepSpan);
-      
-            // 1. Get ALL dirty records (Drift objects)
+            _logger.info('Gathering budgets...', span: prepSpan);
             final allDirtyBudgets = await (db.select(db.budgets)
               ..where((t) => t.syncState.equals('dirty'))).get();
       
+            _logger.info('Gathering semi-budgets...', span: prepSpan);
             final allDirtySemiBudgets = await (db.select(db.semiBudgets)
               ..where((t) => t.syncState.equals('dirty'))).get();
       
+            _logger.info('Gathering expenses...', span: prepSpan);
             final allDirtyExpenses = await (db.select(db.expenses)
               ..where((t) => t.syncState.equals('dirty'))).get();
       
+            _logger.info('Gathering accounts...', span: prepSpan);
             final allDirtyAccounts = await (db.select(db.accounts)
               ..where((t) => t.syncState.equals('dirty'))).get();
               
+            _logger.info('Gathering savings...', span: prepSpan);
             final allDirtySavings = await (db.select(db.savingsGoals)
               ..where((t) => t.syncState.equals('dirty'))).get();
               
+            _logger.info('Gathering recurring...', span: prepSpan);
             final allDirtyRecurring = await (db.select(db.recurringExpenses)
               ..where((t) => t.syncState.equals('dirty'))).get();
               
+            _logger.info('Gathering members...', span: prepSpan);
             final allDirtyMembers = await (db.select(db.budgetMembers)
               ..where((t) => t.syncState.equals('dirty'))).get();
       
-            // ADDED: Dirty Users (Profiles)
+            _logger.info('Gathering users...', span: prepSpan);
             final allDirtyUsers = await (db.select(db.users)
               ..where((t) => t.syncState.equals('dirty'))).get();
       
+            _logger.info('Gathering family groups...', span: prepSpan);
             final allDirtyFamilyGroups = await (db.select(db.familyGroups)
               ..where((t) => t.syncState.equals('dirty'))).get();
               
+            _logger.info('Gathering family contacts...', span: prepSpan);
             final allDirtyFamilyContacts = await (db.select(db.familyContacts)
               ..where((t) => t.syncState.equals('dirty'))).get();
               
+            _logger.info('Gathering family relations...', span: prepSpan);
             final allDirtyFamilyRelations = await (db.select(db.familyRelations)
               ..where((t) => t.syncState.equals('dirty'))).get();
       
+            _logger.info('Gathering audit logs...', span: prepSpan);
             final allDirtyAuditLogs = await (db.select(db.auditLogs)
               ..where((t) => t.syncState.equals('dirty'))).get();
       
+            _logger.info('Gathering sub-categories...', span: prepSpan);
             final allDirtySubCategories = await (db.select(db.subCategories)
               ..where((t) => t.syncState.equals('dirty'))).get();
       
@@ -140,7 +149,8 @@ class DataBatchSync {
                 allDirtySavings.isEmpty && allDirtyRecurring.isEmpty &&                
                 allDirtyMembers.isEmpty && allDirtyUsers.isEmpty &&
                 allDirtyFamilyGroups.isEmpty && allDirtyFamilyContacts.isEmpty &&
-                allDirtyFamilyRelations.isEmpty && allDirtyAuditLogs.isEmpty) {
+                allDirtyFamilyRelations.isEmpty && allDirtyAuditLogs.isEmpty && 
+                allDirtySubCategories.isEmpty) {
               _logger.info('No dirty records to push', span: prepSpan);
               return {};
             }
@@ -158,7 +168,7 @@ class DataBatchSync {
             // 1.5 ENTITY DEPENDENCY VALIDATION (Hardening)
             // ... (keep logic same if valid) ...
       
-            // 2. PRE-FLIGHT CHECK
+            _logger.info('Checking for conflicts...', span: prepSpan);
             final safeToPush = await _checkForConflicts(
               budgets: allDirtyBudgets,
               semiBudgets: allDirtySemiBudgets,
@@ -170,10 +180,12 @@ class DataBatchSync {
               users: allDirtyUsers,
               familyGroups: allDirtyFamilyGroups,
               familyContacts: allDirtyFamilyContacts,
-              familyRelations: allDirtyFamilyRelations, auditLogs: [],
-              // subCategories: allDirtySubCategories, // REMOVED to fix sync error
+              familyRelations: allDirtyFamilyRelations, 
+              auditLogs: allDirtyAuditLogs,
+              subCategories: allDirtySubCategories,
             );
       
+            _logger.info('Casting dirty records...', span: prepSpan);
             final dirtyBudgets = (safeToPush['budgets'] as List).cast<Budget>();
             final dirtySemiBudgets = (safeToPush['semiBudgets'] as List).cast<SemiBudget>();
             final dirtyExpenses = (safeToPush['expenses'] as List).cast<Expense>();
@@ -186,7 +198,9 @@ class DataBatchSync {
             final dirtyFamilyContacts = (safeToPush['familyContacts'] as List).cast<FamilyContact>();
             final dirtyFamilyRelations = (safeToPush['familyRelations'] as List).cast<FamilyRelation>();
             final dirtyAuditLogs = (safeToPush['auditLogs'] as List).cast<AuditLog>();
-            // final dirtySubCategories = (safeToPush['subCategories'] as List).cast<SubCategory>();
+            final dirtySubCategories = (safeToPush['subCategories'] as List).cast<SubCategory>();
+            
+            _logger.info('Mapping to JSON...', span: prepSpan);
       
             // 3. Prepare Payload
             final deviceId = await _getDeviceId();
@@ -202,7 +216,8 @@ class DataBatchSync {
               'family_groups': dirtyFamilyGroups.map((g) => _familyGroupToJson(g, deviceId)).toList(),
               'family_contacts': dirtyFamilyContacts.map((c) => _familyContactToJson(c, deviceId)).toList(),
               'family_relations': dirtyFamilyRelations.map((r) => _familyRelationToJson(r, deviceId)).toList(),
-              // 'sub_categories': dirtySubCategories.map((s) => _subCategoryToJson(s, deviceId)).toList(),
+              'audit_logs': dirtyAuditLogs.map((a) => _auditLogToJson(a, deviceId)).toList(),
+              'sub_categories': dirtySubCategories.map((s) => _subCategoryToJson(s, deviceId)).toList(),
             };
             
             _logger.info('Sending batch payload to server (RPC: batch_sync)', span: prepSpan);
@@ -217,19 +232,19 @@ class DataBatchSync {
             // 5. Mark Clean
             final markSpan = _traceManager.startSpan('MarkClean', traceId: trace.traceId, parentSpanId: trace.spanId);
             await db.transaction(() async {
-              await _markClean<Users, User>(db.users, dirtyUsers, (id) => db.users.id.equals(id)); // ADDED
-              await _markClean<Budgets, Budget>(db.budgets, dirtyBudgets, (id) => db.budgets.id.equals(id));
-              await _markClean<SemiBudgets, SemiBudget>(db.semiBudgets, dirtySemiBudgets, (id) => db.semiBudgets.id.equals(id));
-              await _markClean<Expenses, Expense>(db.expenses, dirtyExpenses, (id) => db.expenses.id.equals(id));
-              await _markClean<Accounts, Account>(db.accounts, dirtyAccounts, (id) => db.accounts.id.equals(id));
-              await _markClean<SavingsGoals, SavingsGoal>(db.savingsGoals, dirtySavings, (id) => db.savingsGoals.id.equals(id));
-              await _markClean<RecurringExpenses, RecurringExpense>(db.recurringExpenses, dirtyRecurring, (id) => db.recurringExpenses.id.equals(id));
-              await _markClean<BudgetMembers, BudgetMember>(db.budgetMembers, dirtyMembers, (id) => db.budgetMembers.id.equals(id));
-              await _markClean<FamilyGroups, FamilyGroup>(db.familyGroups, dirtyFamilyGroups, (id) => db.familyGroups.id.equals(id));
-              await _markClean<FamilyContacts, FamilyContact>(db.familyContacts, dirtyFamilyContacts, (id) => db.familyContacts.id.equals(id));
-              await _markClean<FamilyRelations, FamilyRelation>(db.familyRelations, dirtyFamilyRelations, (id) => db.familyRelations.id.equals(id));
-              await _markClean<AuditLogs, AuditLog>(db.auditLogs, dirtyAuditLogs, (id) => db.auditLogs.id.equals(id));
-              // await _markClean<SubCategories, SubCategory>(db.subCategories, dirtySubCategories, (id) => db.subCategories.id.equals(id));
+              await _markCleanExplicit<Users, User>(db.users, dirtyUsers, (id) => db.users.id.equals(id));
+              await _markCleanExplicit<Budgets, Budget>(db.budgets, dirtyBudgets, (id) => db.budgets.id.equals(id));
+              await _markCleanExplicit<SemiBudgets, SemiBudget>(db.semiBudgets, dirtySemiBudgets, (id) => db.semiBudgets.id.equals(id));
+              await _markCleanExplicit<Expenses, Expense>(db.expenses, dirtyExpenses, (id) => db.expenses.id.equals(id));
+              await _markCleanExplicit<Accounts, Account>(db.accounts, dirtyAccounts, (id) => db.accounts.id.equals(id));
+              await _markCleanExplicit<SavingsGoals, SavingsGoal>(db.savingsGoals, dirtySavings, (id) => db.savingsGoals.id.equals(id));
+              await _markCleanExplicit<RecurringExpenses, RecurringExpense>(db.recurringExpenses, dirtyRecurring, (id) => db.recurringExpenses.id.equals(id));
+              await _markCleanExplicit<BudgetMembers, BudgetMember>(db.budgetMembers, dirtyMembers, (id) => db.budgetMembers.id.equals(id));
+              await _markCleanExplicit<FamilyGroups, FamilyGroup>(db.familyGroups, dirtyFamilyGroups, (id) => db.familyGroups.id.equals(id));
+              await _markCleanExplicit<FamilyContacts, FamilyContact>(db.familyContacts, dirtyFamilyContacts, (id) => db.familyContacts.id.equals(id));
+              await _markCleanExplicit<FamilyRelations, FamilyRelation>(db.familyRelations, dirtyFamilyRelations, (id) => db.familyRelations.id.equals(id));
+              await _markCleanExplicit<AuditLogs, AuditLog>(db.auditLogs, dirtyAuditLogs, (id) => db.auditLogs.id.equals(id));
+              await _markCleanExplicit<SubCategories, SubCategory>(db.subCategories, dirtySubCategories, (id) => db.subCategories.id.equals(id));
             });
             _traceManager.endSpan(markSpan); // End MarkClean
 
@@ -328,18 +343,28 @@ class DataBatchSync {
 
 
 
-  // Helper to mark clean
-  Future<void> _markClean<T extends Table, D>(
+  /// Explicitly mark items as clean after successful batch push.
+  /// This is used because generic inference on Drift generated classes is limited.
+  Future<void> _markCleanExplicit<T extends Table, D>(
       TableInfo<T, D> table, 
       List<D> items, 
       Expression<bool> Function(String) whereExpr
   ) async {
+    if (items.isEmpty) return;
+
     for (var item in items) {
-       // Manual assumption that item has id and revision
-       // Since I can't easily reflect on D, I'll rely on the fact that I'm inside DataBatchSync 
-       // and I know the types. Wait, this generic method is hard.
+       final dynamic d = item;
+       final String id = d.id;
+       final int newRevision = d.revision + 1;
+
+       // We use a raw update to avoid having to cast every Companion type
+       // This works because all syncable tables follow the same naming convention
+       await (db.update(table)..where((t) => whereExpr(id)))
+         .write(RawValuesInsertable({
+           'sync_state': const Variable<String>('clean'),
+           'revision': Variable<int>(newRevision),
+         }));
     }
-    // Reverting to explicit loops for safety
   }
   
   // Explicit loops for transaction
@@ -369,7 +394,7 @@ class DataBatchSync {
     required List<FamilyContact> familyContacts,
     required List<FamilyRelation> familyRelations,
     required List<AuditLog> auditLogs,
-    // required List<SubCategory> subCategories,
+    required List<SubCategory> subCategories,
   }) async {
     // Collect IDs
     final budgetIds = budgets.map((b) => b.id).toList();
@@ -384,6 +409,7 @@ class DataBatchSync {
     final fcIds = familyContacts.map((c) => c.id).toList();
     final frIds = familyRelations.map((r) => r.id).toList();
     final alIds = auditLogs.map((a) => a.id).toList();
+    final scIds = subCategories.map((s) => s.id).toList();
 
     // Fetch Revisions
      // Fetch Revisions & Vectors
@@ -400,6 +426,7 @@ class DataBatchSync {
         if (fcIds.isNotEmpty) transport.fetchRevisions(table: 'family_contacts', ids: fcIds),
         if (frIds.isNotEmpty) transport.fetchRevisions(table: 'family_relations', ids: frIds),
         if (alIds.isNotEmpty) transport.fetchRevisions(table: 'audit_logs', ids: alIds),
+        if (scIds.isNotEmpty) transport.fetchRevisions(table: 'sub_categories', ids: scIds),
     ]);
     
     // Map Extraction - NOW STORES FULL REMOTE OBJECT
@@ -421,7 +448,7 @@ class DataBatchSync {
     final revFC = fcIds.isNotEmpty ? getRevMap(results[i++]) : <String, dynamic>{};
     final revFR = frIds.isNotEmpty ? getRevMap(results[i++]) : <String, dynamic>{};
     final revAL = alIds.isNotEmpty ? getRevMap(results[i++]) : <String, dynamic>{};
-    // final revSC = subCategories.isNotEmpty ? getRevMap(results[i++]) : <String, dynamic>{};
+    final revSC = scIds.isNotEmpty ? getRevMap(results[i++]) : <String, dynamic>{};
 
     return {
       'budgets': _rebase(budgets, revB, (b, r, v) => b.copyWith(revision: r, versionVector: Value(v))),
@@ -436,7 +463,7 @@ class DataBatchSync {
       'familyContacts': _rebase(familyContacts, revFC, (c, r, v) => c.copyWith(revision: r, versionVector: Value(v))),
       'familyRelations': _rebase(familyRelations, revFR, (r, rVal, v) => r.copyWith(revision: rVal, versionVector: Value(v))),
       'auditLogs': _rebase(auditLogs, revAL, (a, r, v) => a.copyWith(revision: r, versionVector: Value(v))),
-      // 'subCategories': subCategories.isNotEmpty ? _rebase(subCategories, revSC, (s, r, v) => s.copyWith(revision: r, versionVector: Value(v))) : [],
+      'subCategories': _rebase(subCategories, revSC, (s, r, v) => s.copyWith(revision: r, versionVector: Value(v))),
     };
   }
   
@@ -508,8 +535,8 @@ class DataBatchSync {
     }
 
     if (data['sub_categories'] != null) {
-      // await _batchedUpsert(data['sub_categories'], _upsertSubCategory);
-      debugPrint('[DataBatchSync]   ✓ SubCategories skipped (table not on server)');
+      await _batchedUpsert(data['sub_categories'], _upsertSubCategory);
+      debugPrint('[DataBatchSync]   ✓ SubCategories: ${(data['sub_categories'] as List).length}');
     }
     
     // Users/Profiles (referenced by budgets, expenses, etc.)
@@ -850,6 +877,8 @@ class DataBatchSync {
         syncState: const Value('clean'),
         createdAt: Value(DateTime.tryParse(item['created_at'] ?? '') ?? DateTime.now()),
         updatedAt: Value(DateTime.tryParse(item['updated_at'] ?? '') ?? DateTime.now()),
+        lamportClock: Value((item['lamport_clock'] as num?)?.toInt() ?? 0),
+        versionVector: Value(item['version_vector'] != null ? json.encode(item['version_vector']) : null),
     );
      await db.into(db.subCategories).insertOnConflictUpdate(companion);
   }
@@ -1217,7 +1246,7 @@ class DataBatchSync {
     'revision': u.revision + 1,
     'lamport_clock': u.lamportClock,
     'last_modified_by_device_id': deviceId,
-    'version_vector': u.versionVector != null ? json.decode(u.versionVector!) : null,
+    // 'version_vector' is NOT supported by Supabase for profiles table
   };
 
    Map<String, dynamic> _budgetToJson(Budget b, String deviceId) => {
@@ -1385,5 +1414,40 @@ class DataBatchSync {
     'lamport_clock': r.lamportClock,
     'version_vector': r.versionVector != null ? json.decode(r.versionVector!) : null,
     'is_deleted': r.isDeleted,
+  };
+
+  Map<String, dynamic> _auditLogToJson(AuditLog a, String deviceId) => {
+    'id': a.id,
+    'entity_type': a.entityType,
+    'entity_id': a.entityId,
+    'action': a.action,
+    'user_id': a.userId,
+    'old_value': a.oldValue,
+    'new_value': a.newValue,
+    'correlation_id': a.correlationId,
+    'device_id': a.deviceId,
+    'metadata': a.metadata,
+    'created_at': a.createdAt.toIso8601String(),
+    'revision': a.revision + 1,
+    'lamport_clock': a.lamportClock,
+    'version_vector': a.versionVector != null ? json.decode(a.versionVector!) : null,
+  };
+
+  Map<String, dynamic> _subCategoryToJson(SubCategory s, String deviceId) => {
+    'id': s.id,
+    'category_id': s.categoryId,
+    'name': s.name,
+    'owner_id': s.ownerId,
+    'is_system': s.isSystem,
+    'is_default_other': s.isDefaultOther,
+    'usage_count': s.usageCount,
+    'last_used_at': s.lastUsedAt.toIso8601String(),
+    'confidence': s.confidence,
+    'is_deleted': s.isDeleted,
+    'created_at': s.createdAt.toIso8601String(),
+    'updated_at': DateTime.now().toIso8601String(),
+    'revision': s.revision + 1,
+    'lamport_clock': s.lamportClock,
+    'version_vector': s.versionVector != null ? json.decode(s.versionVector!) : null,
   };
 }

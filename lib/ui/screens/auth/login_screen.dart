@@ -538,10 +538,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     try {
       final session = Supabase.instance.client.auth.currentSession;
       if (session != null) {
-        // Store session as JSON
+        // Store session with metadata for expiry validation
+        final sessionMap = session.toJson();
+        final storedAt = DateTime.now();
+        
         await _secureStorage.write(
           key: 'biometric_session',
-          value: jsonEncode(session.toJson()),
+          value: jsonEncode({
+            ...sessionMap,
+            'stored_at': storedAt.toIso8601String(),
+            // Ensure we have a clear expiry, default to 7 days if not provided by Supabase
+            'expires_at_validated': ((session.expiresAt as DateTime?) ?? storedAt.add(const Duration(days: 7))).toIso8601String(),
+          }),
         );
         
         // Store user email for display (if available)
@@ -598,13 +606,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         
         if (sessionJson != null) {
           try {
-            // Restore session
             final sessionData = jsonDecode(sessionJson) as Map<String, dynamic>;
+            
+            // SECURITY: Validate session age and expiry
+            final expiresAtStr = sessionData['expires_at_validated'] as String?;
+            final storedAtStr = sessionData['stored_at'] as String?;
+            
+            bool isExpired = true;
+            if (expiresAtStr != null && storedAtStr != null) {
+              final expiresAt = DateTime.parse(expiresAtStr);
+              final storedAt = DateTime.parse(storedAtStr);
+              final now = DateTime.now();
+              
+              // Only allow biometric recovery if:
+              // 1. Current time is before the validated expiry
+              // 2. The session was stored less than 30 days ago (sanity fallback)
+              isExpired = now.isAfter(expiresAt) || now.difference(storedAt).inDays > 30;
+            }
+
+            if (isExpired) {
+              throw Exception('Session expired');
+            }
+
+            // Restore session
             await Supabase.instance.client.auth.recoverSession(jsonEncode(sessionData));
             
             if (mounted) context.go(AppRoutes.home);
           } catch (e) {
-            // Session expired or invalid
+            // Session expired or invalid - clear it to force fresh login
+            await _secureStorage.delete(key: 'biometric_session');
+            
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

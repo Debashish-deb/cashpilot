@@ -6815,6 +6815,29 @@ class $SubCategoriesTable extends SubCategories
     requiredDuringInsert: false,
     defaultValue: const Constant('clean'),
   );
+  static const VerificationMeta _lamportClockMeta = const VerificationMeta(
+    'lamportClock',
+  );
+  @override
+  late final GeneratedColumn<int> lamportClock = GeneratedColumn<int>(
+    'lamport_clock',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _versionVectorMeta = const VerificationMeta(
+    'versionVector',
+  );
+  @override
+  late final GeneratedColumn<String> versionVector = GeneratedColumn<String>(
+    'version_vector',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -6831,6 +6854,8 @@ class $SubCategoriesTable extends SubCategories
     updatedAt,
     revision,
     syncState,
+    lamportClock,
+    versionVector,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -6937,6 +6962,24 @@ class $SubCategoriesTable extends SubCategories
         syncState.isAcceptableOrUnknown(data['sync_state']!, _syncStateMeta),
       );
     }
+    if (data.containsKey('lamport_clock')) {
+      context.handle(
+        _lamportClockMeta,
+        lamportClock.isAcceptableOrUnknown(
+          data['lamport_clock']!,
+          _lamportClockMeta,
+        ),
+      );
+    }
+    if (data.containsKey('version_vector')) {
+      context.handle(
+        _versionVectorMeta,
+        versionVector.isAcceptableOrUnknown(
+          data['version_vector']!,
+          _versionVectorMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -7002,6 +7045,14 @@ class $SubCategoriesTable extends SubCategories
         DriftSqlType.string,
         data['${effectivePrefix}sync_state'],
       )!,
+      lamportClock: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}lamport_clock'],
+      )!,
+      versionVector: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}version_vector'],
+      ),
     );
   }
 
@@ -7028,6 +7079,8 @@ class SubCategory extends DataClass implements Insertable<SubCategory> {
   final DateTime updatedAt;
   final int revision;
   final String syncState;
+  final int lamportClock;
+  final String? versionVector;
   const SubCategory({
     required this.id,
     required this.categoryId,
@@ -7043,6 +7096,8 @@ class SubCategory extends DataClass implements Insertable<SubCategory> {
     required this.updatedAt,
     required this.revision,
     required this.syncState,
+    required this.lamportClock,
+    this.versionVector,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -7063,6 +7118,10 @@ class SubCategory extends DataClass implements Insertable<SubCategory> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['revision'] = Variable<int>(revision);
     map['sync_state'] = Variable<String>(syncState);
+    map['lamport_clock'] = Variable<int>(lamportClock);
+    if (!nullToAbsent || versionVector != null) {
+      map['version_vector'] = Variable<String>(versionVector);
+    }
     return map;
   }
 
@@ -7084,6 +7143,10 @@ class SubCategory extends DataClass implements Insertable<SubCategory> {
       updatedAt: Value(updatedAt),
       revision: Value(revision),
       syncState: Value(syncState),
+      lamportClock: Value(lamportClock),
+      versionVector: versionVector == null && nullToAbsent
+          ? const Value.absent()
+          : Value(versionVector),
     );
   }
 
@@ -7107,6 +7170,8 @@ class SubCategory extends DataClass implements Insertable<SubCategory> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       revision: serializer.fromJson<int>(json['revision']),
       syncState: serializer.fromJson<String>(json['syncState']),
+      lamportClock: serializer.fromJson<int>(json['lamportClock']),
+      versionVector: serializer.fromJson<String?>(json['versionVector']),
     );
   }
   @override
@@ -7127,6 +7192,8 @@ class SubCategory extends DataClass implements Insertable<SubCategory> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'revision': serializer.toJson<int>(revision),
       'syncState': serializer.toJson<String>(syncState),
+      'lamportClock': serializer.toJson<int>(lamportClock),
+      'versionVector': serializer.toJson<String?>(versionVector),
     };
   }
 
@@ -7145,6 +7212,8 @@ class SubCategory extends DataClass implements Insertable<SubCategory> {
     DateTime? updatedAt,
     int? revision,
     String? syncState,
+    int? lamportClock,
+    Value<String?> versionVector = const Value.absent(),
   }) => SubCategory(
     id: id ?? this.id,
     categoryId: categoryId ?? this.categoryId,
@@ -7160,6 +7229,10 @@ class SubCategory extends DataClass implements Insertable<SubCategory> {
     updatedAt: updatedAt ?? this.updatedAt,
     revision: revision ?? this.revision,
     syncState: syncState ?? this.syncState,
+    lamportClock: lamportClock ?? this.lamportClock,
+    versionVector: versionVector.present
+        ? versionVector.value
+        : this.versionVector,
   );
   SubCategory copyWithCompanion(SubCategoriesCompanion data) {
     return SubCategory(
@@ -7187,6 +7260,12 @@ class SubCategory extends DataClass implements Insertable<SubCategory> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       revision: data.revision.present ? data.revision.value : this.revision,
       syncState: data.syncState.present ? data.syncState.value : this.syncState,
+      lamportClock: data.lamportClock.present
+          ? data.lamportClock.value
+          : this.lamportClock,
+      versionVector: data.versionVector.present
+          ? data.versionVector.value
+          : this.versionVector,
     );
   }
 
@@ -7206,7 +7285,9 @@ class SubCategory extends DataClass implements Insertable<SubCategory> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('revision: $revision, ')
-          ..write('syncState: $syncState')
+          ..write('syncState: $syncState, ')
+          ..write('lamportClock: $lamportClock, ')
+          ..write('versionVector: $versionVector')
           ..write(')'))
         .toString();
   }
@@ -7227,6 +7308,8 @@ class SubCategory extends DataClass implements Insertable<SubCategory> {
     updatedAt,
     revision,
     syncState,
+    lamportClock,
+    versionVector,
   );
   @override
   bool operator ==(Object other) =>
@@ -7245,7 +7328,9 @@ class SubCategory extends DataClass implements Insertable<SubCategory> {
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.revision == this.revision &&
-          other.syncState == this.syncState);
+          other.syncState == this.syncState &&
+          other.lamportClock == this.lamportClock &&
+          other.versionVector == this.versionVector);
 }
 
 class SubCategoriesCompanion extends UpdateCompanion<SubCategory> {
@@ -7263,6 +7348,8 @@ class SubCategoriesCompanion extends UpdateCompanion<SubCategory> {
   final Value<DateTime> updatedAt;
   final Value<int> revision;
   final Value<String> syncState;
+  final Value<int> lamportClock;
+  final Value<String?> versionVector;
   final Value<int> rowid;
   const SubCategoriesCompanion({
     this.id = const Value.absent(),
@@ -7279,6 +7366,8 @@ class SubCategoriesCompanion extends UpdateCompanion<SubCategory> {
     this.updatedAt = const Value.absent(),
     this.revision = const Value.absent(),
     this.syncState = const Value.absent(),
+    this.lamportClock = const Value.absent(),
+    this.versionVector = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   SubCategoriesCompanion.insert({
@@ -7296,6 +7385,8 @@ class SubCategoriesCompanion extends UpdateCompanion<SubCategory> {
     this.updatedAt = const Value.absent(),
     this.revision = const Value.absent(),
     this.syncState = const Value.absent(),
+    this.lamportClock = const Value.absent(),
+    this.versionVector = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        categoryId = Value(categoryId),
@@ -7315,6 +7406,8 @@ class SubCategoriesCompanion extends UpdateCompanion<SubCategory> {
     Expression<DateTime>? updatedAt,
     Expression<int>? revision,
     Expression<String>? syncState,
+    Expression<int>? lamportClock,
+    Expression<String>? versionVector,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -7332,6 +7425,8 @@ class SubCategoriesCompanion extends UpdateCompanion<SubCategory> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (revision != null) 'revision': revision,
       if (syncState != null) 'sync_state': syncState,
+      if (lamportClock != null) 'lamport_clock': lamportClock,
+      if (versionVector != null) 'version_vector': versionVector,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -7351,6 +7446,8 @@ class SubCategoriesCompanion extends UpdateCompanion<SubCategory> {
     Value<DateTime>? updatedAt,
     Value<int>? revision,
     Value<String>? syncState,
+    Value<int>? lamportClock,
+    Value<String?>? versionVector,
     Value<int>? rowid,
   }) {
     return SubCategoriesCompanion(
@@ -7368,6 +7465,8 @@ class SubCategoriesCompanion extends UpdateCompanion<SubCategory> {
       updatedAt: updatedAt ?? this.updatedAt,
       revision: revision ?? this.revision,
       syncState: syncState ?? this.syncState,
+      lamportClock: lamportClock ?? this.lamportClock,
+      versionVector: versionVector ?? this.versionVector,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -7417,6 +7516,12 @@ class SubCategoriesCompanion extends UpdateCompanion<SubCategory> {
     if (syncState.present) {
       map['sync_state'] = Variable<String>(syncState.value);
     }
+    if (lamportClock.present) {
+      map['lamport_clock'] = Variable<int>(lamportClock.value);
+    }
+    if (versionVector.present) {
+      map['version_vector'] = Variable<String>(versionVector.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -7440,6 +7545,8 @@ class SubCategoriesCompanion extends UpdateCompanion<SubCategory> {
           ..write('updatedAt: $updatedAt, ')
           ..write('revision: $revision, ')
           ..write('syncState: $syncState, ')
+          ..write('lamportClock: $lamportClock, ')
+          ..write('versionVector: $versionVector, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -11738,6 +11845,29 @@ class $AuditLogsTable extends AuditLogs
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _lamportClockMeta = const VerificationMeta(
+    'lamportClock',
+  );
+  @override
+  late final GeneratedColumn<int> lamportClock = GeneratedColumn<int>(
+    'lamport_clock',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _versionVectorMeta = const VerificationMeta(
+    'versionVector',
+  );
+  @override
+  late final GeneratedColumn<String> versionVector = GeneratedColumn<String>(
+    'version_vector',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -11753,6 +11883,8 @@ class $AuditLogsTable extends AuditLogs
     createdAt,
     syncState,
     revision,
+    lamportClock,
+    versionVector,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -11848,6 +11980,24 @@ class $AuditLogsTable extends AuditLogs
         revision.isAcceptableOrUnknown(data['revision']!, _revisionMeta),
       );
     }
+    if (data.containsKey('lamport_clock')) {
+      context.handle(
+        _lamportClockMeta,
+        lamportClock.isAcceptableOrUnknown(
+          data['lamport_clock']!,
+          _lamportClockMeta,
+        ),
+      );
+    }
+    if (data.containsKey('version_vector')) {
+      context.handle(
+        _versionVectorMeta,
+        versionVector.isAcceptableOrUnknown(
+          data['version_vector']!,
+          _versionVectorMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -11911,6 +12061,14 @@ class $AuditLogsTable extends AuditLogs
         DriftSqlType.int,
         data['${effectivePrefix}revision'],
       )!,
+      lamportClock: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}lamport_clock'],
+      )!,
+      versionVector: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}version_vector'],
+      ),
     );
   }
 
@@ -11941,6 +12099,8 @@ class AuditLog extends DataClass implements Insertable<AuditLog> {
   final DateTime createdAt;
   final String syncState;
   final int revision;
+  final int lamportClock;
+  final String? versionVector;
   const AuditLog({
     required this.id,
     required this.entityType,
@@ -11955,6 +12115,8 @@ class AuditLog extends DataClass implements Insertable<AuditLog> {
     required this.createdAt,
     required this.syncState,
     required this.revision,
+    required this.lamportClock,
+    this.versionVector,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -11984,6 +12146,10 @@ class AuditLog extends DataClass implements Insertable<AuditLog> {
     map['created_at'] = Variable<DateTime>(createdAt);
     map['sync_state'] = Variable<String>(syncState);
     map['revision'] = Variable<int>(revision);
+    map['lamport_clock'] = Variable<int>(lamportClock);
+    if (!nullToAbsent || versionVector != null) {
+      map['version_vector'] = Variable<String>(versionVector);
+    }
     return map;
   }
 
@@ -12012,6 +12178,10 @@ class AuditLog extends DataClass implements Insertable<AuditLog> {
       createdAt: Value(createdAt),
       syncState: Value(syncState),
       revision: Value(revision),
+      lamportClock: Value(lamportClock),
+      versionVector: versionVector == null && nullToAbsent
+          ? const Value.absent()
+          : Value(versionVector),
     );
   }
 
@@ -12034,6 +12204,8 @@ class AuditLog extends DataClass implements Insertable<AuditLog> {
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       syncState: serializer.fromJson<String>(json['syncState']),
       revision: serializer.fromJson<int>(json['revision']),
+      lamportClock: serializer.fromJson<int>(json['lamportClock']),
+      versionVector: serializer.fromJson<String?>(json['versionVector']),
     );
   }
   @override
@@ -12053,6 +12225,8 @@ class AuditLog extends DataClass implements Insertable<AuditLog> {
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'syncState': serializer.toJson<String>(syncState),
       'revision': serializer.toJson<int>(revision),
+      'lamportClock': serializer.toJson<int>(lamportClock),
+      'versionVector': serializer.toJson<String?>(versionVector),
     };
   }
 
@@ -12070,6 +12244,8 @@ class AuditLog extends DataClass implements Insertable<AuditLog> {
     DateTime? createdAt,
     String? syncState,
     int? revision,
+    int? lamportClock,
+    Value<String?> versionVector = const Value.absent(),
   }) => AuditLog(
     id: id ?? this.id,
     entityType: entityType ?? this.entityType,
@@ -12086,6 +12262,10 @@ class AuditLog extends DataClass implements Insertable<AuditLog> {
     createdAt: createdAt ?? this.createdAt,
     syncState: syncState ?? this.syncState,
     revision: revision ?? this.revision,
+    lamportClock: lamportClock ?? this.lamportClock,
+    versionVector: versionVector.present
+        ? versionVector.value
+        : this.versionVector,
   );
   AuditLog copyWithCompanion(AuditLogsCompanion data) {
     return AuditLog(
@@ -12106,6 +12286,12 @@ class AuditLog extends DataClass implements Insertable<AuditLog> {
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       syncState: data.syncState.present ? data.syncState.value : this.syncState,
       revision: data.revision.present ? data.revision.value : this.revision,
+      lamportClock: data.lamportClock.present
+          ? data.lamportClock.value
+          : this.lamportClock,
+      versionVector: data.versionVector.present
+          ? data.versionVector.value
+          : this.versionVector,
     );
   }
 
@@ -12124,7 +12310,9 @@ class AuditLog extends DataClass implements Insertable<AuditLog> {
           ..write('metadata: $metadata, ')
           ..write('createdAt: $createdAt, ')
           ..write('syncState: $syncState, ')
-          ..write('revision: $revision')
+          ..write('revision: $revision, ')
+          ..write('lamportClock: $lamportClock, ')
+          ..write('versionVector: $versionVector')
           ..write(')'))
         .toString();
   }
@@ -12144,6 +12332,8 @@ class AuditLog extends DataClass implements Insertable<AuditLog> {
     createdAt,
     syncState,
     revision,
+    lamportClock,
+    versionVector,
   );
   @override
   bool operator ==(Object other) =>
@@ -12161,7 +12351,9 @@ class AuditLog extends DataClass implements Insertable<AuditLog> {
           other.metadata == this.metadata &&
           other.createdAt == this.createdAt &&
           other.syncState == this.syncState &&
-          other.revision == this.revision);
+          other.revision == this.revision &&
+          other.lamportClock == this.lamportClock &&
+          other.versionVector == this.versionVector);
 }
 
 class AuditLogsCompanion extends UpdateCompanion<AuditLog> {
@@ -12178,6 +12370,8 @@ class AuditLogsCompanion extends UpdateCompanion<AuditLog> {
   final Value<DateTime> createdAt;
   final Value<String> syncState;
   final Value<int> revision;
+  final Value<int> lamportClock;
+  final Value<String?> versionVector;
   final Value<int> rowid;
   const AuditLogsCompanion({
     this.id = const Value.absent(),
@@ -12193,6 +12387,8 @@ class AuditLogsCompanion extends UpdateCompanion<AuditLog> {
     this.createdAt = const Value.absent(),
     this.syncState = const Value.absent(),
     this.revision = const Value.absent(),
+    this.lamportClock = const Value.absent(),
+    this.versionVector = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   AuditLogsCompanion.insert({
@@ -12209,6 +12405,8 @@ class AuditLogsCompanion extends UpdateCompanion<AuditLog> {
     this.createdAt = const Value.absent(),
     this.syncState = const Value.absent(),
     this.revision = const Value.absent(),
+    this.lamportClock = const Value.absent(),
+    this.versionVector = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        entityType = Value(entityType),
@@ -12229,6 +12427,8 @@ class AuditLogsCompanion extends UpdateCompanion<AuditLog> {
     Expression<DateTime>? createdAt,
     Expression<String>? syncState,
     Expression<int>? revision,
+    Expression<int>? lamportClock,
+    Expression<String>? versionVector,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -12245,6 +12445,8 @@ class AuditLogsCompanion extends UpdateCompanion<AuditLog> {
       if (createdAt != null) 'created_at': createdAt,
       if (syncState != null) 'sync_state': syncState,
       if (revision != null) 'revision': revision,
+      if (lamportClock != null) 'lamport_clock': lamportClock,
+      if (versionVector != null) 'version_vector': versionVector,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -12263,6 +12465,8 @@ class AuditLogsCompanion extends UpdateCompanion<AuditLog> {
     Value<DateTime>? createdAt,
     Value<String>? syncState,
     Value<int>? revision,
+    Value<int>? lamportClock,
+    Value<String?>? versionVector,
     Value<int>? rowid,
   }) {
     return AuditLogsCompanion(
@@ -12279,6 +12483,8 @@ class AuditLogsCompanion extends UpdateCompanion<AuditLog> {
       createdAt: createdAt ?? this.createdAt,
       syncState: syncState ?? this.syncState,
       revision: revision ?? this.revision,
+      lamportClock: lamportClock ?? this.lamportClock,
+      versionVector: versionVector ?? this.versionVector,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -12327,6 +12533,12 @@ class AuditLogsCompanion extends UpdateCompanion<AuditLog> {
     if (revision.present) {
       map['revision'] = Variable<int>(revision.value);
     }
+    if (lamportClock.present) {
+      map['lamport_clock'] = Variable<int>(lamportClock.value);
+    }
+    if (versionVector.present) {
+      map['version_vector'] = Variable<String>(versionVector.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -12349,6 +12561,8 @@ class AuditLogsCompanion extends UpdateCompanion<AuditLog> {
           ..write('createdAt: $createdAt, ')
           ..write('syncState: $syncState, ')
           ..write('revision: $revision, ')
+          ..write('lamportClock: $lamportClock, ')
+          ..write('versionVector: $versionVector, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -41611,6 +41825,8 @@ typedef $$SubCategoriesTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<int> revision,
       Value<String> syncState,
+      Value<int> lamportClock,
+      Value<String?> versionVector,
       Value<int> rowid,
     });
 typedef $$SubCategoriesTableUpdateCompanionBuilder =
@@ -41629,6 +41845,8 @@ typedef $$SubCategoriesTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<int> revision,
       Value<String> syncState,
+      Value<int> lamportClock,
+      Value<String?> versionVector,
       Value<int> rowid,
     });
 
@@ -41789,6 +42007,16 @@ class $$SubCategoriesTableFilterComposer
 
   ColumnFilters<String> get syncState => $composableBuilder(
     column: $table.syncState,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lamportClock => $composableBuilder(
+    column: $table.lamportClock,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get versionVector => $composableBuilder(
+    column: $table.versionVector,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -41958,6 +42186,16 @@ class $$SubCategoriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get lamportClock => $composableBuilder(
+    column: $table.lamportClock,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get versionVector => $composableBuilder(
+    column: $table.versionVector,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$CategoriesTableOrderingComposer get categoryId {
     final $$CategoriesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -42057,6 +42295,16 @@ class $$SubCategoriesTableAnnotationComposer
 
   GeneratedColumn<String> get syncState =>
       $composableBuilder(column: $table.syncState, builder: (column) => column);
+
+  GeneratedColumn<int> get lamportClock => $composableBuilder(
+    column: $table.lamportClock,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get versionVector => $composableBuilder(
+    column: $table.versionVector,
+    builder: (column) => column,
+  );
 
   $$CategoriesTableAnnotationComposer get categoryId {
     final $$CategoriesTableAnnotationComposer composer = $composerBuilder(
@@ -42202,6 +42450,8 @@ class $$SubCategoriesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> revision = const Value.absent(),
                 Value<String> syncState = const Value.absent(),
+                Value<int> lamportClock = const Value.absent(),
+                Value<String?> versionVector = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SubCategoriesCompanion(
                 id: id,
@@ -42218,6 +42468,8 @@ class $$SubCategoriesTableTableManager
                 updatedAt: updatedAt,
                 revision: revision,
                 syncState: syncState,
+                lamportClock: lamportClock,
+                versionVector: versionVector,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -42236,6 +42488,8 @@ class $$SubCategoriesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> revision = const Value.absent(),
                 Value<String> syncState = const Value.absent(),
+                Value<int> lamportClock = const Value.absent(),
+                Value<String?> versionVector = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SubCategoriesCompanion.insert(
                 id: id,
@@ -42252,6 +42506,8 @@ class $$SubCategoriesTableTableManager
                 updatedAt: updatedAt,
                 revision: revision,
                 syncState: syncState,
+                lamportClock: lamportClock,
+                versionVector: versionVector,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -45592,6 +45848,8 @@ typedef $$AuditLogsTableCreateCompanionBuilder =
       Value<DateTime> createdAt,
       Value<String> syncState,
       Value<int> revision,
+      Value<int> lamportClock,
+      Value<String?> versionVector,
       Value<int> rowid,
     });
 typedef $$AuditLogsTableUpdateCompanionBuilder =
@@ -45609,6 +45867,8 @@ typedef $$AuditLogsTableUpdateCompanionBuilder =
       Value<DateTime> createdAt,
       Value<String> syncState,
       Value<int> revision,
+      Value<int> lamportClock,
+      Value<String?> versionVector,
       Value<int> rowid,
     });
 
@@ -45709,6 +45969,16 @@ class $$AuditLogsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<int> get lamportClock => $composableBuilder(
+    column: $table.lamportClock,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get versionVector => $composableBuilder(
+    column: $table.versionVector,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$UsersTableFilterComposer get userId {
     final $$UsersTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -45802,6 +46072,16 @@ class $$AuditLogsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get lamportClock => $composableBuilder(
+    column: $table.lamportClock,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get versionVector => $composableBuilder(
+    column: $table.versionVector,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$UsersTableOrderingComposer get userId {
     final $$UsersTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -45876,6 +46156,16 @@ class $$AuditLogsTableAnnotationComposer
   GeneratedColumn<int> get revision =>
       $composableBuilder(column: $table.revision, builder: (column) => column);
 
+  GeneratedColumn<int> get lamportClock => $composableBuilder(
+    column: $table.lamportClock,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get versionVector => $composableBuilder(
+    column: $table.versionVector,
+    builder: (column) => column,
+  );
+
   $$UsersTableAnnotationComposer get userId {
     final $$UsersTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -45941,6 +46231,8 @@ class $$AuditLogsTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<String> syncState = const Value.absent(),
                 Value<int> revision = const Value.absent(),
+                Value<int> lamportClock = const Value.absent(),
+                Value<String?> versionVector = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => AuditLogsCompanion(
                 id: id,
@@ -45956,6 +46248,8 @@ class $$AuditLogsTableTableManager
                 createdAt: createdAt,
                 syncState: syncState,
                 revision: revision,
+                lamportClock: lamportClock,
+                versionVector: versionVector,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -45973,6 +46267,8 @@ class $$AuditLogsTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<String> syncState = const Value.absent(),
                 Value<int> revision = const Value.absent(),
+                Value<int> lamportClock = const Value.absent(),
+                Value<String?> versionVector = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => AuditLogsCompanion.insert(
                 id: id,
@@ -45988,6 +46284,8 @@ class $$AuditLogsTableTableManager
                 createdAt: createdAt,
                 syncState: syncState,
                 revision: revision,
+                lamportClock: lamportClock,
+                versionVector: versionVector,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

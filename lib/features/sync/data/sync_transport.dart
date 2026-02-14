@@ -54,9 +54,12 @@ class SupabaseSyncTransport implements SyncTransport {
     // Map internal table names to Supabase table names if needed
     // Assuming they match 1:1 based on DataBatchSync code
     
+    // Profiles table does NOT have version_vector on server
+    final columns = table == 'profiles' ? 'id, revision' : 'id, revision, version_vector';
+    
     final response = await client
         .from(table)
-        .select('id, revision, version_vector')
+        .select(columns)
         .inFilter('id', ids);
         
     return List<Map<String, dynamic>>.from(response);

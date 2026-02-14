@@ -86,11 +86,7 @@ class ReportsService {
   }
 
   void _addToBreakdown(Map<String, HierarchicalCategoryTotal> breakdown, String parentName, double amount, {String? subcategoryName}) {
-    if (!breakdown.containsKey(parentName)) {
-      breakdown[parentName] = HierarchicalCategoryTotal(name: parentName);
-    }
-    
-    final group = breakdown[parentName]!;
+    final group = breakdown.putIfAbsent(parentName, () => HierarchicalCategoryTotal(name: parentName));
     group.totalCents += amount.toInt();
     
     if (subcategoryName != null) {

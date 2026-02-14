@@ -42,6 +42,10 @@ class BootstrapService {
             options.environment = kReleaseMode ? 'production' : 'development';
             options.tracesSampleRate = 1.0;
             options.enableAutoSessionTracking = true;
+            
+            // NOTE: SentryComposeIntegration requires extra configuration if utilized
+            // options.addIntegration(SentryComposeIntegration(enableJetpackComposeTrackers: false));
+            
             options.beforeSend = (event, hint) async {
               if (!kReleaseMode || (options.dsn?.isEmpty ?? true)) return null;
               return event;

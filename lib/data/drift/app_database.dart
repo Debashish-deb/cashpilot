@@ -506,6 +506,48 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
+  /// Marks all user data as deleted to propagate to the cloud via sync
+  /// This is Step 1 of a full account deletion flow.
+  Future<void> markAllUserDataDeleted() async {
+    final now = DateTime.now();
+    await transaction(() async {
+      // Expenses
+      await (update(expenses)..where((t) => t.isDeleted.not())).write(ExpensesCompanion(
+        isDeleted: const Value(true),
+        updatedAt: Value(now),
+        syncState: const Value('dirty'),
+      ));
+      
+      // Budgets
+      await (update(budgets)..where((t) => t.isDeleted.not())).write(BudgetsCompanion(
+        isDeleted: const Value(true),
+        updatedAt: Value(now),
+        syncState: const Value('dirty'),
+      ));
+
+      // Accounts
+      await (update(accounts)..where((t) => t.isDeleted.not())).write(AccountsCompanion(
+        isDeleted: const Value(true),
+        updatedAt: Value(now),
+        syncState: const Value('dirty'),
+      ));
+
+      // Assets
+      await (update(assets)..where((t) => t.isDeleted.not())).write(AssetsCompanion(
+        isDeleted: const Value(true),
+        updatedAt: Value(now),
+        syncState: const Value('dirty'),
+      ));
+
+      // Liabilities
+      await (update(liabilities)..where((t) => t.isDeleted.not())).write(LiabilitiesCompanion(
+        isDeleted: const Value(true),
+        updatedAt: Value(now),
+        syncState: const Value('dirty'),
+      ));
+    });
+  }
+
   // ============================================================
   // USER OPERATIONS
   // ============================================================

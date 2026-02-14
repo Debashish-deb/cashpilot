@@ -1,4 +1,5 @@
 
+import 'package:cashpilot/core/providers/app_providers.dart' show currencyProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -6,7 +7,8 @@ import '../../../../features/net_worth/providers/net_worth_providers.dart';
 import '../../../../features/auth/providers/auth_provider.dart';
 import '../../../../domain/entities/net_worth/liability.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../core/providers/app_providers.dart';
+import '../../../../core/utils/amount_utils.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../widgets/common/glass_widgets.dart';
 
 class AddLiabilitySheet extends ConsumerStatefulWidget {
@@ -41,29 +43,56 @@ class _AddLiabilitySheetState extends ConsumerState<AddLiabilitySheet> {
 
   Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
-      final user = ref.read(currentUserProvider);
-      if (user == null) return;
+      try {
+        final user = ref.read(currentUserProvider);
+        if (user == null) return;
 
-      final balance = double.tryParse(_balanceController.text.replaceAll(',', '.')) ?? 0.0;
-      final interest = double.tryParse(_interestController.text.replaceAll(',', '.'));
-      
-      final liability = Liability(
-        id: const Uuid().v4(),
-        userId: user.id,
-        name: _nameController.text,
-        type: _selectedType,
-        currentBalance: (balance * 100).round(), // Convert to cents
-        interestRate: interest,
-        currency: _currency,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
+        final balanceCents = AmountUtils.parseToCents(_balanceController.text);
+        
+        // Interest rate is a percentage, still worth using a safe parse but not toCents
+        final sanitizedInterest = _interestController.text.replaceAll(',', '.');
+        final interest = double.tryParse(sanitizedInterest);
+        
+        if (interest != null && (interest < 0 || interest > 100)) {
+           throw const AmountValidationException('Interest rate must be between 0 and 100%');
+        }
 
-      final controller = ref.read(netWorthControllerProvider.notifier);
-      await controller.addLiability(liability);
-      
-      if (mounted) {
-        Navigator.pop(context);
+        final liability = Liability(
+          id: const Uuid().v4(),
+          userId: user.id,
+          name: _nameController.text,
+          type: _selectedType,
+          currentBalance: balanceCents,
+          interestRate: interest,
+          currency: _currency,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
+        final controller = ref.read(netWorthControllerProvider.notifier);
+        await controller.addLiability(liability);
+        
+        if (mounted) {
+          Navigator.pop(context);
+        }
+      } on AmountValidationException catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.message),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to save liability: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
       }
     }
   }

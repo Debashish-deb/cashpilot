@@ -37,7 +37,9 @@ class HeroInsightCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final formatManager = ref.watch(formatManagerProvider);
     final currency = ref.watch(currencyProvider);
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return const SizedBox.shrink();
+
     final isDark = theme.brightness == Brightness.dark;
 
     // Calculate percentage change

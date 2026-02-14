@@ -8,6 +8,7 @@ import '../../../../domain/entities/net_worth/asset.dart';
 import '../../../../core/providers/app_providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/amount_utils.dart';
 import '../../../widgets/common/glass_widgets.dart';
 
 class AddAssetSheet extends ConsumerStatefulWidget {
@@ -42,28 +43,48 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
 
   Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
-      final user = ref.read(currentUserProvider);
-      if (user == null) return;
+      try {
+        final user = ref.read(currentUserProvider);
+        if (user == null) return;
 
-      final value = double.tryParse(_valueController.text.replaceAll(',', '.')) ?? 0.0;
-      
-      final asset = Asset(
-        id: const Uuid().v4(),
-        userId: user.id,
-        name: _nameController.text,
-        type: _selectedType,
-        currentValue: (value * 100).round(), // Convert to cents
-        currency: _currency,
-        institutionName: _institutionController.text.isNotEmpty ? _institutionController.text : null,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
+        final cents = AmountUtils.parseToCents(_valueController.text);
+        
+        final asset = Asset(
+          id: const Uuid().v4(),
+          userId: user.id,
+          name: _nameController.text,
+          type: _selectedType,
+          currentValue: cents,
+          currency: _currency,
+          institutionName: _institutionController.text.isNotEmpty ? _institutionController.text : null,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
 
-      final controller = ref.read(netWorthControllerProvider.notifier);
-      await controller.addAsset(asset);
-      
-      if (mounted) {
-        Navigator.pop(context);
+        final controller = ref.read(netWorthControllerProvider.notifier);
+        await controller.addAsset(asset);
+        
+        if (mounted) {
+          Navigator.pop(context);
+        }
+      } on AmountValidationException catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.message),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to save asset: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
       }
     }
   }
@@ -149,7 +170,7 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
               TextFormField(
                 controller: _institutionController,
                 style: AppTypography.bodyMedium.copyWith(color: Colors.white),
-                decoration: _inputDecoration('Institution (Optional)', Icons.business_rounded, hint: 'e.g. Chase, Binance'),
+                decoration: _inputDecoration('Institution (Optional)', Icons.business_rounded, hint: 'e.g. Chase, Robinhood'),
               ),
               const SizedBox(height: 40),
 

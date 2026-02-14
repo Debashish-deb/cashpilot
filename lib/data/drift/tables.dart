@@ -334,6 +334,10 @@ class AuditLogs extends Table {
   TextColumn get syncState => text().withDefault(const Constant('clean'))();
   IntColumn get revision => integer().withDefault(const Constant(0))();
 
+  // Phase 8: Distributed State
+  IntColumn get lamportClock => integer().withDefault(const Constant(0))();
+  TextColumn get versionVector => text().nullable()(); // JSON Map<DeviceId, Clock>
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -646,6 +650,10 @@ class SubCategories extends Table {
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   IntColumn get revision => integer().withDefault(const Constant(0))();
   TextColumn get syncState => text().withDefault(const Constant('clean'))();
+
+  // Phase 8: Distributed State
+  IntColumn get lamportClock => integer().withDefault(const Constant(0))();
+  TextColumn get versionVector => text().nullable()(); // JSON Map<DeviceId, Clock>
 
   @override
   Set<Column> get primaryKey => {id};

@@ -86,21 +86,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## 📄 License
 
 This project is licensed under the MIT License.
-
-Phase 6: Remaining Budgeting & Family Gaps
- Support refund recovery in budgets
- Add isRefund column to
-Expenses
- table
- Update
-BankTransactionProcessingService
- for refund detection
- Implement historical budget recalculation engine
- Implement real-time multi-currency aggregation
- Add split transaction support
- Create SplitTransactions table
- Update
-ExpenseController
- to support splitting
- Implement SMTP-based email invitations
- Add push notifications for shared spending

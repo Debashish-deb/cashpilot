@@ -73,7 +73,23 @@ class SyncSection extends ConsumerWidget {
                   onTap: isSyncing
                       ? () {}
                       : () async {
-                           await ref.read(syncEngineProvider).performSync();
+                           try {
+                             await ref.read(syncEngineProvider).performSync();
+                             if (context.mounted) {
+                               ScaffoldMessenger.of(context).showSnackBar(
+                                 const SnackBar(content: Text('Sync completed successfully')),
+                               );
+                             }
+                           } catch (e) {
+                             if (context.mounted) {
+                               ScaffoldMessenger.of(context).showSnackBar(
+                                 SnackBar(
+                                   content: Text('Sync failed: $e'),
+                                   backgroundColor: Colors.redAccent,
+                                 ),
+                               );
+                             }
+                           }
                         },
                 ),
                  // Add spacer or empty box to fill row if desired, or just let it take full width?

@@ -40,13 +40,14 @@ class BudgetDetailsScreen extends ConsumerWidget {
     final budgetDataAsync = ref.watch(budgetWithSemiBudgetsProvider(budgetId));
     final expensesAsync = ref.watch(expensesByBudgetProvider(budgetId));
     final currency = ref.watch(currencyProvider);
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       body: budgetDataAsync.when(
         data: (data) {
+          if (l10n == null) return const SizedBox.shrink();
           if (data == null) {
-            return Center(child: Text(l10n.budgetsNotFound));
+            return Center(child: Text(l10n!.budgetsNotFound));
           }
 
           return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -122,7 +123,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
           child: CircularProgressIndicator(),
         ),
         error: (error, _) => Center(
-          child: Text('${l10n.commonError}: $error'),
+          child: Text('${l10n?.commonError ?? 'Error'}: $error'),
         ),
       ),
     );
@@ -145,7 +146,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
     WidgetRef ref,
     BudgetWithSemiBudgets data,
     String currency,
-    AppLocalizations l10n,
+    AppLocalizations? l10n,
   ) {
     final budget = data.budget;
     final rawProgress = data.spentPercentage;
@@ -176,12 +177,12 @@ class BudgetDetailsScreen extends ConsumerWidget {
         IconButton(
           icon: Icon(Icons.edit_outlined, color: Theme.of(context).colorScheme.onPrimary),
           onPressed: () => context.push(AppRoutes.budgetEditPath(budgetId)),
-          tooltip: l10n.commonEdit,
+          tooltip: l10n?.commonEdit,
         ),
         IconButton(
           icon: Icon(Icons.more_vert_rounded, color: Theme.of(context).colorScheme.onPrimary),
           onPressed: () => _showBudgetMenu(context, ref, budget),
-          tooltip: l10n.commonMore,
+          tooltip: l10n?.commonMore,
         ),
       ],
       flexibleSpace: FlexibleSpaceBar(
@@ -224,11 +225,11 @@ class BudgetDetailsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 // Date range
-                Text(
+                  Text(
                   LocalizedDateFormatter.formatDateRange(
                     budget.startDate,
                     budget.endDate,
-                    l10n.localeName,
+                    l10n?.localeName ?? 'en',
                   ),
                   style: AppTypography.bodyMedium.copyWith(
                     color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.8),
@@ -243,7 +244,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: _HeaderMetric(
-                        label: l10n.budgetsSpent,
+                        label: l10n?.budgetsSpent ?? 'Spent',
                         value: _formatCurrency(context, data.totalSpent, currency),
                         alignRight: false,
                       ),
@@ -251,7 +252,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
                     if (budget.totalLimit != null) ...[
                       Expanded(
                         child: _HeaderMetric(
-                          label: l10n.budgetsRemaining,
+                          label: l10n?.budgetsRemaining ?? 'Remaining',
                           value: _formatCurrency(context, data.remaining, currency),
                           alignRight: true,
                         ),
@@ -282,7 +283,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        l10n.expensesAddExpense,
+                        l10n?.expensesAddExpense ?? 'Add Expense',
                         style: AppTypography.labelSmall.copyWith(
                           color: Theme.of(context).colorScheme.onPrimary,
                           fontWeight: FontWeight.w600,
@@ -332,7 +333,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
     BuildContext context,
     BudgetWithSemiBudgets data,
     String currency,
-    AppLocalizations l10n,
+    AppLocalizations? l10n,
   ) {
     final grouped = data.groupedSemiBudgets;
 
@@ -346,7 +347,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                l10n.budgetsCategories.toUpperCase(),
+                (l10n?.budgetsCategories ?? 'CATEGORIES').toUpperCase(),
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -358,7 +359,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
                 onPressed: () =>
                     context.push(AppRoutes.categoryAddPath(budgetId)),
                 icon: const Icon(Icons.add, size: 18),
-                label: Text(l10n.commonAdd),
+                label: Text(l10n?.commonAdd ?? 'Add'),
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 ),
@@ -577,7 +578,10 @@ class BudgetDetailsScreen extends ConsumerWidget {
                   TextButton.icon(
                     onPressed: () => context.push(AppRoutes.categoryEditPath(budgetId, parent.id)),
                     icon: const Icon(Icons.edit_outlined, size: 14),
-                    label: Text(AppLocalizations.of(context)!.commonEdit, style: const TextStyle(fontSize: 12)),
+                    label: Text(
+                      AppLocalizations.of(context)?.commonEdit ?? 'Edit',
+                      style: const TextStyle(fontSize: 12),
+                    ),
                   ),
                 ],
               ),
@@ -600,7 +604,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
     AsyncValue<List<Expense>> expensesAsync,
     BudgetWithSemiBudgets data,
     String currency,
-    AppLocalizations l10n,
+    AppLocalizations? l10n,
   ) {
     final theme = Theme.of(context);
     final onSurface = theme.colorScheme.onSurface;
@@ -627,7 +631,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          l10n.expensesRecentExpenses,
+          l10n?.expensesRecentExpenses ?? 'Recent Expenses',
           style: AppTypography.titleMedium.copyWith(
             color: onSurface,
           ),
@@ -639,9 +643,9 @@ class BudgetDetailsScreen extends ConsumerWidget {
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
                 child: EmptyState(
-                  title: l10n.expensesNoExpenses,
-                  message: l10n.budgetsTrackSpending,
-                  buttonLabel: l10n.expensesAddExpense,
+                  title: l10n?.expensesNoExpenses ?? 'No Expenses',
+                  message: l10n?.budgetsTrackSpending ?? 'Start tracking your spending.',
+                  buttonLabel: l10n?.expensesAddExpense ?? 'Add Expense',
                   icon: Icons.receipt_long_rounded,
                   useGlass: false,
                   onAction: () => context.push(
@@ -725,7 +729,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
           ),
           error: (error, _) => Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Text('${l10n.commonError}: $error'),
+            child: Text('${l10n?.commonError ?? 'Error'}: $error'),
           ),
         ),
       ],
@@ -738,8 +742,9 @@ class BudgetDetailsScreen extends ConsumerWidget {
 
   String _formatCurrency(BuildContext context, int amountInCents, String currency) {
     final amount = amountInCents / 100;
+    final l10n = AppLocalizations.of(context);
     final format = NumberFormat.currency(
-      locale: AppLocalizations.of(context)!.localeName,
+      locale: l10n?.localeName ?? 'en',
       symbol: currency == 'EUR' ? '€' : currency,
       decimalDigits: 2,
     );
@@ -763,7 +768,8 @@ class BudgetDetailsScreen extends ConsumerWidget {
     required Map<String, String> categoryIcons,
     required Map<String, Color> categoryColors,
   }) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return const SizedBox.shrink();
     final categoryName = category != null 
         ? LocalizedCategoryHelper.getLocalizedName(context, category.name, iconName: category.iconName)
         : 'Uncategorized';
@@ -886,7 +892,8 @@ class BudgetDetailsScreen extends ConsumerWidget {
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
     final weekStart = today.subtract(Duration(days: today.weekday - 1));
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return {};
 
     // Use LinkedHashMap behavior to preserve insertion order
     final Map<String, List<Expense>> groups = {};
@@ -899,14 +906,15 @@ class BudgetDetailsScreen extends ConsumerWidget {
       );
 
       String label;
-      if (expenseDate == today) {
-        label = l10n.dateToday;
-      } else if (expenseDate == yesterday) {
-        label = l10n.dateYesterday;
-      } else if (expenseDate.isAfter(weekStart.subtract(const Duration(days: 1)))) {
-        label = l10n.dateThisWeek;
+      final diff = today.difference(expenseDate);
+      if (diff.inDays == 0) {
+        label = l10n!.dateToday;
+      } else if (diff.inDays == 1) {
+        label = l10n!.dateYesterday;
+      } else if (diff.inDays < 7) {
+        label = l10n!.dateThisWeek;
       } else {
-        label = l10n.dateEarlier;
+        label = l10n!.dateEarlier;
       }
 
       groups.putIfAbsent(label, () => []);
@@ -941,7 +949,8 @@ class BudgetDetailsScreen extends ConsumerWidget {
     Map<String, String> categoryIcons,
     Map<String, Color> categoryColors,
   ) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return const SizedBox.shrink();
     final categoryId = expense.semiBudgetId;
     final iconName = categoryIcons[categoryId];
     final categoryColor = categoryColors[categoryId] ?? theme.colorScheme.primary;
@@ -1023,7 +1032,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
                     children: [
                       const Icon(Icons.edit_outlined, size: 18),
                       const SizedBox(width: 8),
-                      Text(l10n.commonEdit),
+                      Text(l10n!.commonEdit),
                     ],
                   ),
                 ),
@@ -1073,7 +1082,8 @@ class BudgetDetailsScreen extends ConsumerWidget {
     WidgetRef ref,
     Budget budget,
   ) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return;
     // Capture the outer context (from widget tree) before modal opens
     final outerContext = context;
     
@@ -1091,7 +1101,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
             children: [
               ListTile(
                 leading: const Icon(Icons.share_outlined),
-                title: Text(l10n.commonShare),
+                title: Text(l10n!.commonShare),
                 onTap: () {
                   Navigator.pop(modalContext);
                   _showShareBudgetDialog(outerContext, ref, budget);
@@ -1099,7 +1109,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
               ),
               ListTile(
                 leading: const Icon(Icons.copy_outlined),
-                title: Text(l10n.commonDuplicate),
+                title: Text(l10n!.commonDuplicate),
                 onTap: () {
                   Navigator.pop(modalContext);
                   AppSnackBar.showInfo(outerContext, 'Duplicate feature coming soon');
@@ -1107,7 +1117,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
               ),
               ListTile(
                 leading: const Icon(Icons.archive_outlined),
-                title: Text(l10n.commonArchive),
+                title: Text(l10n!.commonArchive),
                 onTap: () {
                   Navigator.pop(modalContext);
                   AppSnackBar.showSuccess(outerContext, 'Budget archived');
@@ -1119,9 +1129,9 @@ class BudgetDetailsScreen extends ConsumerWidget {
                   Icons.delete_outline,
                   color: AppColors.danger,
                 ),
-                title: const Text(
-                  'Delete Budget',
-                  style: TextStyle(color: AppColors.danger),
+                title: Text(
+                  l10n!.budgetDeleteShort,
+                  style: const TextStyle(color: AppColors.danger),
                 ),
                 onTap: () {
                   Navigator.pop(modalContext);
@@ -1141,7 +1151,9 @@ class BudgetDetailsScreen extends ConsumerWidget {
     WidgetRef ref,
     Budget budget,
   ) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return;
+    
     final emailController = TextEditingController();
     String role = 'editor';
 
@@ -1149,36 +1161,36 @@ class BudgetDetailsScreen extends ConsumerWidget {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: Text(AppLocalizations.of(context)!.budgetShareTitle), // Using generic/fallback until regenerated
+          title: Text(l10n!.budgetShareTitle),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(l10n.budgetInviteMessage(budget.title)),
+              Text(l10n!.budgetInviteMessage(budget.title)),
               const SizedBox(height: 16),
               TextField(
                 controller: emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email Address', // Keep simple or add key if needed
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email_outlined),
+                decoration: InputDecoration(
+                  labelText: l10n!.familyLabelEmail,
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.email_outlined),
                 ),
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                initialValue: role,
-                decoration: const InputDecoration(
-                  labelText: 'Access Level',
-                  border: OutlineInputBorder(),
+                value: role,
+                decoration: InputDecoration(
+                  labelText: l10n!.familyLabelAccess,
+                  border: const OutlineInputBorder(),
                 ),
                 items: [
                   DropdownMenuItem(
                     value: 'editor',
-                    child: Text(l10n.budgetRoleEditor),
+                    child: Text(l10n!.budgetRoleEditor),
                   ),
                   DropdownMenuItem(
                     value: 'viewer',
-                    child: Text(l10n.budgetRoleViewer),
+                    child: Text(l10n!.budgetRoleViewer),
                   ),
                 ],
                 onChanged: (v) {
@@ -1191,7 +1203,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text(l10n.commonCancel),
+              child: Text(l10n!.commonCancel),
             ),
             FilledButton(
               onPressed: () async {
@@ -1221,7 +1233,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(l10n.budgetInviteSent(email)),
+                        content: Text(l10n!.budgetInviteSent(email)),
                       ),
                     );
                   }
@@ -1229,13 +1241,13 @@ class BudgetDetailsScreen extends ConsumerWidget {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(l10n.budgetInviteFailed(e.toString())),
+                        content: Text(l10n!.budgetInviteFailed(e.toString())),
                       ),
                     );
                   }
                 }
               },
-              child: Text(l10n.commonAdd), 
+              child: Text(l10n!.commonAdd), 
             ),
           ],
         ),
@@ -1248,22 +1260,22 @@ class BudgetDetailsScreen extends ConsumerWidget {
     WidgetRef ref,
     Budget budget,
   ) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return;
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.budgetDeleteConfirmTitle),
+        title: Text(l10n!.budgetDeleteConfirmTitle),
         content: Text(
-          '${l10n.categoryDeleteConfirm(budget.title)}\n\nThis will also delete all expenses and categories in this budget.', // Leave this english for now or add key
+          '${l10n!.categoryDeleteConfirm(budget.title)}\n\nThis will also delete all expenses and categories in this budget.', // Leave this english for now or add key
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: Text(l10n.commonCancel),
+            child: Text(l10n!.commonCancel),
           ),
           TextButton(
             onPressed: () async {
-              final navigator = Navigator.of(context);
               final scaffoldMessenger = ScaffoldMessenger.of(context);
 
               Navigator.pop(dialogContext); // close dialog
@@ -1281,18 +1293,23 @@ class BudgetDetailsScreen extends ConsumerWidget {
                 
                 debugPrint('[BudgetDetails] ✅ Budget deleted and moved to recycle bin');
 
-                navigator.pop(); // pop details screen
-                scaffoldMessenger.showSnackBar(
-                  SnackBar(content: Text('${budget.title} deleted')),
-                );
+                if (context.mounted) {
+                  context.go(AppRoutes.budgets); // Go to budgets list
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(content: Text('${budget.title} deleted')),
+                  );
+                }
               } catch (e) {
                 debugPrint('[BudgetDetails] ⚠️ Error during deletion: $e');
-                scaffoldMessenger.showSnackBar(
-                  SnackBar(content: Text(l10n.budgetDeleteFailed(e.toString()))),
-                );
+                if (context.mounted) {
+                  final l10nLocal = AppLocalizations.of(context);
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(content: Text(l10nLocal?.budgetDeleteFailed(e.toString()) ?? e.toString())),
+                  );
+                }
               }
             },
-            child: Text(l10n.budgetDeleteShort.toUpperCase()),
+            child: Text(l10n!.budgetDeleteShort.toUpperCase()),
           ),
         ],
       ),
@@ -1304,16 +1321,18 @@ class BudgetDetailsScreen extends ConsumerWidget {
     WidgetRef ref,
     Expense expense,
   ) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return;
+    
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.expenseDeleteConfirmTitle),
-        content: Text(l10n.expenseDeleteConfirmMessage(expense.title)),
+        title: Text(l10n!.expenseDeleteConfirmTitle),
+        content: Text(l10n!.expenseDeleteConfirmMessage(expense.title)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: Text(l10n.commonCancel),
+            child: Text(l10n!.commonCancel),
           ),
           TextButton(
             onPressed: () async {
@@ -1333,7 +1352,7 @@ class BudgetDetailsScreen extends ConsumerWidget {
               }
             },
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: Text(l10n.budgetDeleteShort),
+            child: Text(l10n!.budgetDeleteShort),
           ),
         ],
       ),
@@ -1397,7 +1416,7 @@ class _StickyMiniSummaryDelegate extends SliverPersistentHeaderDelegate {
   final int remaining;
   final int dailyBudget;
   final String currency;
-  final AppLocalizations l10n;
+  final AppLocalizations? l10n;
 
   _StickyMiniSummaryDelegate({
     required this.spent,
@@ -1450,7 +1469,7 @@ class _StickyMiniSummaryDelegate extends SliverPersistentHeaderDelegate {
           Expanded(
             child: _buildMiniStat(
               context,
-              l10n.budgetsSpent,
+              l10n?.budgetsSpent ?? 'Spent',
               _formatCurrency(context, spent),
               AppColors.danger,
             ),
@@ -1459,7 +1478,7 @@ class _StickyMiniSummaryDelegate extends SliverPersistentHeaderDelegate {
           Expanded(
             child: _buildMiniStat(
               context,
-              l10n.budgetsRemaining,
+              l10n?.budgetsRemaining ?? 'Remaining',
               _formatCurrency(context, remaining),
               theme.colorScheme.primary,
             ),
@@ -1521,8 +1540,9 @@ class _StickyMiniSummaryDelegate extends SliverPersistentHeaderDelegate {
 
   String _formatCurrency(BuildContext context, int amountInCents) {
     final amount = amountInCents / 100;
+    final l10n = AppLocalizations.of(context);
     final format = NumberFormat.simpleCurrency(
-      locale: AppLocalizations.of(context)!.localeName,
+      locale: l10n?.localeName ?? 'en',
       name: currency,
       decimalDigits: 2,
     );

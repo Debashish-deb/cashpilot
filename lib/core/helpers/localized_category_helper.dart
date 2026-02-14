@@ -34,7 +34,7 @@ class LocalizedCategoryHelper {
 
     // 4. CHECK FOR UNCATEGORIZED EXPLICITLY
     if (categoryName.toLowerCase() == 'uncategorized') {
-      return AppLocalizations.of(context)!.catUncategorized;
+      return AppLocalizations.of(context)?.catUncategorized ?? 'Uncategorized';
     }
 
     // 5. Return original name
@@ -44,10 +44,10 @@ class LocalizedCategoryHelper {
   /// Resolves a hierarchical category name (e.g., "Housing > Rent")
   static String getLocalizedHierarchy(BuildContext context, String? categoryId, String? subCategoryId) {
     if (categoryId == null && subCategoryId == null) {
-      return AppLocalizations.of(context)!.catUncategorized;
+      return AppLocalizations.of(context)?.catUncategorized ?? 'Uncategorized';
     }
 
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
     
     String? masterName;
     if (categoryId != null) {
@@ -84,6 +84,6 @@ class LocalizedCategoryHelper {
       }
     }
 
-    return masterName ?? l10n.catUncategorized;
+    return masterName ?? l10n?.catUncategorized ?? 'Uncategorized';
   }
 }

@@ -75,7 +75,9 @@ class _ReportsScreenV2State extends ConsumerState<ReportsScreenV2>
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return const SizedBox.shrink();
+
     final accentColor = ref.watch(accentConfigProvider).primary;
     final stateAsync = ref.watch(reportsViewModelProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -190,7 +192,9 @@ class _ReportsScreenV2State extends ConsumerState<ReportsScreenV2>
   // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildTabContent(ReportsState state) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return const SizedBox.shrink();
+
     final isPaid = ref.watch(isPaidProvider);
 
     switch (_selectedTabIndex) {
@@ -214,7 +218,9 @@ class _ReportsScreenV2State extends ConsumerState<ReportsScreenV2>
   // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildOverviewTab(ReportsState state) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return const SizedBox.shrink();
+
     final currency = ref.watch(currencyProvider);
     final formatter = ref.watch(formatManagerProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -497,7 +503,9 @@ class _ReportsScreenV2State extends ConsumerState<ReportsScreenV2>
   // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildCategoriesTab(ReportsState state) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return const SizedBox.shrink();
+
     final currency = ref.watch(currencyProvider);
     final formatManager = ref.watch(formatManagerProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -874,7 +882,9 @@ class _ReportsScreenV2State extends ConsumerState<ReportsScreenV2>
   // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildTrendsTab(ReportsState state) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return const SizedBox.shrink();
+
     final currency = ref.watch(currencyProvider);
     final formatManager = ref.watch(formatManagerProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -1078,7 +1088,8 @@ class _ReportsScreenV2State extends ConsumerState<ReportsScreenV2>
   // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildLockedContent(String title, String description) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return const SizedBox.shrink();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Center(

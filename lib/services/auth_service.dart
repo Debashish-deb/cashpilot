@@ -210,9 +210,26 @@ class AuthService {
   }
 
   /// Delete user account
-  Future<void> deleteAccount() async {
-    // Note: This requires a server-side function for security
-    // For now, we just sign out
+  /// This flow:
+  /// 1. Executes [onPreDelete] (optional) to soft-delete data for cloud sync
+  /// 2. Executes full [signOut] which wipes all local data
+  Future<void> deleteAccount({Future<void> Function()? onPreDelete}) async {
+    _logger.info('Initiating account deletion...');
+    
+    try {
+      if (onPreDelete != null) {
+        await onPreDelete();
+        _logger.info('Pre-delete cloud sync markers placed.');
+        
+        // Brief delay to allow sync engine to start pushing if it's active
+        // Realistically, sync will resume on next login if we don't wait, 
+        // but here we try to be proactive.
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
+    } catch (e) {
+      _logger.error('Pre-delete cloud marking failed', error: e);
+    }
+
     await signOut();
   }
 

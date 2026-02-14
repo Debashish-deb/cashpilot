@@ -21,8 +21,31 @@ class SyncReconciler {
      List<T> reconciled = [];
      
      for (var local in locals) {
-       String id = (local as dynamic).id;
-       String? localVecJson = (local as dynamic).versionVector;
+       // 1. Defensively get ID
+       final dynamic item = local;
+       String? id;
+       try {
+         id = item.id;
+       } catch (_) {
+         // If item doesn't have an ID, we can't reconcile it
+         reconciled.add(local);
+         continue;
+       }
+       
+       if (id == null) {
+         reconciled.add(local);
+         continue;
+       }
+
+       // 2. Defensively get local version vector
+       String? localVecJson;
+       try {
+         localVecJson = item.versionVector;
+       } catch (_) {
+         // If entity lacks versionVector field (e.g. AuditLog, SubCategory before migration)
+         // We treat it as an empty vector
+         localVecJson = null;
+       }
        
        // Parse local clock (default to empty if missing)
        final localClock = VectorClock.fromJson(localVecJson ?? '{}');

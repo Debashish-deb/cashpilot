@@ -54,7 +54,9 @@ String _getCategoryLocalized(BuildContext context, String key) {
 
 /// Helper to map group localization keys to their localized strings.
 String _getGroupLocalized(BuildContext context, String key) {
-  final l10n = AppLocalizations.of(context)!;
+  final l10n = AppLocalizations.of(context);
+  if (l10n == null) return key;
+
   switch (key) {
     case 'catGroupHousing': return l10n.catGroupHousing;
     case 'catGroupUtilities': return l10n.catGroupUtilities;

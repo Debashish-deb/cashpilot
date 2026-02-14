@@ -33,7 +33,8 @@ class EnhancedBudgetProgressCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final formatManager = ref.watch(formatManagerProvider);
     final currency = ref.watch(currencyProvider);
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return const SizedBox.shrink();
     final progress = limit > 0 ? (spent / limit).clamp(0.0, 1.5) : 0.0;
     final progressColor = _getProgressColor(progress);
     final remaining = limit - spent;
