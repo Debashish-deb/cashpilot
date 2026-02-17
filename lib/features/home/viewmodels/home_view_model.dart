@@ -17,12 +17,12 @@ import 'package:cashpilot/features/reports/services/reports_service.dart';
 
 
 class HomeViewState {
-  final int todaySpending;
-  final int monthSpending;
-  final int totalIncome;
-  final int totalBalance;
-  final int totalAssets;
-  final int totalLiabilities;
+  final BigInt todaySpending;
+  final BigInt monthSpending;
+  final BigInt totalIncome;
+  final BigInt totalBalance;
+  final BigInt totalAssets;
+  final BigInt totalLiabilities;
   final List<MapEntry<DateTime, double>> expenseTrend;
   final List<Account> accounts;
   final List<domain.Asset> netWorthAssets;
@@ -31,7 +31,7 @@ class HomeViewState {
   final Map<String, Category> categoryMap;
   final Map<String, SubCategory> subCategoryMap;
   final Map<String, Budget> budgetMap;
-  final Map<String, int> categoryWiseTotals;
+  final Map<String, BigInt> categoryWiseTotals;
   final String currency;
   final String? avatarUrl;
   final SubscriptionTier tier;
@@ -44,13 +44,13 @@ class HomeViewState {
   
   final bool isLoading;
 
-  const HomeViewState({
-    this.todaySpending = 0,
-    this.monthSpending = 0,
-    this.totalIncome = 0,
-    this.totalBalance = 0,
-    this.totalAssets = 0,
-    this.totalLiabilities = 0,
+  HomeViewState({
+    BigInt? todaySpending,
+    BigInt? monthSpending,
+    BigInt? totalIncome,
+    BigInt? totalBalance,
+    BigInt? totalAssets,
+    BigInt? totalLiabilities,
     this.expenseTrend = const [],
     this.accounts = const [],
     this.netWorthAssets = const [],
@@ -68,15 +68,20 @@ class HomeViewState {
     this.cashFlowPulse,
     this.smartAlert,
     this.isLoading = false,
-  });
+  }) : todaySpending = todaySpending ?? BigInt.zero,
+       monthSpending = monthSpending ?? BigInt.zero,
+       totalIncome = totalIncome ?? BigInt.zero,
+       totalBalance = totalBalance ?? BigInt.zero,
+       totalAssets = totalAssets ?? BigInt.zero,
+       totalLiabilities = totalLiabilities ?? BigInt.zero;
 
   HomeViewState copyWith({
-    int? todaySpending,
-    int? monthSpending,
-    int? totalIncome,
-    int? totalBalance,
-    int? totalAssets,
-    int? totalLiabilities,
+    BigInt? todaySpending,
+    BigInt? monthSpending,
+    BigInt? totalIncome,
+    BigInt? totalBalance,
+    BigInt? totalAssets,
+    BigInt? totalLiabilities,
     List<MapEntry<DateTime, double>>? expenseTrend,
     List<Account>? accounts,
     List<domain.Asset>? netWorthAssets,
@@ -85,7 +90,7 @@ class HomeViewState {
     Map<String, Category>? categoryMap,
     Map<String, SubCategory>? subCategoryMap,
     Map<String, Budget>? budgetMap,
-    Map<String, int>? categoryWiseTotals,
+    Map<String, BigInt>? categoryWiseTotals,
     String? currency,
     String? avatarUrl,
     SubscriptionTier? tier,
@@ -167,8 +172,8 @@ class HomeViewModel extends AutoDisposeAsyncNotifier<HomeViewState> {
   @override
   Future<HomeViewState> build() async {
     // Watch relevant providers using .select or direct watch for streams
-    final todaySpending = ref.watch(todaySpendingProvider).value ?? 0;
-    final monthSpending = ref.watch(thisMonthSpendingProvider).value ?? 0;
+    final todaySpending = ref.watch(todaySpendingProvider).value ?? BigInt.zero;
+    final monthSpending = ref.watch(thisMonthSpendingProvider).value ?? BigInt.zero;
     final expenses = ref.watch(recentExpensesProvider).value ?? [];
     final categories = ref.watch(allCategoriesProvider).value ?? [];
     final subCategories = ref.watch(allSubCategoriesProvider).value ?? [];
@@ -189,10 +194,10 @@ class HomeViewModel extends AutoDisposeAsyncNotifier<HomeViewState> {
     final reportsState = ref.watch(reportsViewModelProvider).valueOrNull;
 
     // Calculate total income and trend from reports state if available
-    int totalIncome = 0;
+    BigInt totalIncome = BigInt.zero;
     List<MapEntry<DateTime, double>> expenseTrend = [];
     if (reportsState != null) {
-      totalIncome = (reportsState.incomeBreakdown.values.fold<double>(0, (sum, item) => sum + item.totalCents)).toInt();
+      totalIncome = reportsState.incomeBreakdown.values.fold<BigInt>(BigInt.zero, (sum, item) => sum + item.totalCents);
       expenseTrend = reportsState.trendData;
     }
     
@@ -210,13 +215,13 @@ class HomeViewModel extends AutoDisposeAsyncNotifier<HomeViewState> {
       _debounceTimer?.cancel();
     });
 
-    final Map<String, int> categoryWiseTotals = categoryBreakdown.map(
-      (key, value) => MapEntry(key, value.fold<int>(0, (sum, e) => sum + e.amount)),
+    final Map<String, BigInt> categoryWiseTotals = categoryBreakdown.map(
+      (key, value) => MapEntry(key, value.fold<BigInt>(BigInt.zero, (sum, e) => sum + e.amountCents)),
     );
 
     // Aggregated totals
-    final combinedAssets = liquidNetWorth.totalAssets + (netWorthSummary?.totalAssets ?? 0);
-    final combinedLiabilities = liquidNetWorth.totalLiabilities + (netWorthSummary?.totalLiabilities ?? 0);
+    final combinedAssets = liquidNetWorth.totalAssets + BigInt.from(netWorthSummary?.totalAssets ?? 0);
+    final combinedLiabilities = liquidNetWorth.totalLiabilities + BigInt.from(netWorthSummary?.totalLiabilities ?? 0);
 
     // INTELLIGENCE RADAR CALCULATIONS
     final reportService = ref.read(reportsServiceProvider);
@@ -225,8 +230,8 @@ class HomeViewModel extends AutoDisposeAsyncNotifier<HomeViewState> {
     final healthMetrics = reportService.calculateHealthMetrics(
       totalIncome: totalIncome.toDouble(),
       totalSpent: monthSpending.toDouble(),
-      budgetedAmount: budgets.fold<double>(0, (sum, b) => sum + (b.totalLimit ?? 0)),
-      previousMonthAvg: monthSpending * 0.95, // Simplified historic factor for now
+      budgetedAmount: budgets.fold<double>(0, (sum, b) => sum + (b.totalLimitCents?.toDouble() ?? 0.0) / 100.0),
+      previousMonthAvg: monthSpending.toDouble() * 0.95, // Simplified historic factor for now
     );
 
     // 2. Month Outlook (Runway)
@@ -235,12 +240,12 @@ class HomeViewModel extends AutoDisposeAsyncNotifier<HomeViewState> {
       currentSpent: monthSpending.toDouble(),
       daysPassed: now.day,
       totalDaysInMonth: DateTime(now.year, now.month + 1, 0).day,
-      historicalMean: monthSpending * 1.1, // Simplified base for mock runway
+      historicalMean: monthSpending.toDouble() * 1.1, // Simplified base for mock runway
     );
 
     // 3. Cash Flow Pulse
     final diff = totalIncome - monthSpending;
-    final cashFlowPulse = "Net ${diff >= 0 ? '+' : '-'}$currency${ (diff.abs() / 100).toStringAsFixed(0) } · ${diff >= 0 ? 'Improving' : 'Strained'}";
+    final cashFlowPulse = "Net ${diff >= BigInt.zero ? '+' : '-'}$currency${ (diff.abs().toDouble() / 100.0).toStringAsFixed(0) } · ${diff >= BigInt.zero ? 'Improving' : 'Strained'}";
 
     // 4. Smart Alert (Mock Insight for REDESIGN)
     final smartAlert = (

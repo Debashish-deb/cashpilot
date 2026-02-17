@@ -291,13 +291,13 @@ final selectedExpensesProvider = Provider<List<Expense>>((ref) {
 // ============================================================
 
 /// Total spent in a budget (Reactive)
-final totalSpentInBudgetProvider = StreamProvider.family<int, String>((ref, budgetId) {
+final totalSpentInBudgetProvider = StreamProvider.family<BigInt, String>((ref, budgetId) {
   final db = ref.watch(databaseProvider);
   return db.watchTotalSpentInBudget(budgetId);
 });
 
 /// Total spent in a semi-budget (category) (Reactive)
-final totalSpentInSemiBudgetProvider = StreamProvider.family<int, String>((ref, semiBudgetId) {
+final totalSpentInSemiBudgetProvider = StreamProvider.family<BigInt, String>((ref, semiBudgetId) {
   final db = ref.watch(databaseProvider);
   return db.watchTotalSpentInSemiBudget(semiBudgetId);
 });
@@ -307,7 +307,7 @@ final totalSpentInSemiBudgetProvider = StreamProvider.family<int, String>((ref, 
 // ============================================================
 
 /// Today's total spending - derived from recentExpenses stream for real-time updates
-final todaySpendingProvider = StreamProvider<int>((ref) {
+final todaySpendingProvider = StreamProvider<BigInt>((ref) {
   final recentExpensesStream = ref.watch(recentExpensesProvider.stream);
   
   return recentExpensesStream.map((expenses) {
@@ -317,7 +317,7 @@ final todaySpendingProvider = StreamProvider<int>((ref) {
     // Filter to today and sum amounts
     return expenses
         .where((e) => e.date.isAfter(todayStart) || e.date.isAtSameMomentAs(todayStart))
-        .fold<int>(0, (sum, e) => sum + e.amount);
+        .fold<BigInt>(BigInt.zero, (sum, e) => sum + e.amountCents);
   });
 });
 
@@ -326,7 +326,7 @@ final todaySpendingProvider = StreamProvider<int>((ref) {
 // ============================================================
 
 /// This month's total spending - derived from recentExpenses stream for real-time updates
-final thisMonthSpendingProvider = StreamProvider<int>((ref) {
+final thisMonthSpendingProvider = StreamProvider<BigInt>((ref) {
   final recentExpensesStream = ref.watch(recentExpensesProvider.stream);
   
   return recentExpensesStream.map((expenses) {
@@ -336,7 +336,7 @@ final thisMonthSpendingProvider = StreamProvider<int>((ref) {
     // Filter to this month and sum amounts
     return expenses
         .where((e) => e.date.isAfter(monthStart) || e.date.isAtSameMomentAs(monthStart))
-        .fold<int>(0, (sum, e) => sum + e.amount);
+        .fold<BigInt>(BigInt.zero, (sum, e) => sum + e.amountCents);
   });
 });
 
@@ -346,11 +346,11 @@ final thisMonthSpendingProvider = StreamProvider<int>((ref) {
 
 /// Daily spending history for a budget (last 7 days)
 /// Returns list of daily totals in cents
-final dailySpendingHistoryProvider = FutureProvider.family<List<int>, String>((ref, budgetId) async {
+final dailySpendingHistoryProvider = FutureProvider.family<List<BigInt>, String>((ref, budgetId) async {
   final db = ref.watch(databaseProvider);
   
   final now = DateTime.now();
-  final List<int> dailyTotals = [];
+  final List<BigInt> dailyTotals = [];
   
   // Get spending for each of the last 7 days
   for (int i = 6; i >= 0; i--) {
@@ -414,7 +414,7 @@ class ExpenseController {
     String? categoryId,
     String? subCategoryId,
     required String title,
-    required int amount,
+    required BigInt amountCents,
     String currency = 'EUR',
     required DateTime date,
     String? notes,
@@ -433,7 +433,7 @@ class ExpenseController {
 
     _logger.info('Creating expense', context: {
       'title': title,
-      'amount': amount,
+      'amount': amountCents,
       'merchant': merchantName,
     });
 
@@ -450,7 +450,7 @@ class ExpenseController {
       // Spending Limit
       if (member.spendingLimit != null) {
         final currentSpent = await db.getMemberSpendingInBudget(budgetId, userId);
-        if (currentSpent + amount > member.spendingLimit!) {
+        if (currentSpent + amountCents > member.spendingLimit!) {
           throw Exception('Member spending limit exceeded for this budget');
         }
       }
@@ -462,7 +462,7 @@ class ExpenseController {
       
       // Convert history to ReceiptData model
       final history = recentExpenses.map((e) => ReceiptData(
-        total: e.amount / 100.0,
+        total: e.amountCents.toDouble() / 100.0,
         merchantName: e.merchantName,
         date: e.date,
         currencyCode: e.currency,

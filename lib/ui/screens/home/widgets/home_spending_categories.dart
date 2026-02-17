@@ -63,14 +63,13 @@ class HomeSpendingCategories extends ConsumerWidget {
                   final category = categoryMap[entry.key];
                   final name = category?.name ?? l10n.catUncategorized;
                   final localizedName = LocalizedCategoryHelper.getLocalizedName(context, name);
-                  final amount = entry.value / 100.0;
                   final color = category?.colorHex != null 
                       ? Color(int.parse(category!.colorHex!.replaceFirst('#', '0xFF')))
                       : AppColors.primaryGreen;
 
                   return _CategoryItem(
                     name: localizedName,
-                    amount: formatter.formatCurrency(amount, currencyCode: currency),
+                    amount: formatter.formatCents(entry.value, currencyCode: currency),
                     iconName: category?.iconName,
                     color: color,
                   );

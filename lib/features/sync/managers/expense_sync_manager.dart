@@ -440,6 +440,8 @@ class ExpenseSyncManager with ErrorHandlerMixin implements BaseSyncManager<Expen
       enteredBy: data['entered_by'] as String,
       title: data['title'] as String,
       amount: (data['amount'] as num).toInt(),
+      amountCents: BigInt.from((data['amount_cents'] as num?)?.toInt() ?? (data['amount'] as num).toInt()),
+      confidenceBps: BigInt.from((data['confidence_bps'] as num?)?.toInt() ?? 10000),
       currency: data['currency'] as String? ?? 'EUR',
       date: DateTime.tryParse(data['date'] as String? ?? '') ?? DateTime.now(),
       accountId: data['account_id'] as String?,

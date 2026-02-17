@@ -47,7 +47,7 @@ class HistoricalRecalculationEngine {
     // 2. Refresh spending totals (this is handled by Drift's reactive streams automatically,
     // but we log here to confirm integrity)
     final totalSpent = await _db.getTotalSpentInBudget(budgetId);
-    _logger.info('Recalculation complete for $budgetId. Net Spent: ${totalSpent / 100} ${budget.currency}');
+    _logger.info('Recalculation complete for $budgetId. Net Spent: ${totalSpent.toDouble() / 100.0} ${budget.currency}');
   }
 
   /// Re-assigns expenses from one semi-budget (category) to another.

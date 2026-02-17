@@ -63,6 +63,8 @@ part 'app_database.g.dart';
   UserConsents,
   FinancialIngestionLogs,
   SplitTransactions,
+  ExpenseApprovals,
+  Allowances,
 ])
 class AppDatabase extends _$AppDatabase {
   // Default constructor uses platform-specific connection
@@ -215,6 +217,41 @@ class AppDatabase extends _$AppDatabase {
           await m.createTable(splitTransactions);
           
           debugPrint('[AppDatabase] Migration V23: Added isRefund and created SplitTransactions table');
+        }
+
+        if (from < 24) {
+          // PHASE 4: FINANCIAL PRECISION OVERHAUL (_cents & Basis Points)
+          await m.addColumn(budgets, budgets.totalLimitCents);
+          await m.addColumn(semiBudgets, semiBudgets.limitAmountCents);
+          await m.addColumn(semiBudgets, semiBudgets.suggestedPercentBps);
+          await m.addColumn(accounts, accounts.balanceCents);
+          await m.addColumn(expenses, expenses.amountCents);
+          await m.addColumn(expenses, expenses.confidenceBps);
+          await m.addColumn(recurringExpenses, recurringExpenses.amountCents);
+          await m.addColumn(savingsGoals, savingsGoals.currentAmountCents);
+          await m.addColumn(savingsGoals, savingsGoals.targetAmountCents);
+          await m.addColumn(assets, assets.currentValueCents);
+          await m.addColumn(liabilities, liabilities.currentBalanceCents);
+          await m.addColumn(liabilities, liabilities.minPaymentCents);
+          await m.addColumn(liabilities, liabilities.interestRateBps);
+          await m.addColumn(valuationHistory, valuationHistory.valueCents);
+          await m.addColumn(splitTransactions, splitTransactions.amountCents);
+          await m.addColumn(canonicalLedger, canonicalLedger.amountCents);
+          await m.addColumn(budgetHealthSnapshots, budgetHealthSnapshots.overallScoreBps);
+          
+          // New Phase 3 Tables
+          await m.createTable(expenseApprovals);
+          await m.createTable(allowances);
+          
+          debugPrint('[AppDatabase] Migration V24: Financial Precision Overhaul & Family Features');
+        }
+
+        if (from < 25) {
+          // PHASE 6 STABILIZATION: Missing Precision Columns
+          await m.addColumn(budgetMembers, budgetMembers.spendingLimitCents);
+          await m.addColumn(ledgerEvents, ledgerEvents.amountCents);
+          
+          debugPrint('[AppDatabase] Migration V25: Adding missing precision columns to BudgetMembers and LedgerEvents');
         }
         // Version 5: V6 Schema - Add new columns to categories
         if (from < 5) {
@@ -964,10 +1001,10 @@ class AppDatabase extends _$AppDatabase {
         .get();
   }
 
-  Stream<int> watchTotalSpentInBudget(String budgetId) {
-    final netAmount = expenses.isRefund.caseMatch<int>(
-      when: {const Constant(true): expenses.amount * const Constant(-1)},
-      orElse: expenses.amount,
+  Stream<BigInt> watchTotalSpentInBudget(String budgetId) {
+    final netAmount = expenses.isRefund.caseMatch<BigInt>(
+      when: {const Constant(true): expenses.amountCents * Constant(BigInt.from(-1))},
+      orElse: expenses.amountCents,
     );
     final sumColumn = netAmount.sum();
     
@@ -977,14 +1014,14 @@ class AppDatabase extends _$AppDatabase {
                  expenses.isDeleted.equals(false) & 
                  expenses.isTransfer.equals(false)))
         .watchSingle()
-        .map((row) => row.read(sumColumn) ?? 0);
+        .map((row) => row.read(sumColumn) ?? BigInt.zero);
   }
 
   /// Get total spent in a budget within a specific date range
-  Future<int> getTotalSpentInBudgetDateRange(String budgetId, DateTime start, DateTime end) async {
-    final netAmount = expenses.isRefund.caseMatch<int>(
-      when: {const Constant(true): expenses.amount * const Constant(-1)},
-      orElse: expenses.amount,
+  Future<BigInt> getTotalSpentInBudgetDateRange(String budgetId, DateTime start, DateTime end) async {
+    final netAmount = expenses.isRefund.caseMatch<BigInt>(
+      when: {const Constant(true): expenses.amountCents * Constant(BigInt.from(-1))},
+      orElse: expenses.amountCents,
     );
     final sumColumn = netAmount.sum();
 
@@ -996,13 +1033,13 @@ class AppDatabase extends _$AppDatabase {
               expenses.date.isBiggerOrEqualValue(start) &
               expenses.date.isSmallerOrEqualValue(end)))
         .getSingle();
-    return result.read(sumColumn) ?? 0;
+    return result.read(sumColumn) ?? BigInt.zero;
   }
 
-  Future<int> getTotalSpentInBudget(String budgetId) async {
-    final netAmount = expenses.isRefund.caseMatch<int>(
-      when: {const Constant(true): expenses.amount * const Constant(-1)},
-      orElse: expenses.amount,
+  Future<BigInt> getTotalSpentInBudget(String budgetId) async {
+    final netAmount = expenses.isRefund.caseMatch<BigInt>(
+      when: {const Constant(true): expenses.amountCents * Constant(BigInt.from(-1))},
+      orElse: expenses.amountCents,
     );
     final sumColumn = netAmount.sum();
 
@@ -1012,13 +1049,13 @@ class AppDatabase extends _$AppDatabase {
                  expenses.isDeleted.equals(false) & 
                  expenses.isTransfer.equals(false)))
         .getSingle();
-    return result.read(sumColumn) ?? 0;
+    return result.read(sumColumn) ?? BigInt.zero;
   }
 
-  Stream<int> watchTotalSpentInSemiBudget(String semiBudgetId) {
-    final netAmount = expenses.isRefund.caseMatch<int>(
-      when: {const Constant(true): expenses.amount * const Constant(-1)},
-      orElse: expenses.amount,
+  Stream<BigInt> watchTotalSpentInSemiBudget(String semiBudgetId) {
+    final netAmount = expenses.isRefund.caseMatch<BigInt>(
+      when: {const Constant(true): expenses.amountCents * Constant(BigInt.from(-1))},
+      orElse: expenses.amountCents,
     );
     final sumColumn = netAmount.sum();
 
@@ -1028,13 +1065,13 @@ class AppDatabase extends _$AppDatabase {
                  expenses.isDeleted.equals(false) & 
                  expenses.isTransfer.equals(false)))
         .watchSingle()
-        .map((row) => row.read(sumColumn) ?? 0);
+        .map((row) => row.read(sumColumn) ?? BigInt.zero);
   }
 
-  Stream<Map<String, int>> watchSemiBudgetSpending(String budgetId) {
-    final netAmount = expenses.isRefund.caseMatch<int>(
-      when: {const Constant(true): expenses.amount * const Constant(-1)},
-      orElse: expenses.amount,
+  Stream<Map<String, BigInt>> watchSemiBudgetSpending(String budgetId) {
+    final netAmount = expenses.isRefund.caseMatch<BigInt>(
+      when: {const Constant(true): expenses.amountCents * Constant(BigInt.from(-1))},
+      orElse: expenses.amountCents,
     );
     final sumColumn = netAmount.sum();
 
@@ -1046,10 +1083,10 @@ class AppDatabase extends _$AppDatabase {
           ..groupBy([expenses.semiBudgetId]))
         .watch()
         .map((rows) {
-          final map = <String, int>{};
+          final map = <String, BigInt>{};
           for (final row in rows) {
             final id = row.read(expenses.semiBudgetId);
-            final amount = row.read(sumColumn) ?? 0;
+            final amount = row.read(sumColumn) ?? BigInt.zero;
             if (id != null) {
               map[id] = amount;
             }
@@ -1058,10 +1095,10 @@ class AppDatabase extends _$AppDatabase {
         });
   }
 
-  Future<int> getTotalSpentInSemiBudget(String semiBudgetId) async {
-    final netAmount = expenses.isRefund.caseMatch<int>(
-      when: {const Constant(true): expenses.amount * const Constant(-1)},
-      orElse: expenses.amount,
+  Future<BigInt> getTotalSpentInSemiBudget(String semiBudgetId) async {
+    final netAmount = expenses.isRefund.caseMatch<BigInt>(
+      when: {const Constant(true): expenses.amountCents * Constant(BigInt.from(-1))},
+      orElse: expenses.amountCents,
     );
     final sumColumn = netAmount.sum();
 
@@ -1069,7 +1106,7 @@ class AppDatabase extends _$AppDatabase {
           ..addColumns([sumColumn])
           ..where(expenses.semiBudgetId.equals(semiBudgetId) & expenses.isDeleted.equals(false)))
         .getSingle();
-    return result.read(sumColumn) ?? 0;
+    return result.read(sumColumn) ?? BigInt.zero;
   }
 
   Future<void> createSplitExpense({
@@ -1110,8 +1147,10 @@ class AppDatabase extends _$AppDatabase {
         await into(splitTransactions).insert(SplitTransactionsCompanion.insert(
           id: splitId,
           expenseId: id,
+          userId: enteredBy,
           semiBudgetId: split.semiBudgetId,
           amount: split.amount,
+          amountCents: Value(BigInt.from(split.amount)),
           notes: Value(split.notes),
           createdAt: Value(DateTime.now()),
           updatedAt: Value(DateTime.now()),
@@ -1433,15 +1472,15 @@ class AppDatabase extends _$AppDatabase {
         .getSingleOrNull();
   }
 
-  Future<int> getMemberSpendingInBudget(String budgetId, String userId) async {
+  Future<BigInt> getMemberSpendingInBudget(String budgetId, String userId) async {
     final result = await (selectOnly(expenses)
-          ..addColumns([expenses.amount.sum()])
+          ..addColumns([expenses.amountCents.sum()])
           ..where(expenses.budgetId.equals(budgetId) & 
                  expenses.enteredBy.equals(userId) & 
                  expenses.isDeleted.equals(false) & 
                  expenses.isTransfer.equals(false)))
         .getSingle();
-    return result.read(expenses.amount.sum()) ?? 0;
+    return result.read(expenses.amountCents.sum()) ?? BigInt.zero;
   }
 
   Future<void> acceptInvitation(String memberId) async {

@@ -89,7 +89,7 @@ class HomeSliverAppBar extends ConsumerWidget {
     }
     
     // Only show skeleton/default if we have NO data and are loading (or error)
-    return _buildAppBar(context, ref, const HomeViewState(isLoading: true), greeting, dateStr);
+    return _buildAppBar(context, ref, HomeViewState(isLoading: true), greeting, dateStr);
   }
 
   Widget _buildAppBar(BuildContext context, WidgetRef ref, HomeViewState state, String greeting, String dateStr) {

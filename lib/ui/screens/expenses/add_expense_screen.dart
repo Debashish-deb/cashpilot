@@ -583,6 +583,8 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
         categoryId: _selectedCategory?.id,
         subCategoryId: _selectedSubCategory?.id,
         semiBudgetId: _selectedSemiBudgetId,
+        amountCents: BigInt.from(amount),
+        confidenceBps: BigInt.from(10000),
         enteredBy: authService.currentUser?.id ?? '',
         title: _titleController.text,
         amount: amount,

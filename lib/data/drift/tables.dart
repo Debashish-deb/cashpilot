@@ -68,7 +68,8 @@ class Budgets extends Table {
   DateTimeColumn get startDate => dateTime()();
   DateTimeColumn get endDate => dateTime()();
   TextColumn get currency => text().withDefault(const Constant('EUR'))();
-  IntColumn get totalLimit => integer().nullable()(); // in cents
+  IntColumn get totalLimit => integer().nullable()(); // in cents (Legacy)
+  Int64Column get totalLimitCents => int64().nullable()(); // P1 Migration
   BoolColumn get isShared => boolean().withDefault(const Constant(false))();
   BoolColumn get isTemplate => boolean().withDefault(const Constant(false))(); // V9 has this
   TextColumn get status => text().withDefault(const Constant('active'))(); // active, completed, archived, template
@@ -105,7 +106,8 @@ class SemiBudgets extends Table {
   TextColumn get id => text()();
   TextColumn get budgetId => text().references(Budgets, #id, onDelete: KeyAction.cascade)();
   TextColumn get name => text()();
-  IntColumn get limitAmount => integer()(); // in cents
+  IntColumn get limitAmount => integer()(); // in cents (Legacy)
+  Int64Column get limitAmountCents => int64().nullable()(); // P1 Migration
   IntColumn get priority => integer().withDefault(const Constant(3))(); // 1-5
   TextColumn get iconName => text().nullable()();
   TextColumn get colorHex => text().nullable()();
@@ -114,7 +116,8 @@ class SemiBudgets extends Table {
   // Category hierarchy support
   TextColumn get parentCategoryId => text().nullable().references(SemiBudgets, #id, onDelete: KeyAction.cascade)(); // For subcategories
   BoolColumn get isSubcategory => boolean().withDefault(const Constant(false))(); // True if this is a subcategory
-  RealColumn get suggestedPercent => real().nullable()(); // Suggested allocation % (e.g., 0.25 = 25%)
+  RealColumn get suggestedPercent => real().nullable()(); // Suggested allocation % (Legacy)
+  Int64Column get suggestedPercentBps => int64().nullable()(); // Suggested allocation in Basis Points (1.0 = 10000)
   IntColumn get displayOrder => integer().withDefault(const Constant(0))(); // For sorting
   
   // Link to master Categories table
@@ -146,7 +149,8 @@ class Accounts extends Table {
   TextColumn get userId => text().references(Users, #id)();
   TextColumn get name => text()();
   TextColumn get type => text()(); // checking, savings, credit, cash
-  IntColumn get balance => integer()(); // in cents
+  IntColumn get balance => integer()(); // in cents (Legacy)
+  Int64Column get balanceCents => int64().withDefault(Constant(BigInt.zero))(); // P1 Migration
   TextColumn get currency => text().withDefault(const Constant('EUR'))();
   TextColumn get iconName => text().nullable()();
   TextColumn get colorHex => text().nullable()();
@@ -191,7 +195,8 @@ class Expenses extends Table {
   TextColumn get semiBudgetId => text().nullable().references(SemiBudgets, #id, onDelete: KeyAction.setNull)();
   TextColumn get enteredBy => text().references(Users, #id, onDelete: KeyAction.cascade)();
   TextColumn get title => text()();
-  IntColumn get amount => integer()(); // in cents
+  IntColumn get amount => integer()(); // in cents (Legacy)
+  Int64Column get amountCents => int64().withDefault(Constant(BigInt.zero))(); // P1 Migration
   TextColumn get currency => text().withDefault(const Constant('EUR'))();
   DateTimeColumn get date => dateTime()();
   
@@ -232,7 +237,8 @@ class Expenses extends Table {
   TextColumn get subCategoryRaw => text().nullable()(); // User entered raw text if no subCategory matched
   TextColumn get semanticTokens => text().nullable()(); // JSON List<String>
   
-  RealColumn get confidence => real().withDefault(const Constant(1.0))();
+  RealColumn get confidence => real().withDefault(const Constant(1.0))(); // Legacy
+  Int64Column get confidenceBps => int64().withDefault(Constant(BigInt.from(10000)))(); // P1 Migration (Basis Points)
   TextColumn get source => text().withDefault(const Constant('manual'))(); // ocr, manual, api, bank_sync
   BoolColumn get isAiAssigned => boolean().withDefault(const Constant(false))();
   BoolColumn get isVerified => boolean().withDefault(const Constant(true))(); // User confirmed category/amount
@@ -287,6 +293,7 @@ class BudgetMembers extends Table {
 
   // P0 FAMILY SHARING
   IntColumn get spendingLimit => integer().nullable()(); // in cents
+  Int64Column get spendingLimitCents => int64().nullable()(); // P1 Migration
 
   @override
   Set<Column> get primaryKey => {id};
@@ -365,7 +372,8 @@ class RecurringExpenses extends Table {
   TextColumn get id => text()();
   TextColumn get userId => text().references(Users, #id)();
   TextColumn get title => text()();
-  IntColumn get amount => integer()(); // in cents
+  IntColumn get amount => integer()(); // in cents (Legacy)
+  Int64Column get amountCents => int64().withDefault(Constant(BigInt.zero))(); // P1 Migration
   TextColumn get frequency => text()(); // daily, weekly, monthly, yearly
   IntColumn get dayOfMonth => integer().nullable()();
   IntColumn get dayOfWeek => integer().nullable()();
@@ -421,8 +429,10 @@ class SavingsGoals extends Table {
   TextColumn get userId => text().references(Users, #id)();
   TextColumn get linkedAccountId => text().nullable().references(Accounts, #id)(); // V9 has this
   TextColumn get title => text()();
-  IntColumn get currentAmount => integer().withDefault(const Constant(0))(); // in cents
-  IntColumn get targetAmount => integer()(); // in cents
+  IntColumn get currentAmount => integer().withDefault(const Constant(0))(); // in cents (Legacy)
+  Int64Column get currentAmountCents => int64().withDefault(Constant(BigInt.zero))(); // P1 Migration
+  IntColumn get targetAmount => integer()(); // in cents (Legacy)
+  Int64Column get targetAmountCents => int64().nullable()(); // P1 Migration
   TextColumn get currency => text().withDefault(const Constant('EUR'))(); // V9 has this
   TextColumn get iconName => text().nullable()();
   TextColumn get colorHex => text().nullable()();
@@ -804,7 +814,10 @@ class SplitTransactions extends Table {
   TextColumn get id => text()();
   TextColumn get expenseId => text().references(Expenses, #id, onDelete: KeyAction.cascade)();
   TextColumn get semiBudgetId => text().references(SemiBudgets, #id, onDelete: KeyAction.cascade)();
-  IntColumn get amount => integer()(); // in cents
+  TextColumn get userId => text().references(Users, #id, onDelete: KeyAction.cascade)();
+  IntColumn get amount => integer()(); // in cents (Legacy)
+  Int64Column get amountCents => int64().withDefault(Constant(BigInt.zero))(); // P1 Migration
+  BoolColumn get isSettled => boolean().withDefault(const Constant(false))();
   TextColumn get notes => text().nullable()();
   
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -1006,7 +1019,8 @@ class Assets extends Table {
   TextColumn get userId => text().references(Users, #id, onDelete: KeyAction.cascade)();
   TextColumn get name => text()();
   TextColumn get type => text()(); // real_estate, vehicle, investment, cash, crypto, other
-  IntColumn get currentValue => integer()(); // in cents
+  IntColumn get currentValue => integer()(); // in cents (Legacy)
+  Int64Column get currentValueCents => int64().withDefault(Constant(BigInt.zero))(); // P1 Migration
   TextColumn get currency => text().withDefault(const Constant('EUR'))();
   
   // Metadata for automated sync (e.g. Plaid/GoCardless later)
@@ -1043,12 +1057,15 @@ class Liabilities extends Table {
   TextColumn get userId => text().references(Users, #id, onDelete: KeyAction.cascade)();
   TextColumn get name => text()();
   TextColumn get type => text()(); // mortgage, loan, credit_card, other
-  IntColumn get currentBalance => integer()(); // in cents (always positive value typically)
+  IntColumn get currentBalance => integer()(); // in cents (Legacy)
+  Int64Column get currentBalanceCents => int64().withDefault(Constant(BigInt.zero))(); // P1 Migration
   TextColumn get currency => text().withDefault(const Constant('EUR'))();
   
-  RealColumn get interestRate => real().nullable()(); // e.g. 4.5 for 4.5%
+  RealColumn get interestRate => real().nullable()(); // e.g. 4.5 for 4.5% (Legacy)
+  Int64Column get interestRateBps => int64().nullable()(); // P1 Migration (Basis Points)
   DateTimeColumn get dueDate => dateTime().nullable()(); // Next payment due
-  IntColumn get minPayment => integer().nullable()(); // in cents
+  IntColumn get minPayment => integer().nullable()(); // in cents (Legacy)
+  Int64Column get minPaymentCents => int64().nullable()(); // P1 Migration
   TextColumn get notes => text().nullable()();
   
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -1077,7 +1094,8 @@ class ValuationHistory extends Table {
   TextColumn get id => text()();
   TextColumn get entityType => text()(); // asset, liability
   TextColumn get entityId => text()(); // ID of asset or liability
-  IntColumn get value => integer()(); // in cents
+  IntColumn get value => integer()(); // in cents (Legacy)
+  Int64Column get valueCents => int64().withDefault(Constant(BigInt.zero))(); // P1 Migration
   DateTimeColumn get date => dateTime()(); // Snapshot date
   
   DateTimeColumn get recordedAt => dateTime().withDefault(currentDateAndTime)();
@@ -1101,6 +1119,9 @@ class LedgerEvents extends Table {
   
   TextColumn get userId => text().references(Users, #id)();
   TextColumn get deviceId => text().nullable()();
+  
+  Int64Column get amountCents => int64().nullable()();
+  TextColumn get currency => text().nullable()();
   
   // The Payload (Snapshot or Delta)
   TextColumn get eventData => text().map(const MetadataConverter())(); 
@@ -1129,7 +1150,8 @@ class BudgetHealthSnapshots extends Table {
   TextColumn get id => text()();
   TextColumn get userId => text().references(Users, #id, onDelete: KeyAction.cascade)();
   
-  RealColumn get overallScore => real()();
+  RealColumn get overallScore => real()(); // Legacy
+  Int64Column get overallScoreBps => int64().withDefault(Constant(BigInt.zero))(); // P1 Migration (Basis Points)
   TextColumn get metricsJson => text()(); // Explanable scores JSON
   
   DateTimeColumn get timestamp => dateTime().withDefault(currentDateAndTime)();
@@ -1154,7 +1176,8 @@ class CanonicalLedger extends Table {
   /// External reference (Bank Transaction ID, Receipt ID)
   TextColumn get sourceReference => text().nullable()();
   
-  IntColumn get amount => integer()();
+  IntColumn get amount => integer()(); // in cents (Legacy)
+  Int64Column get amountCents => int64().withDefault(Constant(BigInt.zero))(); // P1 Migration
   TextColumn get currency => text().withDefault(const Constant('EUR'))();
   DateTimeColumn get bookingDate => dateTime()();
   TextColumn get description => text().nullable()();
@@ -1217,6 +1240,42 @@ class FinancialIngestionLogs extends Table {
   IntColumn get recordsCount => integer().nullable()();
   TextColumn get errorMessage => text().nullable()();
   
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+// ============================================================
+// EXPENSE APPROVALS TABLE (Phase 3)
+// ============================================================
+
+class ExpenseApprovals extends Table {
+  TextColumn get id => text()();
+  TextColumn get expenseId => text().references(Expenses, #id, onDelete: KeyAction.cascade)();
+  TextColumn get approvedBy => text().nullable().references(Users, #id)();
+  TextColumn get status => text().withDefault(const Constant('pending'))(); // pending, approved, rejected
+  TextColumn get rejectionReason => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+// ============================================================
+// ALLOWANCES TABLE (Phase 3)
+// ============================================================
+
+class Allowances extends Table {
+  TextColumn get id => text()();
+  TextColumn get budgetId => text().references(Budgets, #id, onDelete: KeyAction.cascade)();
+  TextColumn get userId => text().references(Users, #id)(); // Recipient
+  Int64Column get amountCents => int64()();
+  TextColumn get frequency => text()(); // weekly, monthly
+  DateTimeColumn get nextPayoutDate => dateTime()();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
   @override
   Set<Column> get primaryKey => {id};
 }

@@ -16,7 +16,7 @@ class ReportsState {
   final Map<String, HierarchicalCategoryTotal> expenseBreakdown;
   final Map<String, HierarchicalCategoryTotal> incomeBreakdown;
   final List<MapEntry<DateTime, double>> trendData;
-  final double totalSpent;
+  final BigInt totalSpent;
   final double dailyAverage;
   
   // New: Advanced Intelligence Metrics
@@ -45,7 +45,7 @@ class ReportsState {
     Map<String, HierarchicalCategoryTotal>? expenseBreakdown,
     Map<String, HierarchicalCategoryTotal>? incomeBreakdown,
     List<MapEntry<DateTime, double>>? trendData,
-    double? totalSpent,
+    BigInt? totalSpent,
     double? dailyAverage,
     double? burnRateDelta,
     double? volatilityScore,
@@ -119,11 +119,10 @@ class ReportsViewModel extends AsyncNotifier<ReportsState> {
     final incomeBreakdown = _service.aggregateByCategory(expenses, categories, subCategories, type: 'income');
     final trendData = _service.prepareTrendData(expenses, range.start, range.end);
     
-    final totalSpentCents = expenses.fold<int>(0, (sum, e) => sum + e.amount);
-    final totalSpent = totalSpentCents / 100.0;
+    final totalSpent = expenses.fold<BigInt>(BigInt.zero, (sum, e) => sum + e.amountCents);
     
     final days = range.end.difference(range.start).inDays + 1;
-    final dailyAverage = days > 0 ? totalSpent / days : 0.0;
+    final dailyAverage = days > 0 ? totalSpent.toDouble() / days : 0.0;
 
     // 4. Advanced Intelligence Metrics
     final volatilityScore = _service.calculateVolatility(trendData);

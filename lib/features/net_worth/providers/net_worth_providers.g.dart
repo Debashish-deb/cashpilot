@@ -6,517 +6,514 @@ part of 'net_worth_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+
+@ProviderFor(netWorthRepository)
+final netWorthRepositoryProvider = NetWorthRepositoryProvider._();
+
+final class NetWorthRepositoryProvider
+    extends
+        $FunctionalProvider<
+          NetWorthRepository,
+          NetWorthRepository,
+          NetWorthRepository
+        >
+    with $Provider<NetWorthRepository> {
+  NetWorthRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'netWorthRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$netWorthRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<NetWorthRepository> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  NetWorthRepository create(Ref ref) {
+    return netWorthRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(NetWorthRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<NetWorthRepository>(value),
+    );
+  }
+}
+
 String _$netWorthRepositoryHash() =>
     r'3c94c23f404004cec761afc53688d033f731ca2b';
 
-/// See also [netWorthRepository].
-@ProviderFor(netWorthRepository)
-final netWorthRepositoryProvider = Provider<NetWorthRepository>.internal(
-  netWorthRepository,
-  name: r'netWorthRepositoryProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$netWorthRepositoryHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef NetWorthRepositoryRef = ProviderRef<NetWorthRepository>;
-String _$assetsStreamHash() => r'e211b022b4750307942694de4506151bf23c4f01';
-
-/// See also [assetsStream].
 @ProviderFor(assetsStream)
-final assetsStreamProvider = AutoDisposeStreamProvider<List<Asset>>.internal(
-  assetsStream,
-  name: r'assetsStreamProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$assetsStreamHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+final assetsStreamProvider = AssetsStreamProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef AssetsStreamRef = AutoDisposeStreamProviderRef<List<Asset>>;
-String _$liabilitiesStreamHash() => r'470d5eb6a5f4f96f4bf1034fbdf4817345f8c1f7';
-
-/// See also [liabilitiesStream].
-@ProviderFor(liabilitiesStream)
-final liabilitiesStreamProvider =
-    AutoDisposeStreamProvider<List<Liability>>.internal(
-      liabilitiesStream,
-      name: r'liabilitiesStreamProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$liabilitiesStreamHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef LiabilitiesStreamRef = AutoDisposeStreamProviderRef<List<Liability>>;
-String _$liveNetWorthHash() => r'efac234115cbe3c9ff374cefc6202c3cdc02d825';
-
-/// See also [liveNetWorth].
-@ProviderFor(liveNetWorth)
-final liveNetWorthProvider = AutoDisposeStreamProvider<int>.internal(
-  liveNetWorth,
-  name: r'liveNetWorthProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$liveNetWorthHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef LiveNetWorthRef = AutoDisposeStreamProviderRef<int>;
-String _$netWorthHistoryHash() => r'5f03f05fbaa41ba7f12c88cd22db2b1b4beeaca3';
-
-/// Copied from Dart SDK
-class _SystemHash {
-  _SystemHash._();
-
-  static int combine(int hash, int value) {
-    // ignore: parameter_assignments
-    hash = 0x1fffffff & (hash + value);
-    // ignore: parameter_assignments
-    hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
-    return hash ^ (hash >> 6);
-  }
-
-  static int finish(int hash) {
-    // ignore: parameter_assignments
-    hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
-    // ignore: parameter_assignments
-    hash = hash ^ (hash >> 11);
-    return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
-  }
-}
-
-/// See also [netWorthHistory].
-@ProviderFor(netWorthHistory)
-const netWorthHistoryProvider = NetWorthHistoryFamily();
-
-/// See also [netWorthHistory].
-class NetWorthHistoryFamily
-    extends Family<AsyncValue<List<NetWorthHistoryPoint>>> {
-  /// See also [netWorthHistory].
-  const NetWorthHistoryFamily();
-
-  /// See also [netWorthHistory].
-  NetWorthHistoryProvider call({int days = 30}) {
-    return NetWorthHistoryProvider(days: days);
-  }
-
-  @override
-  NetWorthHistoryProvider getProviderOverride(
-    covariant NetWorthHistoryProvider provider,
-  ) {
-    return call(days: provider.days);
-  }
-
-  static const Iterable<ProviderOrFamily>? _dependencies = null;
-
-  @override
-  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
-
-  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
-
-  @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
-
-  @override
-  String? get name => r'netWorthHistoryProvider';
-}
-
-/// See also [netWorthHistory].
-class NetWorthHistoryProvider
-    extends AutoDisposeFutureProvider<List<NetWorthHistoryPoint>> {
-  /// See also [netWorthHistory].
-  NetWorthHistoryProvider({int days = 30})
-    : this._internal(
-        (ref) => netWorthHistory(ref as NetWorthHistoryRef, days: days),
-        from: netWorthHistoryProvider,
-        name: r'netWorthHistoryProvider',
-        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-            ? null
-            : _$netWorthHistoryHash,
-        dependencies: NetWorthHistoryFamily._dependencies,
-        allTransitiveDependencies:
-            NetWorthHistoryFamily._allTransitiveDependencies,
-        days: days,
+final class AssetsStreamProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<Asset>>,
+          List<Asset>,
+          Stream<List<Asset>>
+        >
+    with $FutureModifier<List<Asset>>, $StreamProvider<List<Asset>> {
+  AssetsStreamProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'assetsStreamProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
       );
 
-  NetWorthHistoryProvider._internal(
-    super._createNotifier, {
-    required super.name,
-    required super.dependencies,
-    required super.allTransitiveDependencies,
-    required super.debugGetCreateSourceHash,
-    required super.from,
-    required this.days,
-  }) : super.internal();
+  @override
+  String debugGetCreateSourceHash() => _$assetsStreamHash();
 
-  final int days;
+  @$internal
+  @override
+  $StreamProviderElement<List<Asset>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
 
   @override
-  Override overrideWith(
-    FutureOr<List<NetWorthHistoryPoint>> Function(NetWorthHistoryRef provider)
-    create,
-  ) {
-    return ProviderOverride(
-      origin: this,
-      override: NetWorthHistoryProvider._internal(
-        (ref) => create(ref as NetWorthHistoryRef),
-        from: from,
-        name: null,
+  Stream<List<Asset>> create(Ref ref) {
+    return assetsStream(ref);
+  }
+}
+
+String _$assetsStreamHash() => r'e211b022b4750307942694de4506151bf23c4f01';
+
+@ProviderFor(liabilitiesStream)
+final liabilitiesStreamProvider = LiabilitiesStreamProvider._();
+
+final class LiabilitiesStreamProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<Liability>>,
+          List<Liability>,
+          Stream<List<Liability>>
+        >
+    with $FutureModifier<List<Liability>>, $StreamProvider<List<Liability>> {
+  LiabilitiesStreamProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'liabilitiesStreamProvider',
+        isAutoDispose: true,
         dependencies: null,
-        allTransitiveDependencies: null,
-        debugGetCreateSourceHash: null,
-        days: days,
-      ),
-    );
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$liabilitiesStreamHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<List<Liability>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<Liability>> create(Ref ref) {
+    return liabilitiesStream(ref);
+  }
+}
+
+String _$liabilitiesStreamHash() => r'470d5eb6a5f4f96f4bf1034fbdf4817345f8c1f7';
+
+@ProviderFor(liveNetWorth)
+final liveNetWorthProvider = LiveNetWorthProvider._();
+
+final class LiveNetWorthProvider
+    extends $FunctionalProvider<AsyncValue<int>, int, Stream<int>>
+    with $FutureModifier<int>, $StreamProvider<int> {
+  LiveNetWorthProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'liveNetWorthProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$liveNetWorthHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<int> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<int> create(Ref ref) {
+    return liveNetWorth(ref);
+  }
+}
+
+String _$liveNetWorthHash() => r'efac234115cbe3c9ff374cefc6202c3cdc02d825';
+
+@ProviderFor(netWorthHistory)
+final netWorthHistoryProvider = NetWorthHistoryFamily._();
+
+final class NetWorthHistoryProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<NetWorthHistoryPoint>>,
+          List<NetWorthHistoryPoint>,
+          FutureOr<List<NetWorthHistoryPoint>>
+        >
+    with
+        $FutureModifier<List<NetWorthHistoryPoint>>,
+        $FutureProvider<List<NetWorthHistoryPoint>> {
+  NetWorthHistoryProvider._({
+    required NetWorthHistoryFamily super.from,
+    required int super.argument,
+  }) : super(
+         retry: null,
+         name: r'netWorthHistoryProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$netWorthHistoryHash();
+
+  @override
+  String toString() {
+    return r'netWorthHistoryProvider'
+        ''
+        '($argument)';
   }
 
+  @$internal
   @override
-  AutoDisposeFutureProviderElement<List<NetWorthHistoryPoint>> createElement() {
-    return _NetWorthHistoryProviderElement(this);
+  $FutureProviderElement<List<NetWorthHistoryPoint>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<NetWorthHistoryPoint>> create(Ref ref) {
+    final argument = this.argument as int;
+    return netWorthHistory(ref, days: argument);
   }
 
   @override
   bool operator ==(Object other) {
-    return other is NetWorthHistoryProvider && other.days == days;
+    return other is NetWorthHistoryProvider && other.argument == argument;
   }
 
   @override
   int get hashCode {
-    var hash = _SystemHash.combine(0, runtimeType.hashCode);
-    hash = _SystemHash.combine(hash, days.hashCode);
-
-    return _SystemHash.finish(hash);
+    return argument.hashCode;
   }
 }
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-mixin NetWorthHistoryRef
-    on AutoDisposeFutureProviderRef<List<NetWorthHistoryPoint>> {
-  /// The parameter `days` of this provider.
-  int get days;
-}
+String _$netWorthHistoryHash() => r'5f03f05fbaa41ba7f12c88cd22db2b1b4beeaca3';
 
-class _NetWorthHistoryProviderElement
-    extends AutoDisposeFutureProviderElement<List<NetWorthHistoryPoint>>
-    with NetWorthHistoryRef {
-  _NetWorthHistoryProviderElement(super.provider);
+final class NetWorthHistoryFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<List<NetWorthHistoryPoint>>, int> {
+  NetWorthHistoryFamily._()
+    : super(
+        retry: null,
+        name: r'netWorthHistoryProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  NetWorthHistoryProvider call({int days = 30}) =>
+      NetWorthHistoryProvider._(argument: days, from: this);
 
   @override
-  int get days => (origin as NetWorthHistoryProvider).days;
+  String toString() => r'netWorthHistoryProvider';
+}
+
+@ProviderFor(netWorthSummary)
+final netWorthSummaryProvider = NetWorthSummaryProvider._();
+
+final class NetWorthSummaryProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<NetWorthSummaryData>,
+          NetWorthSummaryData,
+          Stream<NetWorthSummaryData>
+        >
+    with
+        $FutureModifier<NetWorthSummaryData>,
+        $StreamProvider<NetWorthSummaryData> {
+  NetWorthSummaryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'netWorthSummaryProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$netWorthSummaryHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<NetWorthSummaryData> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<NetWorthSummaryData> create(Ref ref) {
+    return netWorthSummary(ref);
+  }
 }
 
 String _$netWorthSummaryHash() => r'a136d940038a0d140db6ace9f1cabf331fe7d596';
 
-/// See also [netWorthSummary].
-@ProviderFor(netWorthSummary)
-final netWorthSummaryProvider =
-    AutoDisposeStreamProvider<NetWorthSummaryData>.internal(
-      netWorthSummary,
-      name: r'netWorthSummaryProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$netWorthSummaryHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+@ProviderFor(forecastingService)
+final forecastingServiceProvider = ForecastingServiceProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef NetWorthSummaryRef = AutoDisposeStreamProviderRef<NetWorthSummaryData>;
+final class ForecastingServiceProvider
+    extends
+        $FunctionalProvider<
+          ForecastingService,
+          ForecastingService,
+          ForecastingService
+        >
+    with $Provider<ForecastingService> {
+  ForecastingServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'forecastingServiceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$forecastingServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<ForecastingService> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  ForecastingService create(Ref ref) {
+    return forecastingService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ForecastingService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ForecastingService>(value),
+    );
+  }
+}
+
 String _$forecastingServiceHash() =>
     r'57da0e1b17584129288edf26abac0633a7af44e7';
 
-/// See also [forecastingService].
-@ProviderFor(forecastingService)
-final forecastingServiceProvider = Provider<ForecastingService>.internal(
-  forecastingService,
-  name: r'forecastingServiceProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$forecastingServiceHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef ForecastingServiceRef = ProviderRef<ForecastingService>;
-String _$netWorthForecastHash() => r'c493d27a9dd5e43d7159bbf5bb48e478fc06d303';
-
-/// See also [netWorthForecast].
 @ProviderFor(netWorthForecast)
-const netWorthForecastProvider = NetWorthForecastFamily();
+final netWorthForecastProvider = NetWorthForecastFamily._();
 
-/// See also [netWorthForecast].
-class NetWorthForecastFamily extends Family<AsyncValue<double>> {
-  /// See also [netWorthForecast].
-  const NetWorthForecastFamily();
+final class NetWorthForecastProvider
+    extends $FunctionalProvider<AsyncValue<double>, double, FutureOr<double>>
+    with $FutureModifier<double>, $FutureProvider<double> {
+  NetWorthForecastProvider._({
+    required NetWorthForecastFamily super.from,
+    required DateTime super.argument,
+  }) : super(
+         retry: null,
+         name: r'netWorthForecastProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
 
-  /// See also [netWorthForecast].
-  NetWorthForecastProvider call({required DateTime targetDate}) {
-    return NetWorthForecastProvider(targetDate: targetDate);
+  @override
+  String debugGetCreateSourceHash() => _$netWorthForecastHash();
+
+  @override
+  String toString() {
+    return r'netWorthForecastProvider'
+        ''
+        '($argument)';
   }
 
+  @$internal
   @override
-  NetWorthForecastProvider getProviderOverride(
-    covariant NetWorthForecastProvider provider,
-  ) {
-    return call(targetDate: provider.targetDate);
-  }
-
-  static const Iterable<ProviderOrFamily>? _dependencies = null;
+  $FutureProviderElement<double> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
 
   @override
-  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
-
-  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
-
-  @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
-
-  @override
-  String? get name => r'netWorthForecastProvider';
-}
-
-/// See also [netWorthForecast].
-class NetWorthForecastProvider extends AutoDisposeFutureProvider<double> {
-  /// See also [netWorthForecast].
-  NetWorthForecastProvider({required DateTime targetDate})
-    : this._internal(
-        (ref) => netWorthForecast(
-          ref as NetWorthForecastRef,
-          targetDate: targetDate,
-        ),
-        from: netWorthForecastProvider,
-        name: r'netWorthForecastProvider',
-        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-            ? null
-            : _$netWorthForecastHash,
-        dependencies: NetWorthForecastFamily._dependencies,
-        allTransitiveDependencies:
-            NetWorthForecastFamily._allTransitiveDependencies,
-        targetDate: targetDate,
-      );
-
-  NetWorthForecastProvider._internal(
-    super._createNotifier, {
-    required super.name,
-    required super.dependencies,
-    required super.allTransitiveDependencies,
-    required super.debugGetCreateSourceHash,
-    required super.from,
-    required this.targetDate,
-  }) : super.internal();
-
-  final DateTime targetDate;
-
-  @override
-  Override overrideWith(
-    FutureOr<double> Function(NetWorthForecastRef provider) create,
-  ) {
-    return ProviderOverride(
-      origin: this,
-      override: NetWorthForecastProvider._internal(
-        (ref) => create(ref as NetWorthForecastRef),
-        from: from,
-        name: null,
-        dependencies: null,
-        allTransitiveDependencies: null,
-        debugGetCreateSourceHash: null,
-        targetDate: targetDate,
-      ),
-    );
-  }
-
-  @override
-  AutoDisposeFutureProviderElement<double> createElement() {
-    return _NetWorthForecastProviderElement(this);
+  FutureOr<double> create(Ref ref) {
+    final argument = this.argument as DateTime;
+    return netWorthForecast(ref, targetDate: argument);
   }
 
   @override
   bool operator ==(Object other) {
-    return other is NetWorthForecastProvider && other.targetDate == targetDate;
+    return other is NetWorthForecastProvider && other.argument == argument;
   }
 
   @override
   int get hashCode {
-    var hash = _SystemHash.combine(0, runtimeType.hashCode);
-    hash = _SystemHash.combine(hash, targetDate.hashCode);
-
-    return _SystemHash.finish(hash);
+    return argument.hashCode;
   }
 }
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-mixin NetWorthForecastRef on AutoDisposeFutureProviderRef<double> {
-  /// The parameter `targetDate` of this provider.
-  DateTime get targetDate;
-}
+String _$netWorthForecastHash() => r'c493d27a9dd5e43d7159bbf5bb48e478fc06d303';
 
-class _NetWorthForecastProviderElement
-    extends AutoDisposeFutureProviderElement<double>
-    with NetWorthForecastRef {
-  _NetWorthForecastProviderElement(super.provider);
+final class NetWorthForecastFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<double>, DateTime> {
+  NetWorthForecastFamily._()
+    : super(
+        retry: null,
+        name: r'netWorthForecastProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  NetWorthForecastProvider call({required DateTime targetDate}) =>
+      NetWorthForecastProvider._(argument: targetDate, from: this);
 
   @override
-  DateTime get targetDate => (origin as NetWorthForecastProvider).targetDate;
+  String toString() => r'netWorthForecastProvider';
+}
+
+@ProviderFor(daysToNetWorthGoal)
+final daysToNetWorthGoalProvider = DaysToNetWorthGoalFamily._();
+
+final class DaysToNetWorthGoalProvider
+    extends $FunctionalProvider<AsyncValue<int>, int, FutureOr<int>>
+    with $FutureModifier<int>, $FutureProvider<int> {
+  DaysToNetWorthGoalProvider._({
+    required DaysToNetWorthGoalFamily super.from,
+    required double super.argument,
+  }) : super(
+         retry: null,
+         name: r'daysToNetWorthGoalProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$daysToNetWorthGoalHash();
+
+  @override
+  String toString() {
+    return r'daysToNetWorthGoalProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<int> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<int> create(Ref ref) {
+    final argument = this.argument as double;
+    return daysToNetWorthGoal(ref, goal: argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is DaysToNetWorthGoalProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
 }
 
 String _$daysToNetWorthGoalHash() =>
     r'a8df9c7f5377d5245d03a4a494e595478dafc789';
 
-/// See also [daysToNetWorthGoal].
-@ProviderFor(daysToNetWorthGoal)
-const daysToNetWorthGoalProvider = DaysToNetWorthGoalFamily();
-
-/// See also [daysToNetWorthGoal].
-class DaysToNetWorthGoalFamily extends Family<AsyncValue<int>> {
-  /// See also [daysToNetWorthGoal].
-  const DaysToNetWorthGoalFamily();
-
-  /// See also [daysToNetWorthGoal].
-  DaysToNetWorthGoalProvider call({required double goal}) {
-    return DaysToNetWorthGoalProvider(goal: goal);
-  }
-
-  @override
-  DaysToNetWorthGoalProvider getProviderOverride(
-    covariant DaysToNetWorthGoalProvider provider,
-  ) {
-    return call(goal: provider.goal);
-  }
-
-  static const Iterable<ProviderOrFamily>? _dependencies = null;
-
-  @override
-  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
-
-  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
-
-  @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
-
-  @override
-  String? get name => r'daysToNetWorthGoalProvider';
-}
-
-/// See also [daysToNetWorthGoal].
-class DaysToNetWorthGoalProvider extends AutoDisposeFutureProvider<int> {
-  /// See also [daysToNetWorthGoal].
-  DaysToNetWorthGoalProvider({required double goal})
-    : this._internal(
-        (ref) => daysToNetWorthGoal(ref as DaysToNetWorthGoalRef, goal: goal),
-        from: daysToNetWorthGoalProvider,
+final class DaysToNetWorthGoalFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<int>, double> {
+  DaysToNetWorthGoalFamily._()
+    : super(
+        retry: null,
         name: r'daysToNetWorthGoalProvider',
-        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-            ? null
-            : _$daysToNetWorthGoalHash,
-        dependencies: DaysToNetWorthGoalFamily._dependencies,
-        allTransitiveDependencies:
-            DaysToNetWorthGoalFamily._allTransitiveDependencies,
-        goal: goal,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
       );
 
-  DaysToNetWorthGoalProvider._internal(
-    super._createNotifier, {
-    required super.name,
-    required super.dependencies,
-    required super.allTransitiveDependencies,
-    required super.debugGetCreateSourceHash,
-    required super.from,
-    required this.goal,
-  }) : super.internal();
-
-  final double goal;
+  DaysToNetWorthGoalProvider call({required double goal}) =>
+      DaysToNetWorthGoalProvider._(argument: goal, from: this);
 
   @override
-  Override overrideWith(
-    FutureOr<int> Function(DaysToNetWorthGoalRef provider) create,
-  ) {
-    return ProviderOverride(
-      origin: this,
-      override: DaysToNetWorthGoalProvider._internal(
-        (ref) => create(ref as DaysToNetWorthGoalRef),
-        from: from,
-        name: null,
+  String toString() => r'daysToNetWorthGoalProvider';
+}
+
+@ProviderFor(NetWorthController)
+final netWorthControllerProvider = NetWorthControllerProvider._();
+
+final class NetWorthControllerProvider
+    extends $AsyncNotifierProvider<NetWorthController, void> {
+  NetWorthControllerProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'netWorthControllerProvider',
+        isAutoDispose: true,
         dependencies: null,
-        allTransitiveDependencies: null,
-        debugGetCreateSourceHash: null,
-        goal: goal,
-      ),
-    );
-  }
+        $allTransitiveDependencies: null,
+      );
 
   @override
-  AutoDisposeFutureProviderElement<int> createElement() {
-    return _DaysToNetWorthGoalProviderElement(this);
-  }
+  String debugGetCreateSourceHash() => _$netWorthControllerHash();
 
+  @$internal
   @override
-  bool operator ==(Object other) {
-    return other is DaysToNetWorthGoalProvider && other.goal == goal;
-  }
-
-  @override
-  int get hashCode {
-    var hash = _SystemHash.combine(0, runtimeType.hashCode);
-    hash = _SystemHash.combine(hash, goal.hashCode);
-
-    return _SystemHash.finish(hash);
-  }
-}
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-mixin DaysToNetWorthGoalRef on AutoDisposeFutureProviderRef<int> {
-  /// The parameter `goal` of this provider.
-  double get goal;
-}
-
-class _DaysToNetWorthGoalProviderElement
-    extends AutoDisposeFutureProviderElement<int>
-    with DaysToNetWorthGoalRef {
-  _DaysToNetWorthGoalProviderElement(super.provider);
-
-  @override
-  double get goal => (origin as DaysToNetWorthGoalProvider).goal;
+  NetWorthController create() => NetWorthController();
 }
 
 String _$netWorthControllerHash() =>
     r'b70fc00f8300175480e4419689969cdc36cc12b8';
 
-/// See also [NetWorthController].
-@ProviderFor(NetWorthController)
-final netWorthControllerProvider =
-    AutoDisposeAsyncNotifierProvider<NetWorthController, void>.internal(
-      NetWorthController.new,
-      name: r'netWorthControllerProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$netWorthControllerHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
-
-typedef _$NetWorthController = AutoDisposeAsyncNotifier<void>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+abstract class _$NetWorthController extends $AsyncNotifier<void> {
+  FutureOr<void> build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<AsyncValue<void>, void>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<void>, void>,
+              AsyncValue<void>,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}

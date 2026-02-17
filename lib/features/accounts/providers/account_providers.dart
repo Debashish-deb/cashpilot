@@ -10,13 +10,13 @@ final accountsProvider = StreamProvider<List<Account>>((ref) {
   return db.watchAllAccounts();
 });
 
-final totalBalanceProvider = Provider<int>((ref) {
+final totalBalanceProvider = Provider<BigInt>((ref) {
   final accountsAsync = ref.watch(accountsProvider);
 
   return accountsAsync.maybeWhen(
     data: (accounts) =>
-        accounts.fold<int>(0, (sum, acc) => sum + acc.balance),
-    orElse: () => 0,
+        accounts.fold<BigInt>(BigInt.zero, (sum, acc) => sum + acc.balanceCents),
+    orElse: () => BigInt.zero,
   );
 });
 
@@ -33,18 +33,18 @@ final netWorthProvider = Provider<NetWorthData>((ref) {
 
   return accountsAsync.maybeWhen(
     data: (accounts) {
-      int totalAssets = 0;
-      int totalLiabilities = 0;
+      BigInt totalAssets = BigInt.zero;
+      BigInt totalLiabilities = BigInt.zero;
 
       for (final acc in accounts) {
         switch (acc.type) {
           case 'credit':
           case 'loan':
             // Liabilities grow upward — debt increases
-            totalLiabilities += acc.balance;
+            totalLiabilities += acc.balanceCents;
             break;
           default:
-            totalAssets += acc.balance;
+            totalAssets += acc.balanceCents;
         }
       }
 
@@ -63,9 +63,9 @@ final netWorthProvider = Provider<NetWorthData>((ref) {
 /// ============================================================================
 
 class NetWorthData {
-  final int totalAssets;
-  final int totalLiabilities;
-  final int netWorth;
+  final BigInt totalAssets;
+  final BigInt totalLiabilities;
+  final BigInt netWorth;
 
   const NetWorthData({
     required this.totalAssets,
@@ -74,23 +74,23 @@ class NetWorthData {
   });
 
   factory NetWorthData.zero() =>
-      const NetWorthData(totalAssets: 0, totalLiabilities: 0, netWorth: 0);
+      NetWorthData(totalAssets: BigInt.zero, totalLiabilities: BigInt.zero, netWorth: BigInt.zero);
 
   /// Helpful for charts
   double get liabilityRatio {
     final total = totalAssets + totalLiabilities;
-    if (total == 0) return 0;
-    return totalLiabilities / total;
+    if (total == BigInt.zero) return 0;
+    return totalLiabilities.toDouble() / total.toDouble();
   }
 
   /// Helpful for UI — green / red indicators
-  bool get isPositive => netWorth >= 0;
+  bool get isPositive => netWorth >= BigInt.zero;
 
   /// Helpful for animations
   NetWorthData copyWith({
-    int? totalAssets,
-    int? totalLiabilities,
-    int? netWorth,
+    BigInt? totalAssets,
+    BigInt? totalLiabilities,
+    BigInt? netWorth,
   }) {
     return NetWorthData(
       totalAssets: totalAssets ?? this.totalAssets,
@@ -105,12 +105,12 @@ class NetWorthData {
 /// ============================================================================
 
 /// Total assets value (for net worth card)
-final totalAssetsProvider = Provider<AsyncValue<int>>((ref) {
+final totalAssetsProvider = Provider<AsyncValue<BigInt>>((ref) {
   return ref.watch(accountsProvider).when(
     data: (accounts) {
       final assets = accounts
           .where((acc) => acc.type != 'credit' && acc.type != 'loan')
-          .fold<int>(0, (sum, acc) => sum + acc.balance);
+          .fold<BigInt>(BigInt.zero, (sum, acc) => sum + acc.balanceCents);
       return AsyncData(assets);
     },
     loading: () => const AsyncLoading(),
@@ -119,12 +119,12 @@ final totalAssetsProvider = Provider<AsyncValue<int>>((ref) {
 });
 
 /// Total liabilities value (for net worth card)
-final totalLiabilitiesProvider = Provider<AsyncValue<int>>((ref) {
+final totalLiabilitiesProvider = Provider<AsyncValue<BigInt>>((ref) {
   return ref.watch(accountsProvider).when(
     data: (accounts) {
       final liabilities = accounts
           .where((acc) => acc.type == 'credit' || acc.type == 'loan')
-          .fold<int>(0, (sum, acc) => sum + acc.balance);
+          .fold<BigInt>(BigInt.zero, (sum, acc) => sum + acc.balanceCents);
       return AsyncData(liabilities);
     },
     loading: () => const AsyncLoading(),
@@ -134,8 +134,8 @@ final totalLiabilitiesProvider = Provider<AsyncValue<int>>((ref) {
 
 /// Account Balance Validation Result
 class AccountValidation {
-  final int databaseBalance;
-  final int transactionSum;
+  final BigInt databaseBalance;
+  final BigInt transactionSum;
   final bool isValid;
   final String? message;
 
@@ -159,10 +159,10 @@ final accountValidationProvider = Provider.family<AsyncValue<AccountValidation>,
         data: (expenses) {
           // Note: In a real app, you'd start from an initial balance or track income.
           // For CashPilot, we'll check if the balance is at least consistent with historical spending.
-          final totalSpent = expenses.fold<int>(0, (sum, e) => sum + e.amount);
+          final totalSpent = expenses.fold<BigInt>(BigInt.zero, (sum, e) => sum + e.amountCents);
           
           return AsyncValue.data(AccountValidation(
-            databaseBalance: account.balance,
+            databaseBalance: account.balanceCents,
             transactionSum: totalSpent,
             isValid: true, // Placeholder logic for now as requested in P0
             message: 'Reconciliation check complete: $totalSpent total spent found.',

@@ -3,7 +3,9 @@
 /// Structure unchanged, logic improved.
 library;
 
-import 'dart:math';
+import 'dart:math' as math;
+import '../health_score_engine.dart' as engine;
+import '../../../core/finance/money.dart';
 
 /// Health score result
 class HealthScoreResult {
@@ -127,63 +129,31 @@ class HealthScoreCalculator {
     double? lastPeriodSpending,
     double? recurringExpenses,
   }) {
-    final insights = <String>[];
-
-    // Normalize safety
-    totalBudget = max(totalBudget, 0.0);
-    totalSpent = max(totalSpent, 0.0);
-
-    // ---------------------------------------------------------------------
-    // 1. BUDGET USAGE SCORE — 40%
-    // ---------------------------------------------------------------------
-    final usagePercent =
-        totalBudget == 0 ? 0.0 : (totalSpent / totalBudget).clamp(0.0, 2.0);
-    final usageScore = _calculateUsageScore(usagePercent, insights);
-
-    // ---------------------------------------------------------------------
-    // 2. CONSISTENCY SCORE — 20%
-    // ---------------------------------------------------------------------
-    final consistencyScore =
-        _calculateConsistencyScore(totalSpent, lastPeriodSpending, insights);
-
-    // ---------------------------------------------------------------------
-    // 3. CATEGORY BALANCE SCORE — 20%
-    // ---------------------------------------------------------------------
-    final balanceScore = _calculateCategoryBalanceScore(
-      categorySpending,
-      categoryLimits,
-      insights,
+    // 1. Convert legacy doubles to Money
+    final budgetMoney = Money.fromDouble(totalBudget, Currency.EUR);
+    final spentMoney = Money.fromDouble(totalSpent, Currency.EUR);
+    final savingsMoney = Money.fromDouble(0.0, Currency.EUR); // Placeholder
+    final debtMoney = Money.fromDouble(0.0, Currency.EUR); // Placeholder
+    
+    // 2. Call the new engine
+    final result = engine.HealthScoreEngine.calculate(
+      totalBudget: budgetMoney,
+      spent: spentMoney,
+      savings: savingsMoney,
+      debt: debtMoney,
+      momentum: 0.0, // Placeholder
     );
-
-    // ---------------------------------------------------------------------
-    // 4. RECURRING RATIO SCORE — 20%
-    // ---------------------------------------------------------------------
-    final recurringScore = _calculateRecurringRatioScore(
-      totalSpent,
-      recurringExpenses,
-      insights,
-    );
-
-    // ---------------------------------------------------------------------
-    // FINAL SCORE
-    // ---------------------------------------------------------------------
-    final finalScore = (
-      usageScore * 0.40 +
-      consistencyScore * 0.20 +
-      balanceScore * 0.20 +
-      recurringScore * 0.20
-    ).round().clamp(0, 100);
 
     return HealthScoreResult(
-      score: finalScore,
-      level: _getHealthLevel(finalScore),
+      score: result.score,
+      level: _getHealthLevel(result.score),
       componentScores: {
-        'usage': usageScore,
-        'consistency': consistencyScore,
-        'balance': balanceScore,
-        'recurring': recurringScore,
+        'usage': result.budgetScore.toDouble(),
+        'savings': result.savingsScore.toDouble(),
+        'debt': result.debtScore.toDouble(),
+        'momentum': result.momentumScore.toDouble(),
       },
-      insights: insights,
+      insights: result.insights,
     );
   }
 
@@ -260,10 +230,10 @@ class HealthScoreCalculator {
     int optimal = 0;
 
     for (final entry in categoryLimits.entries) {
-      final limit = max(entry.value, 0.0);
+      final limit = math.max(entry.value, 0.0);
       if (limit == 0) continue;
 
-      final spent = max(categorySpending[entry.key] ?? 0.0, 0.0);
+      final spent = math.max(categorySpending[entry.key] ?? 0.0, 0.0);
       final usage = spent / limit;
 
       if (usage > 1.0) overspent++;
@@ -272,7 +242,7 @@ class HealthScoreCalculator {
 
     if (overspent > 0) {
       insights.add('$overspent category${overspent == 1 ? "" : "ies"} over budget');
-      return max(20.0, (100 - overspent * 25).toDouble());
+      return math.max(20.0, (100 - overspent * 25).toDouble());
     }
 
     if (optimal >= categoryLimits.length / 2) {

@@ -61,6 +61,19 @@ class FormatManager {
     }
   }
 
+  /// Format cents from BigInt directly
+  String formatCents(
+    BigInt cents, {
+    String currencyCode = 'EUR',
+    int decimalDigits = 2,
+  }) {
+    return formatCurrency(
+      cents.toDouble() / 100.0,
+      currencyCode: currencyCode,
+      decimalDigits: decimalDigits,
+    );
+  }
+
   String formatNumber(num value, {int? decimalDigits}) {
     try {
       final formatted = NumberFormat.decimalPattern(locale).format(value);

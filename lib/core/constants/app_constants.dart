@@ -121,8 +121,8 @@ class AppConstants {
 
   static const String databaseName = 'cashpilot.db';
 
-  /// V23: Advanced Budgeting (Refunds, Split Transactions, Multi-Currency Aggregation)
-  static const int databaseVersion = 23;
+  /// V25: Precision Overhaul Fix (Missing columns in migration)
+  static const int databaseVersion = 25;
 
   // PAGINATION
 

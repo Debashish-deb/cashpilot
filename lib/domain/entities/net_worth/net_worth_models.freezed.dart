@@ -1,5 +1,5 @@
-// coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// coverage:ignore-file
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
@@ -9,389 +9,541 @@ part of 'net_worth_models.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// dart format off
 T _$identity<T>(T value) => value;
-
-final _privateConstructorUsedError = UnsupportedError(
-  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
-);
-
-NetWorthHistoryPoint _$NetWorthHistoryPointFromJson(Map<String, dynamic> json) {
-  return _NetWorthHistoryPoint.fromJson(json);
-}
 
 /// @nodoc
 mixin _$NetWorthHistoryPoint {
-  DateTime get date => throw _privateConstructorUsedError;
-  int get valueCents => throw _privateConstructorUsedError;
+
+ DateTime get date; int get valueCents;
+/// Create a copy of NetWorthHistoryPoint
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$NetWorthHistoryPointCopyWith<NetWorthHistoryPoint> get copyWith => _$NetWorthHistoryPointCopyWithImpl<NetWorthHistoryPoint>(this as NetWorthHistoryPoint, _$identity);
 
   /// Serializes this NetWorthHistoryPoint to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of NetWorthHistoryPoint
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $NetWorthHistoryPointCopyWith<NetWorthHistoryPoint> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NetWorthHistoryPoint&&(identical(other.date, date) || other.date == date)&&(identical(other.valueCents, valueCents) || other.valueCents == valueCents));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,date,valueCents);
+
+@override
+String toString() {
+  return 'NetWorthHistoryPoint(date: $date, valueCents: $valueCents)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $NetWorthHistoryPointCopyWith<$Res> {
-  factory $NetWorthHistoryPointCopyWith(
-    NetWorthHistoryPoint value,
-    $Res Function(NetWorthHistoryPoint) then,
-  ) = _$NetWorthHistoryPointCopyWithImpl<$Res, NetWorthHistoryPoint>;
-  @useResult
-  $Res call({DateTime date, int valueCents});
-}
+abstract mixin class $NetWorthHistoryPointCopyWith<$Res>  {
+  factory $NetWorthHistoryPointCopyWith(NetWorthHistoryPoint value, $Res Function(NetWorthHistoryPoint) _then) = _$NetWorthHistoryPointCopyWithImpl;
+@useResult
+$Res call({
+ DateTime date, int valueCents
+});
 
+
+
+
+}
 /// @nodoc
-class _$NetWorthHistoryPointCopyWithImpl<
-  $Res,
-  $Val extends NetWorthHistoryPoint
->
+class _$NetWorthHistoryPointCopyWithImpl<$Res>
     implements $NetWorthHistoryPointCopyWith<$Res> {
-  _$NetWorthHistoryPointCopyWithImpl(this._value, this._then);
+  _$NetWorthHistoryPointCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final NetWorthHistoryPoint _self;
+  final $Res Function(NetWorthHistoryPoint) _then;
 
-  /// Create a copy of NetWorthHistoryPoint
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({Object? date = null, Object? valueCents = null}) {
-    return _then(
-      _value.copyWith(
-            date: null == date
-                ? _value.date
-                : date // ignore: cast_nullable_to_non_nullable
-                      as DateTime,
-            valueCents: null == valueCents
-                ? _value.valueCents
-                : valueCents // ignore: cast_nullable_to_non_nullable
-                      as int,
-          )
-          as $Val,
-    );
-  }
+/// Create a copy of NetWorthHistoryPoint
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? date = null,Object? valueCents = null,}) {
+  return _then(_self.copyWith(
+date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
+as DateTime,valueCents: null == valueCents ? _self.valueCents : valueCents // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
 }
 
-/// @nodoc
-abstract class _$$NetWorthHistoryPointImplCopyWith<$Res>
-    implements $NetWorthHistoryPointCopyWith<$Res> {
-  factory _$$NetWorthHistoryPointImplCopyWith(
-    _$NetWorthHistoryPointImpl value,
-    $Res Function(_$NetWorthHistoryPointImpl) then,
-  ) = __$$NetWorthHistoryPointImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({DateTime date, int valueCents});
 }
 
-/// @nodoc
-class __$$NetWorthHistoryPointImplCopyWithImpl<$Res>
-    extends _$NetWorthHistoryPointCopyWithImpl<$Res, _$NetWorthHistoryPointImpl>
-    implements _$$NetWorthHistoryPointImplCopyWith<$Res> {
-  __$$NetWorthHistoryPointImplCopyWithImpl(
-    _$NetWorthHistoryPointImpl _value,
-    $Res Function(_$NetWorthHistoryPointImpl) _then,
-  ) : super(_value, _then);
 
-  /// Create a copy of NetWorthHistoryPoint
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({Object? date = null, Object? valueCents = null}) {
-    return _then(
-      _$NetWorthHistoryPointImpl(
-        date: null == date
-            ? _value.date
-            : date // ignore: cast_nullable_to_non_nullable
-                  as DateTime,
-        valueCents: null == valueCents
-            ? _value.valueCents
-            : valueCents // ignore: cast_nullable_to_non_nullable
-                  as int,
-      ),
-    );
-  }
+/// Adds pattern-matching-related methods to [NetWorthHistoryPoint].
+extension NetWorthHistoryPointPatterns on NetWorthHistoryPoint {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _NetWorthHistoryPoint value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _NetWorthHistoryPoint() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _NetWorthHistoryPoint value)  $default,){
+final _that = this;
+switch (_that) {
+case _NetWorthHistoryPoint():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _NetWorthHistoryPoint value)?  $default,){
+final _that = this;
+switch (_that) {
+case _NetWorthHistoryPoint() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( DateTime date,  int valueCents)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _NetWorthHistoryPoint() when $default != null:
+return $default(_that.date,_that.valueCents);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( DateTime date,  int valueCents)  $default,) {final _that = this;
+switch (_that) {
+case _NetWorthHistoryPoint():
+return $default(_that.date,_that.valueCents);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( DateTime date,  int valueCents)?  $default,) {final _that = this;
+switch (_that) {
+case _NetWorthHistoryPoint() when $default != null:
+return $default(_that.date,_that.valueCents);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 @JsonSerializable()
-class _$NetWorthHistoryPointImpl implements _NetWorthHistoryPoint {
-  const _$NetWorthHistoryPointImpl({
-    required this.date,
-    required this.valueCents,
-  });
 
-  factory _$NetWorthHistoryPointImpl.fromJson(Map<String, dynamic> json) =>
-      _$$NetWorthHistoryPointImplFromJson(json);
+class _NetWorthHistoryPoint implements NetWorthHistoryPoint {
+  const _NetWorthHistoryPoint({required this.date, required this.valueCents});
+  factory _NetWorthHistoryPoint.fromJson(Map<String, dynamic> json) => _$NetWorthHistoryPointFromJson(json);
 
-  @override
-  final DateTime date;
-  @override
-  final int valueCents;
+@override final  DateTime date;
+@override final  int valueCents;
 
-  @override
-  String toString() {
-    return 'NetWorthHistoryPoint(date: $date, valueCents: $valueCents)';
-  }
+/// Create a copy of NetWorthHistoryPoint
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$NetWorthHistoryPointCopyWith<_NetWorthHistoryPoint> get copyWith => __$NetWorthHistoryPointCopyWithImpl<_NetWorthHistoryPoint>(this, _$identity);
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$NetWorthHistoryPointImpl &&
-            (identical(other.date, date) || other.date == date) &&
-            (identical(other.valueCents, valueCents) ||
-                other.valueCents == valueCents));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(runtimeType, date, valueCents);
-
-  /// Create a copy of NetWorthHistoryPoint
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$NetWorthHistoryPointImplCopyWith<_$NetWorthHistoryPointImpl>
-  get copyWith =>
-      __$$NetWorthHistoryPointImplCopyWithImpl<_$NetWorthHistoryPointImpl>(
-        this,
-        _$identity,
-      );
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$NetWorthHistoryPointImplToJson(this);
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$NetWorthHistoryPointToJson(this, );
 }
 
-abstract class _NetWorthHistoryPoint implements NetWorthHistoryPoint {
-  const factory _NetWorthHistoryPoint({
-    required final DateTime date,
-    required final int valueCents,
-  }) = _$NetWorthHistoryPointImpl;
-
-  factory _NetWorthHistoryPoint.fromJson(Map<String, dynamic> json) =
-      _$NetWorthHistoryPointImpl.fromJson;
-
-  @override
-  DateTime get date;
-  @override
-  int get valueCents;
-
-  /// Create a copy of NetWorthHistoryPoint
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$NetWorthHistoryPointImplCopyWith<_$NetWorthHistoryPointImpl>
-  get copyWith => throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _NetWorthHistoryPoint&&(identical(other.date, date) || other.date == date)&&(identical(other.valueCents, valueCents) || other.valueCents == valueCents));
 }
 
-NetWorthSummaryData _$NetWorthSummaryDataFromJson(Map<String, dynamic> json) {
-  return _NetWorthSummaryData.fromJson(json);
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,date,valueCents);
+
+@override
+String toString() {
+  return 'NetWorthHistoryPoint(date: $date, valueCents: $valueCents)';
 }
+
+
+}
+
+/// @nodoc
+abstract mixin class _$NetWorthHistoryPointCopyWith<$Res> implements $NetWorthHistoryPointCopyWith<$Res> {
+  factory _$NetWorthHistoryPointCopyWith(_NetWorthHistoryPoint value, $Res Function(_NetWorthHistoryPoint) _then) = __$NetWorthHistoryPointCopyWithImpl;
+@override @useResult
+$Res call({
+ DateTime date, int valueCents
+});
+
+
+
+
+}
+/// @nodoc
+class __$NetWorthHistoryPointCopyWithImpl<$Res>
+    implements _$NetWorthHistoryPointCopyWith<$Res> {
+  __$NetWorthHistoryPointCopyWithImpl(this._self, this._then);
+
+  final _NetWorthHistoryPoint _self;
+  final $Res Function(_NetWorthHistoryPoint) _then;
+
+/// Create a copy of NetWorthHistoryPoint
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? date = null,Object? valueCents = null,}) {
+  return _then(_NetWorthHistoryPoint(
+date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
+as DateTime,valueCents: null == valueCents ? _self.valueCents : valueCents // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
 
 /// @nodoc
 mixin _$NetWorthSummaryData {
-  int get totalAssets => throw _privateConstructorUsedError;
-  int get totalLiabilities => throw _privateConstructorUsedError;
-  int get netWorth => throw _privateConstructorUsedError;
+
+ int get totalAssets; int get totalLiabilities; int get netWorth;
+/// Create a copy of NetWorthSummaryData
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$NetWorthSummaryDataCopyWith<NetWorthSummaryData> get copyWith => _$NetWorthSummaryDataCopyWithImpl<NetWorthSummaryData>(this as NetWorthSummaryData, _$identity);
 
   /// Serializes this NetWorthSummaryData to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of NetWorthSummaryData
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $NetWorthSummaryDataCopyWith<NetWorthSummaryData> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NetWorthSummaryData&&(identical(other.totalAssets, totalAssets) || other.totalAssets == totalAssets)&&(identical(other.totalLiabilities, totalLiabilities) || other.totalLiabilities == totalLiabilities)&&(identical(other.netWorth, netWorth) || other.netWorth == netWorth));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,totalAssets,totalLiabilities,netWorth);
+
+@override
+String toString() {
+  return 'NetWorthSummaryData(totalAssets: $totalAssets, totalLiabilities: $totalLiabilities, netWorth: $netWorth)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $NetWorthSummaryDataCopyWith<$Res> {
-  factory $NetWorthSummaryDataCopyWith(
-    NetWorthSummaryData value,
-    $Res Function(NetWorthSummaryData) then,
-  ) = _$NetWorthSummaryDataCopyWithImpl<$Res, NetWorthSummaryData>;
-  @useResult
-  $Res call({int totalAssets, int totalLiabilities, int netWorth});
-}
+abstract mixin class $NetWorthSummaryDataCopyWith<$Res>  {
+  factory $NetWorthSummaryDataCopyWith(NetWorthSummaryData value, $Res Function(NetWorthSummaryData) _then) = _$NetWorthSummaryDataCopyWithImpl;
+@useResult
+$Res call({
+ int totalAssets, int totalLiabilities, int netWorth
+});
 
+
+
+
+}
 /// @nodoc
-class _$NetWorthSummaryDataCopyWithImpl<$Res, $Val extends NetWorthSummaryData>
+class _$NetWorthSummaryDataCopyWithImpl<$Res>
     implements $NetWorthSummaryDataCopyWith<$Res> {
-  _$NetWorthSummaryDataCopyWithImpl(this._value, this._then);
+  _$NetWorthSummaryDataCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final NetWorthSummaryData _self;
+  final $Res Function(NetWorthSummaryData) _then;
 
-  /// Create a copy of NetWorthSummaryData
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? totalAssets = null,
-    Object? totalLiabilities = null,
-    Object? netWorth = null,
-  }) {
-    return _then(
-      _value.copyWith(
-            totalAssets: null == totalAssets
-                ? _value.totalAssets
-                : totalAssets // ignore: cast_nullable_to_non_nullable
-                      as int,
-            totalLiabilities: null == totalLiabilities
-                ? _value.totalLiabilities
-                : totalLiabilities // ignore: cast_nullable_to_non_nullable
-                      as int,
-            netWorth: null == netWorth
-                ? _value.netWorth
-                : netWorth // ignore: cast_nullable_to_non_nullable
-                      as int,
-          )
-          as $Val,
-    );
-  }
+/// Create a copy of NetWorthSummaryData
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? totalAssets = null,Object? totalLiabilities = null,Object? netWorth = null,}) {
+  return _then(_self.copyWith(
+totalAssets: null == totalAssets ? _self.totalAssets : totalAssets // ignore: cast_nullable_to_non_nullable
+as int,totalLiabilities: null == totalLiabilities ? _self.totalLiabilities : totalLiabilities // ignore: cast_nullable_to_non_nullable
+as int,netWorth: null == netWorth ? _self.netWorth : netWorth // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
 }
 
-/// @nodoc
-abstract class _$$NetWorthSummaryDataImplCopyWith<$Res>
-    implements $NetWorthSummaryDataCopyWith<$Res> {
-  factory _$$NetWorthSummaryDataImplCopyWith(
-    _$NetWorthSummaryDataImpl value,
-    $Res Function(_$NetWorthSummaryDataImpl) then,
-  ) = __$$NetWorthSummaryDataImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({int totalAssets, int totalLiabilities, int netWorth});
 }
 
-/// @nodoc
-class __$$NetWorthSummaryDataImplCopyWithImpl<$Res>
-    extends _$NetWorthSummaryDataCopyWithImpl<$Res, _$NetWorthSummaryDataImpl>
-    implements _$$NetWorthSummaryDataImplCopyWith<$Res> {
-  __$$NetWorthSummaryDataImplCopyWithImpl(
-    _$NetWorthSummaryDataImpl _value,
-    $Res Function(_$NetWorthSummaryDataImpl) _then,
-  ) : super(_value, _then);
 
-  /// Create a copy of NetWorthSummaryData
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? totalAssets = null,
-    Object? totalLiabilities = null,
-    Object? netWorth = null,
-  }) {
-    return _then(
-      _$NetWorthSummaryDataImpl(
-        totalAssets: null == totalAssets
-            ? _value.totalAssets
-            : totalAssets // ignore: cast_nullable_to_non_nullable
-                  as int,
-        totalLiabilities: null == totalLiabilities
-            ? _value.totalLiabilities
-            : totalLiabilities // ignore: cast_nullable_to_non_nullable
-                  as int,
-        netWorth: null == netWorth
-            ? _value.netWorth
-            : netWorth // ignore: cast_nullable_to_non_nullable
-                  as int,
-      ),
-    );
-  }
+/// Adds pattern-matching-related methods to [NetWorthSummaryData].
+extension NetWorthSummaryDataPatterns on NetWorthSummaryData {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _NetWorthSummaryData value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _NetWorthSummaryData() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _NetWorthSummaryData value)  $default,){
+final _that = this;
+switch (_that) {
+case _NetWorthSummaryData():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _NetWorthSummaryData value)?  $default,){
+final _that = this;
+switch (_that) {
+case _NetWorthSummaryData() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int totalAssets,  int totalLiabilities,  int netWorth)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _NetWorthSummaryData() when $default != null:
+return $default(_that.totalAssets,_that.totalLiabilities,_that.netWorth);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int totalAssets,  int totalLiabilities,  int netWorth)  $default,) {final _that = this;
+switch (_that) {
+case _NetWorthSummaryData():
+return $default(_that.totalAssets,_that.totalLiabilities,_that.netWorth);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int totalAssets,  int totalLiabilities,  int netWorth)?  $default,) {final _that = this;
+switch (_that) {
+case _NetWorthSummaryData() when $default != null:
+return $default(_that.totalAssets,_that.totalLiabilities,_that.netWorth);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 @JsonSerializable()
-class _$NetWorthSummaryDataImpl implements _NetWorthSummaryData {
-  const _$NetWorthSummaryDataImpl({
-    required this.totalAssets,
-    required this.totalLiabilities,
-    required this.netWorth,
-  });
 
-  factory _$NetWorthSummaryDataImpl.fromJson(Map<String, dynamic> json) =>
-      _$$NetWorthSummaryDataImplFromJson(json);
+class _NetWorthSummaryData implements NetWorthSummaryData {
+  const _NetWorthSummaryData({required this.totalAssets, required this.totalLiabilities, required this.netWorth});
+  factory _NetWorthSummaryData.fromJson(Map<String, dynamic> json) => _$NetWorthSummaryDataFromJson(json);
 
-  @override
-  final int totalAssets;
-  @override
-  final int totalLiabilities;
-  @override
-  final int netWorth;
+@override final  int totalAssets;
+@override final  int totalLiabilities;
+@override final  int netWorth;
 
-  @override
-  String toString() {
-    return 'NetWorthSummaryData(totalAssets: $totalAssets, totalLiabilities: $totalLiabilities, netWorth: $netWorth)';
-  }
+/// Create a copy of NetWorthSummaryData
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$NetWorthSummaryDataCopyWith<_NetWorthSummaryData> get copyWith => __$NetWorthSummaryDataCopyWithImpl<_NetWorthSummaryData>(this, _$identity);
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$NetWorthSummaryDataImpl &&
-            (identical(other.totalAssets, totalAssets) ||
-                other.totalAssets == totalAssets) &&
-            (identical(other.totalLiabilities, totalLiabilities) ||
-                other.totalLiabilities == totalLiabilities) &&
-            (identical(other.netWorth, netWorth) ||
-                other.netWorth == netWorth));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode =>
-      Object.hash(runtimeType, totalAssets, totalLiabilities, netWorth);
-
-  /// Create a copy of NetWorthSummaryData
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$NetWorthSummaryDataImplCopyWith<_$NetWorthSummaryDataImpl> get copyWith =>
-      __$$NetWorthSummaryDataImplCopyWithImpl<_$NetWorthSummaryDataImpl>(
-        this,
-        _$identity,
-      );
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$NetWorthSummaryDataImplToJson(this);
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$NetWorthSummaryDataToJson(this, );
 }
 
-abstract class _NetWorthSummaryData implements NetWorthSummaryData {
-  const factory _NetWorthSummaryData({
-    required final int totalAssets,
-    required final int totalLiabilities,
-    required final int netWorth,
-  }) = _$NetWorthSummaryDataImpl;
-
-  factory _NetWorthSummaryData.fromJson(Map<String, dynamic> json) =
-      _$NetWorthSummaryDataImpl.fromJson;
-
-  @override
-  int get totalAssets;
-  @override
-  int get totalLiabilities;
-  @override
-  int get netWorth;
-
-  /// Create a copy of NetWorthSummaryData
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$NetWorthSummaryDataImplCopyWith<_$NetWorthSummaryDataImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _NetWorthSummaryData&&(identical(other.totalAssets, totalAssets) || other.totalAssets == totalAssets)&&(identical(other.totalLiabilities, totalLiabilities) || other.totalLiabilities == totalLiabilities)&&(identical(other.netWorth, netWorth) || other.netWorth == netWorth));
 }
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,totalAssets,totalLiabilities,netWorth);
+
+@override
+String toString() {
+  return 'NetWorthSummaryData(totalAssets: $totalAssets, totalLiabilities: $totalLiabilities, netWorth: $netWorth)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$NetWorthSummaryDataCopyWith<$Res> implements $NetWorthSummaryDataCopyWith<$Res> {
+  factory _$NetWorthSummaryDataCopyWith(_NetWorthSummaryData value, $Res Function(_NetWorthSummaryData) _then) = __$NetWorthSummaryDataCopyWithImpl;
+@override @useResult
+$Res call({
+ int totalAssets, int totalLiabilities, int netWorth
+});
+
+
+
+
+}
+/// @nodoc
+class __$NetWorthSummaryDataCopyWithImpl<$Res>
+    implements _$NetWorthSummaryDataCopyWith<$Res> {
+  __$NetWorthSummaryDataCopyWithImpl(this._self, this._then);
+
+  final _NetWorthSummaryData _self;
+  final $Res Function(_NetWorthSummaryData) _then;
+
+/// Create a copy of NetWorthSummaryData
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? totalAssets = null,Object? totalLiabilities = null,Object? netWorth = null,}) {
+  return _then(_NetWorthSummaryData(
+totalAssets: null == totalAssets ? _self.totalAssets : totalAssets // ignore: cast_nullable_to_non_nullable
+as int,totalLiabilities: null == totalLiabilities ? _self.totalLiabilities : totalLiabilities // ignore: cast_nullable_to_non_nullable
+as int,netWorth: null == netWorth ? _self.netWorth : netWorth // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
+// dart format on

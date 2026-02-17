@@ -6,7 +6,7 @@ part of 'asset.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$AssetImpl _$$AssetImplFromJson(Map<String, dynamic> json) => _$AssetImpl(
+_Asset _$AssetFromJson(Map<String, dynamic> json) => _Asset(
   id: json['id'] as String,
   userId: json['userId'] as String,
   name: json['name'] as String,
@@ -21,21 +21,20 @@ _$AssetImpl _$$AssetImplFromJson(Map<String, dynamic> json) => _$AssetImpl(
   revision: (json['revision'] as num?)?.toInt() ?? 0,
 );
 
-Map<String, dynamic> _$$AssetImplToJson(_$AssetImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'userId': instance.userId,
-      'name': instance.name,
-      'type': _$AssetTypeEnumMap[instance.type]!,
-      'currentValue': instance.currentValue,
-      'currency': instance.currency,
-      'createdAt': instance.createdAt.toIso8601String(),
-      'updatedAt': instance.updatedAt.toIso8601String(),
-      'institutionName': instance.institutionName,
-      'notes': instance.notes,
-      'isDeleted': instance.isDeleted,
-      'revision': instance.revision,
-    };
+Map<String, dynamic> _$AssetToJson(_Asset instance) => <String, dynamic>{
+  'id': instance.id,
+  'userId': instance.userId,
+  'name': instance.name,
+  'type': _$AssetTypeEnumMap[instance.type]!,
+  'currentValue': instance.currentValue,
+  'currency': instance.currency,
+  'createdAt': instance.createdAt.toIso8601String(),
+  'updatedAt': instance.updatedAt.toIso8601String(),
+  'institutionName': instance.institutionName,
+  'notes': instance.notes,
+  'isDeleted': instance.isDeleted,
+  'revision': instance.revision,
+};
 
 const _$AssetTypeEnumMap = {
   AssetType.realEstate: 'realEstate',

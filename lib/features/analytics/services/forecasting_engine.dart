@@ -2,8 +2,10 @@ import 'package:drift/src/runtime/query_builder/query_builder.dart';
 
 import '../../../data/drift/app_database.dart';
 
+import '../budget_projection_engine.dart' as engine;
+import '../../../core/finance/money.dart';
+
 /// Forecasting Engine - Improved prediction algorithms
-/// Replaces naive (monthSpent/day * totalDays) with weighted forecasting
 class ForecastingEngine {
   final AppDatabase _db;
   
@@ -20,11 +22,8 @@ class ForecastingEngine {
     
     final daysInMonth = end.day;
     final currentDay = today.day;
-    final remainingDays = daysInMonth - currentDay;
     
-    if (remainingDays <= 0) return 0.0;
-    
-    // Get all expenses this month
+    // 1. Get current month expenses
     final expenses = await (_db.select(_db.expenses)
       ..where((e) => 
         e.budgetId.equals(budgetId) & 
@@ -35,35 +34,25 @@ class ForecastingEngine {
     
     if (expenses.isEmpty) return 0.0;
     
-    final currentSpent = expenses.fold(0.0, (sum, e) => sum + e.amount / 100.0);
+    final currentSpentCents = expenses.fold(0, (sum, e) => sum + e.amount);
+    final currentSpent = Money(currentSpentCents, Currency.EUR);
     
-    // Get historical data (last 8 weeks for weekday baseline)
-    final historical = await _getHistoricalExpenses(budgetId, weeks: 8);
-    final weekdayBaseline = _calculateWeekdayBaseline(historical);
-    
-    // Calculate recent 7-day average (weighted)
-    final recent7Days = expenses
-      .where((e) => e.date.isAfter(today.subtract(const Duration(days: 7))))
-      .toList();
-    
-    final recent7Average = recent7Days.isEmpty 
-      ? currentSpent / currentDay
-      : recent7Days.fold(0.0, (sum, e) => sum + e.amount / 100.0) / 7;
-    
-    // Forecast remaining days using blended approach
-    double forecastedRemaining = 0.0;
-    for (int i = currentDay + 1; i <= daysInMonth; i++) {
-      final futureDate = DateTime(currentDate.year, currentDate.month, i);
-      final weekday = futureDate.weekday;
-      
-      final baselineForDay = weekdayBaseline[weekday] ?? recent7Average;
-      
-      // Blend: 60% historical baseline + 40% recent trend
-      final dailyForecast = (baselineForDay * 0.6) + (recent7Average * 0.4);
-      forecastedRemaining += dailyForecast;
-    }
-    
-    return currentSpent + forecastedRemaining;
+    // 2. Prepare history for the engine
+    final history = expenses.map((e) => engine.DailySpending(
+      date: e.date,
+      amount: Money(e.amount, Currency.EUR),
+    )).toList();
+
+    // 3. Call the projection engine
+    final result = engine.BudgetProjectionEngine.project(
+      currentSpent: currentSpent,
+      history: history,
+      totalDays: daysInMonth,
+      daysElapsed: currentDay,
+      method: engine.ProjectionMethod.weighted,
+    );
+
+    return result.projectedTotal.toDouble();
   }
   
   /// Get historical expenses for baseline calculation

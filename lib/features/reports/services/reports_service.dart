@@ -7,14 +7,15 @@ final reportsServiceProvider = Provider<ReportsService>((ref) {
 
 class HierarchicalCategoryTotal {
   final String name;
-  double totalCents;
-  final Map<String, double> subcategoryTotals; 
+  BigInt totalCents;
+  final Map<String, BigInt> subcategoryTotals; 
 
   HierarchicalCategoryTotal({
     required this.name,
-    this.totalCents = 0,
-    Map<String, double>? subcategoryTotals,
-  }) : subcategoryTotals = subcategoryTotals ?? {};
+    BigInt? totalCents,
+    Map<String, BigInt>? subcategoryTotals,
+  }) : totalCents = totalCents ?? BigInt.zero,
+       subcategoryTotals = subcategoryTotals ?? {};
 }
 
 /// Diagnostic outcome for the Month Outlook card
@@ -75,7 +76,7 @@ class ReportsService {
         subName = subCategoryMap[e.subCategoryId]?.name;
       }
 
-      _addToBreakdown(breakdown, parentName, e.amount.toDouble(), subcategoryName: subName);
+      _addToBreakdown(breakdown, parentName, e.amountCents, subcategoryName: subName);
     }
     
     // Sort by total value descending
@@ -85,12 +86,12 @@ class ReportsService {
     return Map.fromEntries(sortedList);
   }
 
-  void _addToBreakdown(Map<String, HierarchicalCategoryTotal> breakdown, String parentName, double amount, {String? subcategoryName}) {
+  void _addToBreakdown(Map<String, HierarchicalCategoryTotal> breakdown, String parentName, BigInt amount, {String? subcategoryName}) {
     final group = breakdown.putIfAbsent(parentName, () => HierarchicalCategoryTotal(name: parentName));
-    group.totalCents += amount.toInt();
+    group.totalCents += amount;
     
     if (subcategoryName != null) {
-      group.subcategoryTotals[subcategoryName] = (group.subcategoryTotals[subcategoryName] ?? 0) + amount;
+      group.subcategoryTotals[subcategoryName] = (group.subcategoryTotals[subcategoryName] ?? BigInt.zero) + amount;
     }
   }
 
@@ -112,7 +113,7 @@ class ReportsService {
     for (var e in expenses) {
       final dateKey = DateTime(e.date.year, e.date.month, e.date.day);
       if (dailyTotals.containsKey(dateKey)) {
-        dailyTotals[dateKey] = (dailyTotals[dateKey] ?? 0) + e.amount;
+        dailyTotals[dateKey] = (dailyTotals[dateKey] ?? 0) + e.amountCents.toDouble();
       }
     }
 
@@ -217,16 +218,16 @@ class ReportsService {
   }
 
   /// Calculates Impulse Density (% of small transactions)
-  ({double density, double avgSize}) calculateBehaviorMetrics(List<Expense> expenses, {double threshold = 500.0}) {
+  ({double density, double avgSize}) calculateBehaviorMetrics(List<Expense> expenses, {double thresholdCents = 50000}) { // Adjusted threshold for cents
     if (expenses.isEmpty) return (density: 0.0, avgSize: 0.0);
 
     final totalCount = expenses.length;
-    final impulseCount = expenses.where((e) => e.amount < threshold).length;
-    final totalAmount = expenses.fold<double>(0, (sum, e) => sum + e.amount);
+    final impulseCount = expenses.where((e) => e.amountCents < BigInt.from(thresholdCents)).length;
+    final totalAmount = expenses.fold<BigInt>(BigInt.zero, (sum, e) => sum + e.amountCents);
 
     return (
       density: impulseCount / totalCount,
-      avgSize: totalAmount / totalCount,
+      avgSize: totalAmount.toDouble() / totalCount,
     );
   }
 }

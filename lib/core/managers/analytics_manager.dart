@@ -129,11 +129,11 @@ class AnalyticsManager {
     int onTrackCount = 0;
 
     for (final budget in budgets) {
-      final limit = budget.totalLimit;
-      if (limit == null || limit <= 0) continue;
+      final limit = budget.totalLimitCents;
+      if (limit == null || limit <= BigInt.zero) continue;
 
       final spent = await _db!.getTotalSpentInBudget(budget.id);
-      final usage = spent / limit;
+      final usage = spent.toDouble() / limit.toDouble();
 
       if (usage > 1.0) {
         overBudgetCount++;

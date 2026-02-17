@@ -1700,6 +1700,17 @@ class $BudgetsTable extends Budgets with TableInfo<$BudgetsTable, Budget> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _totalLimitCentsMeta = const VerificationMeta(
+    'totalLimitCents',
+  );
+  @override
+  late final GeneratedColumn<BigInt> totalLimitCents = GeneratedColumn<BigInt>(
+    'total_limit_cents',
+    aliasedName,
+    true,
+    type: DriftSqlType.bigInt,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _isSharedMeta = const VerificationMeta(
     'isShared',
   );
@@ -1930,6 +1941,7 @@ class $BudgetsTable extends Budgets with TableInfo<$BudgetsTable, Budget> {
     endDate,
     currency,
     totalLimit,
+    totalLimitCents,
     isShared,
     isTemplate,
     status,
@@ -2026,6 +2038,15 @@ class $BudgetsTable extends Budgets with TableInfo<$BudgetsTable, Budget> {
       context.handle(
         _totalLimitMeta,
         totalLimit.isAcceptableOrUnknown(data['total_limit']!, _totalLimitMeta),
+      );
+    }
+    if (data.containsKey('total_limit_cents')) {
+      context.handle(
+        _totalLimitCentsMeta,
+        totalLimitCents.isAcceptableOrUnknown(
+          data['total_limit_cents']!,
+          _totalLimitCentsMeta,
+        ),
       );
     }
     if (data.containsKey('is_shared')) {
@@ -2196,6 +2217,10 @@ class $BudgetsTable extends Budgets with TableInfo<$BudgetsTable, Budget> {
         DriftSqlType.int,
         data['${effectivePrefix}total_limit'],
       ),
+      totalLimitCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.bigInt,
+        data['${effectivePrefix}total_limit_cents'],
+      ),
       isShared: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_shared'],
@@ -2298,6 +2323,7 @@ class Budget extends DataClass implements Insertable<Budget> {
   final DateTime endDate;
   final String currency;
   final int? totalLimit;
+  final BigInt? totalLimitCents;
   final bool isShared;
   final bool isTemplate;
   final String status;
@@ -2327,6 +2353,7 @@ class Budget extends DataClass implements Insertable<Budget> {
     required this.endDate,
     required this.currency,
     this.totalLimit,
+    this.totalLimitCents,
     required this.isShared,
     required this.isTemplate,
     required this.status,
@@ -2362,6 +2389,9 @@ class Budget extends DataClass implements Insertable<Budget> {
     map['currency'] = Variable<String>(currency);
     if (!nullToAbsent || totalLimit != null) {
       map['total_limit'] = Variable<int>(totalLimit);
+    }
+    if (!nullToAbsent || totalLimitCents != null) {
+      map['total_limit_cents'] = Variable<BigInt>(totalLimitCents);
     }
     map['is_shared'] = Variable<bool>(isShared);
     map['is_template'] = Variable<bool>(isTemplate);
@@ -2424,6 +2454,9 @@ class Budget extends DataClass implements Insertable<Budget> {
       totalLimit: totalLimit == null && nullToAbsent
           ? const Value.absent()
           : Value(totalLimit),
+      totalLimitCents: totalLimitCents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalLimitCents),
       isShared: Value(isShared),
       isTemplate: Value(isTemplate),
       status: Value(status),
@@ -2479,6 +2512,7 @@ class Budget extends DataClass implements Insertable<Budget> {
       endDate: serializer.fromJson<DateTime>(json['endDate']),
       currency: serializer.fromJson<String>(json['currency']),
       totalLimit: serializer.fromJson<int?>(json['totalLimit']),
+      totalLimitCents: serializer.fromJson<BigInt?>(json['totalLimitCents']),
       isShared: serializer.fromJson<bool>(json['isShared']),
       isTemplate: serializer.fromJson<bool>(json['isTemplate']),
       status: serializer.fromJson<String>(json['status']),
@@ -2515,6 +2549,7 @@ class Budget extends DataClass implements Insertable<Budget> {
       'endDate': serializer.toJson<DateTime>(endDate),
       'currency': serializer.toJson<String>(currency),
       'totalLimit': serializer.toJson<int?>(totalLimit),
+      'totalLimitCents': serializer.toJson<BigInt?>(totalLimitCents),
       'isShared': serializer.toJson<bool>(isShared),
       'isTemplate': serializer.toJson<bool>(isTemplate),
       'status': serializer.toJson<String>(status),
@@ -2549,6 +2584,7 @@ class Budget extends DataClass implements Insertable<Budget> {
     DateTime? endDate,
     String? currency,
     Value<int?> totalLimit = const Value.absent(),
+    Value<BigInt?> totalLimitCents = const Value.absent(),
     bool? isShared,
     bool? isTemplate,
     String? status,
@@ -2578,6 +2614,9 @@ class Budget extends DataClass implements Insertable<Budget> {
     endDate: endDate ?? this.endDate,
     currency: currency ?? this.currency,
     totalLimit: totalLimit.present ? totalLimit.value : this.totalLimit,
+    totalLimitCents: totalLimitCents.present
+        ? totalLimitCents.value
+        : this.totalLimitCents,
     isShared: isShared ?? this.isShared,
     isTemplate: isTemplate ?? this.isTemplate,
     status: status ?? this.status,
@@ -2617,6 +2656,9 @@ class Budget extends DataClass implements Insertable<Budget> {
       totalLimit: data.totalLimit.present
           ? data.totalLimit.value
           : this.totalLimit,
+      totalLimitCents: data.totalLimitCents.present
+          ? data.totalLimitCents.value
+          : this.totalLimitCents,
       isShared: data.isShared.present ? data.isShared.value : this.isShared,
       isTemplate: data.isTemplate.present
           ? data.isTemplate.value
@@ -2663,6 +2705,7 @@ class Budget extends DataClass implements Insertable<Budget> {
           ..write('endDate: $endDate, ')
           ..write('currency: $currency, ')
           ..write('totalLimit: $totalLimit, ')
+          ..write('totalLimitCents: $totalLimitCents, ')
           ..write('isShared: $isShared, ')
           ..write('isTemplate: $isTemplate, ')
           ..write('status: $status, ')
@@ -2697,6 +2740,7 @@ class Budget extends DataClass implements Insertable<Budget> {
     endDate,
     currency,
     totalLimit,
+    totalLimitCents,
     isShared,
     isTemplate,
     status,
@@ -2730,6 +2774,7 @@ class Budget extends DataClass implements Insertable<Budget> {
           other.endDate == this.endDate &&
           other.currency == this.currency &&
           other.totalLimit == this.totalLimit &&
+          other.totalLimitCents == this.totalLimitCents &&
           other.isShared == this.isShared &&
           other.isTemplate == this.isTemplate &&
           other.status == this.status &&
@@ -2761,6 +2806,7 @@ class BudgetsCompanion extends UpdateCompanion<Budget> {
   final Value<DateTime> endDate;
   final Value<String> currency;
   final Value<int?> totalLimit;
+  final Value<BigInt?> totalLimitCents;
   final Value<bool> isShared;
   final Value<bool> isTemplate;
   final Value<String> status;
@@ -2791,6 +2837,7 @@ class BudgetsCompanion extends UpdateCompanion<Budget> {
     this.endDate = const Value.absent(),
     this.currency = const Value.absent(),
     this.totalLimit = const Value.absent(),
+    this.totalLimitCents = const Value.absent(),
     this.isShared = const Value.absent(),
     this.isTemplate = const Value.absent(),
     this.status = const Value.absent(),
@@ -2822,6 +2869,7 @@ class BudgetsCompanion extends UpdateCompanion<Budget> {
     required DateTime endDate,
     this.currency = const Value.absent(),
     this.totalLimit = const Value.absent(),
+    this.totalLimitCents = const Value.absent(),
     this.isShared = const Value.absent(),
     this.isTemplate = const Value.absent(),
     this.status = const Value.absent(),
@@ -2858,6 +2906,7 @@ class BudgetsCompanion extends UpdateCompanion<Budget> {
     Expression<DateTime>? endDate,
     Expression<String>? currency,
     Expression<int>? totalLimit,
+    Expression<BigInt>? totalLimitCents,
     Expression<bool>? isShared,
     Expression<bool>? isTemplate,
     Expression<String>? status,
@@ -2889,6 +2938,7 @@ class BudgetsCompanion extends UpdateCompanion<Budget> {
       if (endDate != null) 'end_date': endDate,
       if (currency != null) 'currency': currency,
       if (totalLimit != null) 'total_limit': totalLimit,
+      if (totalLimitCents != null) 'total_limit_cents': totalLimitCents,
       if (isShared != null) 'is_shared': isShared,
       if (isTemplate != null) 'is_template': isTemplate,
       if (status != null) 'status': status,
@@ -2923,6 +2973,7 @@ class BudgetsCompanion extends UpdateCompanion<Budget> {
     Value<DateTime>? endDate,
     Value<String>? currency,
     Value<int?>? totalLimit,
+    Value<BigInt?>? totalLimitCents,
     Value<bool>? isShared,
     Value<bool>? isTemplate,
     Value<String>? status,
@@ -2954,6 +3005,7 @@ class BudgetsCompanion extends UpdateCompanion<Budget> {
       endDate: endDate ?? this.endDate,
       currency: currency ?? this.currency,
       totalLimit: totalLimit ?? this.totalLimit,
+      totalLimitCents: totalLimitCents ?? this.totalLimitCents,
       isShared: isShared ?? this.isShared,
       isTemplate: isTemplate ?? this.isTemplate,
       status: status ?? this.status,
@@ -3007,6 +3059,9 @@ class BudgetsCompanion extends UpdateCompanion<Budget> {
     }
     if (totalLimit.present) {
       map['total_limit'] = Variable<int>(totalLimit.value);
+    }
+    if (totalLimitCents.present) {
+      map['total_limit_cents'] = Variable<BigInt>(totalLimitCents.value);
     }
     if (isShared.present) {
       map['is_shared'] = Variable<bool>(isShared.value);
@@ -3087,6 +3142,7 @@ class BudgetsCompanion extends UpdateCompanion<Budget> {
           ..write('endDate: $endDate, ')
           ..write('currency: $currency, ')
           ..write('totalLimit: $totalLimit, ')
+          ..write('totalLimitCents: $totalLimitCents, ')
           ..write('isShared: $isShared, ')
           ..write('isTemplate: $isTemplate, ')
           ..write('status: $status, ')
@@ -4130,6 +4186,17 @@ class $SemiBudgetsTable extends SemiBudgets
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _limitAmountCentsMeta = const VerificationMeta(
+    'limitAmountCents',
+  );
+  @override
+  late final GeneratedColumn<BigInt> limitAmountCents = GeneratedColumn<BigInt>(
+    'limit_amount_cents',
+    aliasedName,
+    true,
+    type: DriftSqlType.bigInt,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _priorityMeta = const VerificationMeta(
     'priority',
   );
@@ -4213,6 +4280,17 @@ class $SemiBudgetsTable extends SemiBudgets
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _suggestedPercentBpsMeta =
+      const VerificationMeta('suggestedPercentBps');
+  @override
+  late final GeneratedColumn<BigInt> suggestedPercentBps =
+      GeneratedColumn<BigInt>(
+        'suggested_percent_bps',
+        aliasedName,
+        true,
+        type: DriftSqlType.bigInt,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _displayOrderMeta = const VerificationMeta(
     'displayOrder',
   );
@@ -4364,6 +4442,7 @@ class $SemiBudgetsTable extends SemiBudgets
     budgetId,
     name,
     limitAmount,
+    limitAmountCents,
     priority,
     iconName,
     colorHex,
@@ -4371,6 +4450,7 @@ class $SemiBudgetsTable extends SemiBudgets
     parentCategoryId,
     isSubcategory,
     suggestedPercent,
+    suggestedPercentBps,
     displayOrder,
     masterCategoryId,
     createdAt,
@@ -4428,6 +4508,15 @@ class $SemiBudgetsTable extends SemiBudgets
     } else if (isInserting) {
       context.missing(_limitAmountMeta);
     }
+    if (data.containsKey('limit_amount_cents')) {
+      context.handle(
+        _limitAmountCentsMeta,
+        limitAmountCents.isAcceptableOrUnknown(
+          data['limit_amount_cents']!,
+          _limitAmountCentsMeta,
+        ),
+      );
+    }
     if (data.containsKey('priority')) {
       context.handle(
         _priorityMeta,
@@ -4470,6 +4559,15 @@ class $SemiBudgetsTable extends SemiBudgets
         suggestedPercent.isAcceptableOrUnknown(
           data['suggested_percent']!,
           _suggestedPercentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('suggested_percent_bps')) {
+      context.handle(
+        _suggestedPercentBpsMeta,
+        suggestedPercentBps.isAcceptableOrUnknown(
+          data['suggested_percent_bps']!,
+          _suggestedPercentBpsMeta,
         ),
       );
     }
@@ -4591,6 +4689,10 @@ class $SemiBudgetsTable extends SemiBudgets
         DriftSqlType.int,
         data['${effectivePrefix}limit_amount'],
       )!,
+      limitAmountCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.bigInt,
+        data['${effectivePrefix}limit_amount_cents'],
+      ),
       priority: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}priority'],
@@ -4620,6 +4722,10 @@ class $SemiBudgetsTable extends SemiBudgets
       suggestedPercent: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}suggested_percent'],
+      ),
+      suggestedPercentBps: attachedDatabase.typeMapping.read(
+        DriftSqlType.bigInt,
+        data['${effectivePrefix}suggested_percent_bps'],
       ),
       displayOrder: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -4688,6 +4794,7 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
   final String budgetId;
   final String name;
   final int limitAmount;
+  final BigInt? limitAmountCents;
   final int priority;
   final String? iconName;
   final String? colorHex;
@@ -4695,6 +4802,7 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
   final String? parentCategoryId;
   final bool isSubcategory;
   final double? suggestedPercent;
+  final BigInt? suggestedPercentBps;
   final int displayOrder;
   final String? masterCategoryId;
   final DateTime createdAt;
@@ -4712,6 +4820,7 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
     required this.budgetId,
     required this.name,
     required this.limitAmount,
+    this.limitAmountCents,
     required this.priority,
     this.iconName,
     this.colorHex,
@@ -4719,6 +4828,7 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
     this.parentCategoryId,
     required this.isSubcategory,
     this.suggestedPercent,
+    this.suggestedPercentBps,
     required this.displayOrder,
     this.masterCategoryId,
     required this.createdAt,
@@ -4739,6 +4849,9 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
     map['budget_id'] = Variable<String>(budgetId);
     map['name'] = Variable<String>(name);
     map['limit_amount'] = Variable<int>(limitAmount);
+    if (!nullToAbsent || limitAmountCents != null) {
+      map['limit_amount_cents'] = Variable<BigInt>(limitAmountCents);
+    }
     map['priority'] = Variable<int>(priority);
     if (!nullToAbsent || iconName != null) {
       map['icon_name'] = Variable<String>(iconName);
@@ -4757,6 +4870,9 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
     map['is_subcategory'] = Variable<bool>(isSubcategory);
     if (!nullToAbsent || suggestedPercent != null) {
       map['suggested_percent'] = Variable<double>(suggestedPercent);
+    }
+    if (!nullToAbsent || suggestedPercentBps != null) {
+      map['suggested_percent_bps'] = Variable<BigInt>(suggestedPercentBps);
     }
     map['display_order'] = Variable<int>(displayOrder);
     if (!nullToAbsent || masterCategoryId != null) {
@@ -4791,6 +4907,9 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
       budgetId: Value(budgetId),
       name: Value(name),
       limitAmount: Value(limitAmount),
+      limitAmountCents: limitAmountCents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(limitAmountCents),
       priority: Value(priority),
       iconName: iconName == null && nullToAbsent
           ? const Value.absent()
@@ -4808,6 +4927,9 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
       suggestedPercent: suggestedPercent == null && nullToAbsent
           ? const Value.absent()
           : Value(suggestedPercent),
+      suggestedPercentBps: suggestedPercentBps == null && nullToAbsent
+          ? const Value.absent()
+          : Value(suggestedPercentBps),
       displayOrder: Value(displayOrder),
       masterCategoryId: masterCategoryId == null && nullToAbsent
           ? const Value.absent()
@@ -4843,6 +4965,7 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
       budgetId: serializer.fromJson<String>(json['budgetId']),
       name: serializer.fromJson<String>(json['name']),
       limitAmount: serializer.fromJson<int>(json['limitAmount']),
+      limitAmountCents: serializer.fromJson<BigInt?>(json['limitAmountCents']),
       priority: serializer.fromJson<int>(json['priority']),
       iconName: serializer.fromJson<String?>(json['iconName']),
       colorHex: serializer.fromJson<String?>(json['colorHex']),
@@ -4850,6 +4973,9 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
       parentCategoryId: serializer.fromJson<String?>(json['parentCategoryId']),
       isSubcategory: serializer.fromJson<bool>(json['isSubcategory']),
       suggestedPercent: serializer.fromJson<double?>(json['suggestedPercent']),
+      suggestedPercentBps: serializer.fromJson<BigInt?>(
+        json['suggestedPercentBps'],
+      ),
       displayOrder: serializer.fromJson<int>(json['displayOrder']),
       masterCategoryId: serializer.fromJson<String?>(json['masterCategoryId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -4874,6 +5000,7 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
       'budgetId': serializer.toJson<String>(budgetId),
       'name': serializer.toJson<String>(name),
       'limitAmount': serializer.toJson<int>(limitAmount),
+      'limitAmountCents': serializer.toJson<BigInt?>(limitAmountCents),
       'priority': serializer.toJson<int>(priority),
       'iconName': serializer.toJson<String?>(iconName),
       'colorHex': serializer.toJson<String?>(colorHex),
@@ -4881,6 +5008,7 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
       'parentCategoryId': serializer.toJson<String?>(parentCategoryId),
       'isSubcategory': serializer.toJson<bool>(isSubcategory),
       'suggestedPercent': serializer.toJson<double?>(suggestedPercent),
+      'suggestedPercentBps': serializer.toJson<BigInt?>(suggestedPercentBps),
       'displayOrder': serializer.toJson<int>(displayOrder),
       'masterCategoryId': serializer.toJson<String?>(masterCategoryId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -4903,6 +5031,7 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
     String? budgetId,
     String? name,
     int? limitAmount,
+    Value<BigInt?> limitAmountCents = const Value.absent(),
     int? priority,
     Value<String?> iconName = const Value.absent(),
     Value<String?> colorHex = const Value.absent(),
@@ -4910,6 +5039,7 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
     Value<String?> parentCategoryId = const Value.absent(),
     bool? isSubcategory,
     Value<double?> suggestedPercent = const Value.absent(),
+    Value<BigInt?> suggestedPercentBps = const Value.absent(),
     int? displayOrder,
     Value<String?> masterCategoryId = const Value.absent(),
     DateTime? createdAt,
@@ -4927,6 +5057,9 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
     budgetId: budgetId ?? this.budgetId,
     name: name ?? this.name,
     limitAmount: limitAmount ?? this.limitAmount,
+    limitAmountCents: limitAmountCents.present
+        ? limitAmountCents.value
+        : this.limitAmountCents,
     priority: priority ?? this.priority,
     iconName: iconName.present ? iconName.value : this.iconName,
     colorHex: colorHex.present ? colorHex.value : this.colorHex,
@@ -4938,6 +5071,9 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
     suggestedPercent: suggestedPercent.present
         ? suggestedPercent.value
         : this.suggestedPercent,
+    suggestedPercentBps: suggestedPercentBps.present
+        ? suggestedPercentBps.value
+        : this.suggestedPercentBps,
     displayOrder: displayOrder ?? this.displayOrder,
     masterCategoryId: masterCategoryId.present
         ? masterCategoryId.value
@@ -4965,6 +5101,9 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
       limitAmount: data.limitAmount.present
           ? data.limitAmount.value
           : this.limitAmount,
+      limitAmountCents: data.limitAmountCents.present
+          ? data.limitAmountCents.value
+          : this.limitAmountCents,
       priority: data.priority.present ? data.priority.value : this.priority,
       iconName: data.iconName.present ? data.iconName.value : this.iconName,
       colorHex: data.colorHex.present ? data.colorHex.value : this.colorHex,
@@ -4978,6 +5117,9 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
       suggestedPercent: data.suggestedPercent.present
           ? data.suggestedPercent.value
           : this.suggestedPercent,
+      suggestedPercentBps: data.suggestedPercentBps.present
+          ? data.suggestedPercentBps.value
+          : this.suggestedPercentBps,
       displayOrder: data.displayOrder.present
           ? data.displayOrder.value
           : this.displayOrder,
@@ -5014,6 +5156,7 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
           ..write('budgetId: $budgetId, ')
           ..write('name: $name, ')
           ..write('limitAmount: $limitAmount, ')
+          ..write('limitAmountCents: $limitAmountCents, ')
           ..write('priority: $priority, ')
           ..write('iconName: $iconName, ')
           ..write('colorHex: $colorHex, ')
@@ -5021,6 +5164,7 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
           ..write('parentCategoryId: $parentCategoryId, ')
           ..write('isSubcategory: $isSubcategory, ')
           ..write('suggestedPercent: $suggestedPercent, ')
+          ..write('suggestedPercentBps: $suggestedPercentBps, ')
           ..write('displayOrder: $displayOrder, ')
           ..write('masterCategoryId: $masterCategoryId, ')
           ..write('createdAt: $createdAt, ')
@@ -5043,6 +5187,7 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
     budgetId,
     name,
     limitAmount,
+    limitAmountCents,
     priority,
     iconName,
     colorHex,
@@ -5050,6 +5195,7 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
     parentCategoryId,
     isSubcategory,
     suggestedPercent,
+    suggestedPercentBps,
     displayOrder,
     masterCategoryId,
     createdAt,
@@ -5071,6 +5217,7 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
           other.budgetId == this.budgetId &&
           other.name == this.name &&
           other.limitAmount == this.limitAmount &&
+          other.limitAmountCents == this.limitAmountCents &&
           other.priority == this.priority &&
           other.iconName == this.iconName &&
           other.colorHex == this.colorHex &&
@@ -5078,6 +5225,7 @@ class SemiBudget extends DataClass implements Insertable<SemiBudget> {
           other.parentCategoryId == this.parentCategoryId &&
           other.isSubcategory == this.isSubcategory &&
           other.suggestedPercent == this.suggestedPercent &&
+          other.suggestedPercentBps == this.suggestedPercentBps &&
           other.displayOrder == this.displayOrder &&
           other.masterCategoryId == this.masterCategoryId &&
           other.createdAt == this.createdAt &&
@@ -5097,6 +5245,7 @@ class SemiBudgetsCompanion extends UpdateCompanion<SemiBudget> {
   final Value<String> budgetId;
   final Value<String> name;
   final Value<int> limitAmount;
+  final Value<BigInt?> limitAmountCents;
   final Value<int> priority;
   final Value<String?> iconName;
   final Value<String?> colorHex;
@@ -5104,6 +5253,7 @@ class SemiBudgetsCompanion extends UpdateCompanion<SemiBudget> {
   final Value<String?> parentCategoryId;
   final Value<bool> isSubcategory;
   final Value<double?> suggestedPercent;
+  final Value<BigInt?> suggestedPercentBps;
   final Value<int> displayOrder;
   final Value<String?> masterCategoryId;
   final Value<DateTime> createdAt;
@@ -5122,6 +5272,7 @@ class SemiBudgetsCompanion extends UpdateCompanion<SemiBudget> {
     this.budgetId = const Value.absent(),
     this.name = const Value.absent(),
     this.limitAmount = const Value.absent(),
+    this.limitAmountCents = const Value.absent(),
     this.priority = const Value.absent(),
     this.iconName = const Value.absent(),
     this.colorHex = const Value.absent(),
@@ -5129,6 +5280,7 @@ class SemiBudgetsCompanion extends UpdateCompanion<SemiBudget> {
     this.parentCategoryId = const Value.absent(),
     this.isSubcategory = const Value.absent(),
     this.suggestedPercent = const Value.absent(),
+    this.suggestedPercentBps = const Value.absent(),
     this.displayOrder = const Value.absent(),
     this.masterCategoryId = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -5148,6 +5300,7 @@ class SemiBudgetsCompanion extends UpdateCompanion<SemiBudget> {
     required String budgetId,
     required String name,
     required int limitAmount,
+    this.limitAmountCents = const Value.absent(),
     this.priority = const Value.absent(),
     this.iconName = const Value.absent(),
     this.colorHex = const Value.absent(),
@@ -5155,6 +5308,7 @@ class SemiBudgetsCompanion extends UpdateCompanion<SemiBudget> {
     this.parentCategoryId = const Value.absent(),
     this.isSubcategory = const Value.absent(),
     this.suggestedPercent = const Value.absent(),
+    this.suggestedPercentBps = const Value.absent(),
     this.displayOrder = const Value.absent(),
     this.masterCategoryId = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -5177,6 +5331,7 @@ class SemiBudgetsCompanion extends UpdateCompanion<SemiBudget> {
     Expression<String>? budgetId,
     Expression<String>? name,
     Expression<int>? limitAmount,
+    Expression<BigInt>? limitAmountCents,
     Expression<int>? priority,
     Expression<String>? iconName,
     Expression<String>? colorHex,
@@ -5184,6 +5339,7 @@ class SemiBudgetsCompanion extends UpdateCompanion<SemiBudget> {
     Expression<String>? parentCategoryId,
     Expression<bool>? isSubcategory,
     Expression<double>? suggestedPercent,
+    Expression<BigInt>? suggestedPercentBps,
     Expression<int>? displayOrder,
     Expression<String>? masterCategoryId,
     Expression<DateTime>? createdAt,
@@ -5203,6 +5359,7 @@ class SemiBudgetsCompanion extends UpdateCompanion<SemiBudget> {
       if (budgetId != null) 'budget_id': budgetId,
       if (name != null) 'name': name,
       if (limitAmount != null) 'limit_amount': limitAmount,
+      if (limitAmountCents != null) 'limit_amount_cents': limitAmountCents,
       if (priority != null) 'priority': priority,
       if (iconName != null) 'icon_name': iconName,
       if (colorHex != null) 'color_hex': colorHex,
@@ -5210,6 +5367,8 @@ class SemiBudgetsCompanion extends UpdateCompanion<SemiBudget> {
       if (parentCategoryId != null) 'parent_category_id': parentCategoryId,
       if (isSubcategory != null) 'is_subcategory': isSubcategory,
       if (suggestedPercent != null) 'suggested_percent': suggestedPercent,
+      if (suggestedPercentBps != null)
+        'suggested_percent_bps': suggestedPercentBps,
       if (displayOrder != null) 'display_order': displayOrder,
       if (masterCategoryId != null) 'master_category_id': masterCategoryId,
       if (createdAt != null) 'created_at': createdAt,
@@ -5232,6 +5391,7 @@ class SemiBudgetsCompanion extends UpdateCompanion<SemiBudget> {
     Value<String>? budgetId,
     Value<String>? name,
     Value<int>? limitAmount,
+    Value<BigInt?>? limitAmountCents,
     Value<int>? priority,
     Value<String?>? iconName,
     Value<String?>? colorHex,
@@ -5239,6 +5399,7 @@ class SemiBudgetsCompanion extends UpdateCompanion<SemiBudget> {
     Value<String?>? parentCategoryId,
     Value<bool>? isSubcategory,
     Value<double?>? suggestedPercent,
+    Value<BigInt?>? suggestedPercentBps,
     Value<int>? displayOrder,
     Value<String?>? masterCategoryId,
     Value<DateTime>? createdAt,
@@ -5258,6 +5419,7 @@ class SemiBudgetsCompanion extends UpdateCompanion<SemiBudget> {
       budgetId: budgetId ?? this.budgetId,
       name: name ?? this.name,
       limitAmount: limitAmount ?? this.limitAmount,
+      limitAmountCents: limitAmountCents ?? this.limitAmountCents,
       priority: priority ?? this.priority,
       iconName: iconName ?? this.iconName,
       colorHex: colorHex ?? this.colorHex,
@@ -5265,6 +5427,7 @@ class SemiBudgetsCompanion extends UpdateCompanion<SemiBudget> {
       parentCategoryId: parentCategoryId ?? this.parentCategoryId,
       isSubcategory: isSubcategory ?? this.isSubcategory,
       suggestedPercent: suggestedPercent ?? this.suggestedPercent,
+      suggestedPercentBps: suggestedPercentBps ?? this.suggestedPercentBps,
       displayOrder: displayOrder ?? this.displayOrder,
       masterCategoryId: masterCategoryId ?? this.masterCategoryId,
       createdAt: createdAt ?? this.createdAt,
@@ -5297,6 +5460,9 @@ class SemiBudgetsCompanion extends UpdateCompanion<SemiBudget> {
     if (limitAmount.present) {
       map['limit_amount'] = Variable<int>(limitAmount.value);
     }
+    if (limitAmountCents.present) {
+      map['limit_amount_cents'] = Variable<BigInt>(limitAmountCents.value);
+    }
     if (priority.present) {
       map['priority'] = Variable<int>(priority.value);
     }
@@ -5319,6 +5485,11 @@ class SemiBudgetsCompanion extends UpdateCompanion<SemiBudget> {
     }
     if (suggestedPercent.present) {
       map['suggested_percent'] = Variable<double>(suggestedPercent.value);
+    }
+    if (suggestedPercentBps.present) {
+      map['suggested_percent_bps'] = Variable<BigInt>(
+        suggestedPercentBps.value,
+      );
     }
     if (displayOrder.present) {
       map['display_order'] = Variable<int>(displayOrder.value);
@@ -5371,6 +5542,7 @@ class SemiBudgetsCompanion extends UpdateCompanion<SemiBudget> {
           ..write('budgetId: $budgetId, ')
           ..write('name: $name, ')
           ..write('limitAmount: $limitAmount, ')
+          ..write('limitAmountCents: $limitAmountCents, ')
           ..write('priority: $priority, ')
           ..write('iconName: $iconName, ')
           ..write('colorHex: $colorHex, ')
@@ -5378,6 +5550,7 @@ class SemiBudgetsCompanion extends UpdateCompanion<SemiBudget> {
           ..write('parentCategoryId: $parentCategoryId, ')
           ..write('isSubcategory: $isSubcategory, ')
           ..write('suggestedPercent: $suggestedPercent, ')
+          ..write('suggestedPercentBps: $suggestedPercentBps, ')
           ..write('displayOrder: $displayOrder, ')
           ..write('masterCategoryId: $masterCategoryId, ')
           ..write('createdAt: $createdAt, ')
@@ -5450,6 +5623,18 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
+  );
+  static const VerificationMeta _balanceCentsMeta = const VerificationMeta(
+    'balanceCents',
+  );
+  @override
+  late final GeneratedColumn<BigInt> balanceCents = GeneratedColumn<BigInt>(
+    'balance_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.bigInt,
+    requiredDuringInsert: false,
+    defaultValue: Constant(BigInt.zero),
   );
   static const VerificationMeta _currencyMeta = const VerificationMeta(
     'currency',
@@ -5657,6 +5842,7 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
     name,
     type,
     balance,
+    balanceCents,
     currency,
     iconName,
     colorHex,
@@ -5723,6 +5909,15 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
       );
     } else if (isInserting) {
       context.missing(_balanceMeta);
+    }
+    if (data.containsKey('balance_cents')) {
+      context.handle(
+        _balanceCentsMeta,
+        balanceCents.isAcceptableOrUnknown(
+          data['balance_cents']!,
+          _balanceCentsMeta,
+        ),
+      );
     }
     if (data.containsKey('currency')) {
       context.handle(
@@ -5870,6 +6065,10 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
         DriftSqlType.int,
         data['${effectivePrefix}balance'],
       )!,
+      balanceCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.bigInt,
+        data['${effectivePrefix}balance_cents'],
+      )!,
       currency: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}currency'],
@@ -5960,6 +6159,7 @@ class Account extends DataClass implements Insertable<Account> {
   final String name;
   final String type;
   final int balance;
+  final BigInt balanceCents;
   final String currency;
   final String? iconName;
   final String? colorHex;
@@ -5983,6 +6183,7 @@ class Account extends DataClass implements Insertable<Account> {
     required this.name,
     required this.type,
     required this.balance,
+    required this.balanceCents,
     required this.currency,
     this.iconName,
     this.colorHex,
@@ -6009,6 +6210,7 @@ class Account extends DataClass implements Insertable<Account> {
     map['name'] = Variable<String>(name);
     map['type'] = Variable<String>(type);
     map['balance'] = Variable<int>(balance);
+    map['balance_cents'] = Variable<BigInt>(balanceCents);
     map['currency'] = Variable<String>(currency);
     if (!nullToAbsent || iconName != null) {
       map['icon_name'] = Variable<String>(iconName);
@@ -6058,6 +6260,7 @@ class Account extends DataClass implements Insertable<Account> {
       name: Value(name),
       type: Value(type),
       balance: Value(balance),
+      balanceCents: Value(balanceCents),
       currency: Value(currency),
       iconName: iconName == null && nullToAbsent
           ? const Value.absent()
@@ -6107,6 +6310,7 @@ class Account extends DataClass implements Insertable<Account> {
       name: serializer.fromJson<String>(json['name']),
       type: serializer.fromJson<String>(json['type']),
       balance: serializer.fromJson<int>(json['balance']),
+      balanceCents: serializer.fromJson<BigInt>(json['balanceCents']),
       currency: serializer.fromJson<String>(json['currency']),
       iconName: serializer.fromJson<String?>(json['iconName']),
       colorHex: serializer.fromJson<String?>(json['colorHex']),
@@ -6139,6 +6343,7 @@ class Account extends DataClass implements Insertable<Account> {
       'name': serializer.toJson<String>(name),
       'type': serializer.toJson<String>(type),
       'balance': serializer.toJson<int>(balance),
+      'balanceCents': serializer.toJson<BigInt>(balanceCents),
       'currency': serializer.toJson<String>(currency),
       'iconName': serializer.toJson<String?>(iconName),
       'colorHex': serializer.toJson<String?>(colorHex),
@@ -6167,6 +6372,7 @@ class Account extends DataClass implements Insertable<Account> {
     String? name,
     String? type,
     int? balance,
+    BigInt? balanceCents,
     String? currency,
     Value<String?> iconName = const Value.absent(),
     Value<String?> colorHex = const Value.absent(),
@@ -6190,6 +6396,7 @@ class Account extends DataClass implements Insertable<Account> {
     name: name ?? this.name,
     type: type ?? this.type,
     balance: balance ?? this.balance,
+    balanceCents: balanceCents ?? this.balanceCents,
     currency: currency ?? this.currency,
     iconName: iconName.present ? iconName.value : this.iconName,
     colorHex: colorHex.present ? colorHex.value : this.colorHex,
@@ -6223,6 +6430,9 @@ class Account extends DataClass implements Insertable<Account> {
       name: data.name.present ? data.name.value : this.name,
       type: data.type.present ? data.type.value : this.type,
       balance: data.balance.present ? data.balance.value : this.balance,
+      balanceCents: data.balanceCents.present
+          ? data.balanceCents.value
+          : this.balanceCents,
       currency: data.currency.present ? data.currency.value : this.currency,
       iconName: data.iconName.present ? data.iconName.value : this.iconName,
       colorHex: data.colorHex.present ? data.colorHex.value : this.colorHex,
@@ -6265,6 +6475,7 @@ class Account extends DataClass implements Insertable<Account> {
           ..write('name: $name, ')
           ..write('type: $type, ')
           ..write('balance: $balance, ')
+          ..write('balanceCents: $balanceCents, ')
           ..write('currency: $currency, ')
           ..write('iconName: $iconName, ')
           ..write('colorHex: $colorHex, ')
@@ -6293,6 +6504,7 @@ class Account extends DataClass implements Insertable<Account> {
     name,
     type,
     balance,
+    balanceCents,
     currency,
     iconName,
     colorHex,
@@ -6320,6 +6532,7 @@ class Account extends DataClass implements Insertable<Account> {
           other.name == this.name &&
           other.type == this.type &&
           other.balance == this.balance &&
+          other.balanceCents == this.balanceCents &&
           other.currency == this.currency &&
           other.iconName == this.iconName &&
           other.colorHex == this.colorHex &&
@@ -6345,6 +6558,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
   final Value<String> name;
   final Value<String> type;
   final Value<int> balance;
+  final Value<BigInt> balanceCents;
   final Value<String> currency;
   final Value<String?> iconName;
   final Value<String?> colorHex;
@@ -6369,6 +6583,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     this.name = const Value.absent(),
     this.type = const Value.absent(),
     this.balance = const Value.absent(),
+    this.balanceCents = const Value.absent(),
     this.currency = const Value.absent(),
     this.iconName = const Value.absent(),
     this.colorHex = const Value.absent(),
@@ -6394,6 +6609,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     required String name,
     required String type,
     required int balance,
+    this.balanceCents = const Value.absent(),
     this.currency = const Value.absent(),
     this.iconName = const Value.absent(),
     this.colorHex = const Value.absent(),
@@ -6423,6 +6639,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     Expression<String>? name,
     Expression<String>? type,
     Expression<int>? balance,
+    Expression<BigInt>? balanceCents,
     Expression<String>? currency,
     Expression<String>? iconName,
     Expression<String>? colorHex,
@@ -6448,6 +6665,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
       if (name != null) 'name': name,
       if (type != null) 'type': type,
       if (balance != null) 'balance': balance,
+      if (balanceCents != null) 'balance_cents': balanceCents,
       if (currency != null) 'currency': currency,
       if (iconName != null) 'icon_name': iconName,
       if (colorHex != null) 'color_hex': colorHex,
@@ -6477,6 +6695,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     Value<String>? name,
     Value<String>? type,
     Value<int>? balance,
+    Value<BigInt>? balanceCents,
     Value<String>? currency,
     Value<String?>? iconName,
     Value<String?>? colorHex,
@@ -6502,6 +6721,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
       name: name ?? this.name,
       type: type ?? this.type,
       balance: balance ?? this.balance,
+      balanceCents: balanceCents ?? this.balanceCents,
       currency: currency ?? this.currency,
       iconName: iconName ?? this.iconName,
       colorHex: colorHex ?? this.colorHex,
@@ -6541,6 +6761,9 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     }
     if (balance.present) {
       map['balance'] = Variable<int>(balance.value);
+    }
+    if (balanceCents.present) {
+      map['balance_cents'] = Variable<BigInt>(balanceCents.value);
     }
     if (currency.present) {
       map['currency'] = Variable<String>(currency.value);
@@ -6611,6 +6834,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
           ..write('name: $name, ')
           ..write('type: $type, ')
           ..write('balance: $balance, ')
+          ..write('balanceCents: $balanceCents, ')
           ..write('currency: $currency, ')
           ..write('iconName: $iconName, ')
           ..write('colorHex: $colorHex, ')
@@ -7655,6 +7879,18 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _amountCentsMeta = const VerificationMeta(
+    'amountCents',
+  );
+  @override
+  late final GeneratedColumn<BigInt> amountCents = GeneratedColumn<BigInt>(
+    'amount_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.bigInt,
+    requiredDuringInsert: false,
+    defaultValue: Constant(BigInt.zero),
+  );
   static const VerificationMeta _currencyMeta = const VerificationMeta(
     'currency',
   );
@@ -7985,6 +8221,18 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
     requiredDuringInsert: false,
     defaultValue: const Constant(1.0),
   );
+  static const VerificationMeta _confidenceBpsMeta = const VerificationMeta(
+    'confidenceBps',
+  );
+  @override
+  late final GeneratedColumn<BigInt> confidenceBps = GeneratedColumn<BigInt>(
+    'confidence_bps',
+    aliasedName,
+    false,
+    type: DriftSqlType.bigInt,
+    requiredDuringInsert: false,
+    defaultValue: Constant(BigInt.from(10000)),
+  );
   static const VerificationMeta _sourceMeta = const VerificationMeta('source');
   @override
   late final GeneratedColumn<String> source = GeneratedColumn<String>(
@@ -8113,6 +8361,7 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
     enteredBy,
     title,
     amount,
+    amountCents,
     currency,
     date,
     accountId,
@@ -8142,6 +8391,7 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
     subCategoryRaw,
     semanticTokens,
     confidence,
+    confidenceBps,
     source,
     isAiAssigned,
     isVerified,
@@ -8224,6 +8474,15 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
       );
     } else if (isInserting) {
       context.missing(_amountMeta);
+    }
+    if (data.containsKey('amount_cents')) {
+      context.handle(
+        _amountCentsMeta,
+        amountCents.isAcceptableOrUnknown(
+          data['amount_cents']!,
+          _amountCentsMeta,
+        ),
+      );
     }
     if (data.containsKey('currency')) {
       context.handle(
@@ -8437,6 +8696,15 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
         confidence.isAcceptableOrUnknown(data['confidence']!, _confidenceMeta),
       );
     }
+    if (data.containsKey('confidence_bps')) {
+      context.handle(
+        _confidenceBpsMeta,
+        confidenceBps.isAcceptableOrUnknown(
+          data['confidence_bps']!,
+          _confidenceBpsMeta,
+        ),
+      );
+    }
     if (data.containsKey('source')) {
       context.handle(
         _sourceMeta,
@@ -8543,6 +8811,10 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
       amount: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}amount'],
+      )!,
+      amountCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.bigInt,
+        data['${effectivePrefix}amount_cents'],
       )!,
       currency: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -8662,6 +8934,10 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
         DriftSqlType.double,
         data['${effectivePrefix}confidence'],
       )!,
+      confidenceBps: attachedDatabase.typeMapping.read(
+        DriftSqlType.bigInt,
+        data['${effectivePrefix}confidence_bps'],
+      )!,
       source: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}source'],
@@ -8721,6 +8997,7 @@ class Expense extends DataClass implements Insertable<Expense> {
   final String enteredBy;
   final String title;
   final int amount;
+  final BigInt amountCents;
   final String currency;
   final DateTime date;
   final String? accountId;
@@ -8750,6 +9027,7 @@ class Expense extends DataClass implements Insertable<Expense> {
   final String? subCategoryRaw;
   final String? semanticTokens;
   final double confidence;
+  final BigInt confidenceBps;
   final String source;
   final bool isAiAssigned;
   final bool isVerified;
@@ -8768,6 +9046,7 @@ class Expense extends DataClass implements Insertable<Expense> {
     required this.enteredBy,
     required this.title,
     required this.amount,
+    required this.amountCents,
     required this.currency,
     required this.date,
     this.accountId,
@@ -8797,6 +9076,7 @@ class Expense extends DataClass implements Insertable<Expense> {
     this.subCategoryRaw,
     this.semanticTokens,
     required this.confidence,
+    required this.confidenceBps,
     required this.source,
     required this.isAiAssigned,
     required this.isVerified,
@@ -8824,6 +9104,7 @@ class Expense extends DataClass implements Insertable<Expense> {
     map['entered_by'] = Variable<String>(enteredBy);
     map['title'] = Variable<String>(title);
     map['amount'] = Variable<int>(amount);
+    map['amount_cents'] = Variable<BigInt>(amountCents);
     map['currency'] = Variable<String>(currency);
     map['date'] = Variable<DateTime>(date);
     if (!nullToAbsent || accountId != null) {
@@ -8893,6 +9174,7 @@ class Expense extends DataClass implements Insertable<Expense> {
       map['semantic_tokens'] = Variable<String>(semanticTokens);
     }
     map['confidence'] = Variable<double>(confidence);
+    map['confidence_bps'] = Variable<BigInt>(confidenceBps);
     map['source'] = Variable<String>(source);
     map['is_ai_assigned'] = Variable<bool>(isAiAssigned);
     map['is_verified'] = Variable<bool>(isVerified);
@@ -8927,6 +9209,7 @@ class Expense extends DataClass implements Insertable<Expense> {
       enteredBy: Value(enteredBy),
       title: Value(title),
       amount: Value(amount),
+      amountCents: Value(amountCents),
       currency: Value(currency),
       date: Value(date),
       accountId: accountId == null && nullToAbsent
@@ -8990,6 +9273,7 @@ class Expense extends DataClass implements Insertable<Expense> {
           ? const Value.absent()
           : Value(semanticTokens),
       confidence: Value(confidence),
+      confidenceBps: Value(confidenceBps),
       source: Value(source),
       isAiAssigned: Value(isAiAssigned),
       isVerified: Value(isVerified),
@@ -9020,6 +9304,7 @@ class Expense extends DataClass implements Insertable<Expense> {
       enteredBy: serializer.fromJson<String>(json['enteredBy']),
       title: serializer.fromJson<String>(json['title']),
       amount: serializer.fromJson<int>(json['amount']),
+      amountCents: serializer.fromJson<BigInt>(json['amountCents']),
       currency: serializer.fromJson<String>(json['currency']),
       date: serializer.fromJson<DateTime>(json['date']),
       accountId: serializer.fromJson<String?>(json['accountId']),
@@ -9051,6 +9336,7 @@ class Expense extends DataClass implements Insertable<Expense> {
       subCategoryRaw: serializer.fromJson<String?>(json['subCategoryRaw']),
       semanticTokens: serializer.fromJson<String?>(json['semanticTokens']),
       confidence: serializer.fromJson<double>(json['confidence']),
+      confidenceBps: serializer.fromJson<BigInt>(json['confidenceBps']),
       source: serializer.fromJson<String>(json['source']),
       isAiAssigned: serializer.fromJson<bool>(json['isAiAssigned']),
       isVerified: serializer.fromJson<bool>(json['isVerified']),
@@ -9076,6 +9362,7 @@ class Expense extends DataClass implements Insertable<Expense> {
       'enteredBy': serializer.toJson<String>(enteredBy),
       'title': serializer.toJson<String>(title),
       'amount': serializer.toJson<int>(amount),
+      'amountCents': serializer.toJson<BigInt>(amountCents),
       'currency': serializer.toJson<String>(currency),
       'date': serializer.toJson<DateTime>(date),
       'accountId': serializer.toJson<String?>(accountId),
@@ -9107,6 +9394,7 @@ class Expense extends DataClass implements Insertable<Expense> {
       'subCategoryRaw': serializer.toJson<String?>(subCategoryRaw),
       'semanticTokens': serializer.toJson<String?>(semanticTokens),
       'confidence': serializer.toJson<double>(confidence),
+      'confidenceBps': serializer.toJson<BigInt>(confidenceBps),
       'source': serializer.toJson<String>(source),
       'isAiAssigned': serializer.toJson<bool>(isAiAssigned),
       'isVerified': serializer.toJson<bool>(isVerified),
@@ -9128,6 +9416,7 @@ class Expense extends DataClass implements Insertable<Expense> {
     String? enteredBy,
     String? title,
     int? amount,
+    BigInt? amountCents,
     String? currency,
     DateTime? date,
     Value<String?> accountId = const Value.absent(),
@@ -9157,6 +9446,7 @@ class Expense extends DataClass implements Insertable<Expense> {
     Value<String?> subCategoryRaw = const Value.absent(),
     Value<String?> semanticTokens = const Value.absent(),
     double? confidence,
+    BigInt? confidenceBps,
     String? source,
     bool? isAiAssigned,
     bool? isVerified,
@@ -9177,6 +9467,7 @@ class Expense extends DataClass implements Insertable<Expense> {
     enteredBy: enteredBy ?? this.enteredBy,
     title: title ?? this.title,
     amount: amount ?? this.amount,
+    amountCents: amountCents ?? this.amountCents,
     currency: currency ?? this.currency,
     date: date ?? this.date,
     accountId: accountId.present ? accountId.value : this.accountId,
@@ -9214,6 +9505,7 @@ class Expense extends DataClass implements Insertable<Expense> {
         ? semanticTokens.value
         : this.semanticTokens,
     confidence: confidence ?? this.confidence,
+    confidenceBps: confidenceBps ?? this.confidenceBps,
     source: source ?? this.source,
     isAiAssigned: isAiAssigned ?? this.isAiAssigned,
     isVerified: isVerified ?? this.isVerified,
@@ -9244,6 +9536,9 @@ class Expense extends DataClass implements Insertable<Expense> {
       enteredBy: data.enteredBy.present ? data.enteredBy.value : this.enteredBy,
       title: data.title.present ? data.title.value : this.title,
       amount: data.amount.present ? data.amount.value : this.amount,
+      amountCents: data.amountCents.present
+          ? data.amountCents.value
+          : this.amountCents,
       currency: data.currency.present ? data.currency.value : this.currency,
       date: data.date.present ? data.date.value : this.date,
       accountId: data.accountId.present ? data.accountId.value : this.accountId,
@@ -9305,6 +9600,9 @@ class Expense extends DataClass implements Insertable<Expense> {
       confidence: data.confidence.present
           ? data.confidence.value
           : this.confidence,
+      confidenceBps: data.confidenceBps.present
+          ? data.confidenceBps.value
+          : this.confidenceBps,
       source: data.source.present ? data.source.value : this.source,
       isAiAssigned: data.isAiAssigned.present
           ? data.isAiAssigned.value
@@ -9340,6 +9638,7 @@ class Expense extends DataClass implements Insertable<Expense> {
           ..write('enteredBy: $enteredBy, ')
           ..write('title: $title, ')
           ..write('amount: $amount, ')
+          ..write('amountCents: $amountCents, ')
           ..write('currency: $currency, ')
           ..write('date: $date, ')
           ..write('accountId: $accountId, ')
@@ -9369,6 +9668,7 @@ class Expense extends DataClass implements Insertable<Expense> {
           ..write('subCategoryRaw: $subCategoryRaw, ')
           ..write('semanticTokens: $semanticTokens, ')
           ..write('confidence: $confidence, ')
+          ..write('confidenceBps: $confidenceBps, ')
           ..write('source: $source, ')
           ..write('isAiAssigned: $isAiAssigned, ')
           ..write('isVerified: $isVerified, ')
@@ -9392,6 +9692,7 @@ class Expense extends DataClass implements Insertable<Expense> {
     enteredBy,
     title,
     amount,
+    amountCents,
     currency,
     date,
     accountId,
@@ -9421,6 +9722,7 @@ class Expense extends DataClass implements Insertable<Expense> {
     subCategoryRaw,
     semanticTokens,
     confidence,
+    confidenceBps,
     source,
     isAiAssigned,
     isVerified,
@@ -9443,6 +9745,7 @@ class Expense extends DataClass implements Insertable<Expense> {
           other.enteredBy == this.enteredBy &&
           other.title == this.title &&
           other.amount == this.amount &&
+          other.amountCents == this.amountCents &&
           other.currency == this.currency &&
           other.date == this.date &&
           other.accountId == this.accountId &&
@@ -9472,6 +9775,7 @@ class Expense extends DataClass implements Insertable<Expense> {
           other.subCategoryRaw == this.subCategoryRaw &&
           other.semanticTokens == this.semanticTokens &&
           other.confidence == this.confidence &&
+          other.confidenceBps == this.confidenceBps &&
           other.source == this.source &&
           other.isAiAssigned == this.isAiAssigned &&
           other.isVerified == this.isVerified &&
@@ -9492,6 +9796,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
   final Value<String> enteredBy;
   final Value<String> title;
   final Value<int> amount;
+  final Value<BigInt> amountCents;
   final Value<String> currency;
   final Value<DateTime> date;
   final Value<String?> accountId;
@@ -9521,6 +9826,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
   final Value<String?> subCategoryRaw;
   final Value<String?> semanticTokens;
   final Value<double> confidence;
+  final Value<BigInt> confidenceBps;
   final Value<String> source;
   final Value<bool> isAiAssigned;
   final Value<bool> isVerified;
@@ -9540,6 +9846,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     this.enteredBy = const Value.absent(),
     this.title = const Value.absent(),
     this.amount = const Value.absent(),
+    this.amountCents = const Value.absent(),
     this.currency = const Value.absent(),
     this.date = const Value.absent(),
     this.accountId = const Value.absent(),
@@ -9569,6 +9876,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     this.subCategoryRaw = const Value.absent(),
     this.semanticTokens = const Value.absent(),
     this.confidence = const Value.absent(),
+    this.confidenceBps = const Value.absent(),
     this.source = const Value.absent(),
     this.isAiAssigned = const Value.absent(),
     this.isVerified = const Value.absent(),
@@ -9589,6 +9897,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     required String enteredBy,
     required String title,
     required int amount,
+    this.amountCents = const Value.absent(),
     this.currency = const Value.absent(),
     required DateTime date,
     this.accountId = const Value.absent(),
@@ -9618,6 +9927,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     this.subCategoryRaw = const Value.absent(),
     this.semanticTokens = const Value.absent(),
     this.confidence = const Value.absent(),
+    this.confidenceBps = const Value.absent(),
     this.source = const Value.absent(),
     this.isAiAssigned = const Value.absent(),
     this.isVerified = const Value.absent(),
@@ -9643,6 +9953,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     Expression<String>? enteredBy,
     Expression<String>? title,
     Expression<int>? amount,
+    Expression<BigInt>? amountCents,
     Expression<String>? currency,
     Expression<DateTime>? date,
     Expression<String>? accountId,
@@ -9672,6 +9983,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     Expression<String>? subCategoryRaw,
     Expression<String>? semanticTokens,
     Expression<double>? confidence,
+    Expression<BigInt>? confidenceBps,
     Expression<String>? source,
     Expression<bool>? isAiAssigned,
     Expression<bool>? isVerified,
@@ -9692,6 +10004,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       if (enteredBy != null) 'entered_by': enteredBy,
       if (title != null) 'title': title,
       if (amount != null) 'amount': amount,
+      if (amountCents != null) 'amount_cents': amountCents,
       if (currency != null) 'currency': currency,
       if (date != null) 'date': date,
       if (accountId != null) 'account_id': accountId,
@@ -9722,6 +10035,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       if (subCategoryRaw != null) 'sub_category_raw': subCategoryRaw,
       if (semanticTokens != null) 'semantic_tokens': semanticTokens,
       if (confidence != null) 'confidence': confidence,
+      if (confidenceBps != null) 'confidence_bps': confidenceBps,
       if (source != null) 'source': source,
       if (isAiAssigned != null) 'is_ai_assigned': isAiAssigned,
       if (isVerified != null) 'is_verified': isVerified,
@@ -9744,6 +10058,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     Value<String>? enteredBy,
     Value<String>? title,
     Value<int>? amount,
+    Value<BigInt>? amountCents,
     Value<String>? currency,
     Value<DateTime>? date,
     Value<String?>? accountId,
@@ -9773,6 +10088,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     Value<String?>? subCategoryRaw,
     Value<String?>? semanticTokens,
     Value<double>? confidence,
+    Value<BigInt>? confidenceBps,
     Value<String>? source,
     Value<bool>? isAiAssigned,
     Value<bool>? isVerified,
@@ -9793,6 +10109,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       enteredBy: enteredBy ?? this.enteredBy,
       title: title ?? this.title,
       amount: amount ?? this.amount,
+      amountCents: amountCents ?? this.amountCents,
       currency: currency ?? this.currency,
       date: date ?? this.date,
       accountId: accountId ?? this.accountId,
@@ -9823,6 +10140,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       subCategoryRaw: subCategoryRaw ?? this.subCategoryRaw,
       semanticTokens: semanticTokens ?? this.semanticTokens,
       confidence: confidence ?? this.confidence,
+      confidenceBps: confidenceBps ?? this.confidenceBps,
       source: source ?? this.source,
       isAiAssigned: isAiAssigned ?? this.isAiAssigned,
       isVerified: isVerified ?? this.isVerified,
@@ -9862,6 +10180,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     }
     if (amount.present) {
       map['amount'] = Variable<int>(amount.value);
+    }
+    if (amountCents.present) {
+      map['amount_cents'] = Variable<BigInt>(amountCents.value);
     }
     if (currency.present) {
       map['currency'] = Variable<String>(currency.value);
@@ -9954,6 +10275,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     if (confidence.present) {
       map['confidence'] = Variable<double>(confidence.value);
     }
+    if (confidenceBps.present) {
+      map['confidence_bps'] = Variable<BigInt>(confidenceBps.value);
+    }
     if (source.present) {
       map['source'] = Variable<String>(source.value);
     }
@@ -9998,6 +10322,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
           ..write('enteredBy: $enteredBy, ')
           ..write('title: $title, ')
           ..write('amount: $amount, ')
+          ..write('amountCents: $amountCents, ')
           ..write('currency: $currency, ')
           ..write('date: $date, ')
           ..write('accountId: $accountId, ')
@@ -10027,6 +10352,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
           ..write('subCategoryRaw: $subCategoryRaw, ')
           ..write('semanticTokens: $semanticTokens, ')
           ..write('confidence: $confidence, ')
+          ..write('confidenceBps: $confidenceBps, ')
           ..write('source: $source, ')
           ..write('isAiAssigned: $isAiAssigned, ')
           ..write('isVerified: $isVerified, ')
@@ -10281,6 +10607,17 @@ class $BudgetMembersTable extends BudgetMembers
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _spendingLimitCentsMeta =
+      const VerificationMeta('spendingLimitCents');
+  @override
+  late final GeneratedColumn<BigInt> spendingLimitCents =
+      GeneratedColumn<BigInt>(
+        'spending_limit_cents',
+        aliasedName,
+        true,
+        type: DriftSqlType.bigInt,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -10303,6 +10640,7 @@ class $BudgetMembersTable extends BudgetMembers
     lamportClock,
     versionVector,
     spendingLimit,
+    spendingLimitCents,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -10450,6 +10788,15 @@ class $BudgetMembersTable extends BudgetMembers
         ),
       );
     }
+    if (data.containsKey('spending_limit_cents')) {
+      context.handle(
+        _spendingLimitCentsMeta,
+        spendingLimitCents.isAcceptableOrUnknown(
+          data['spending_limit_cents']!,
+          _spendingLimitCentsMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -10541,6 +10888,10 @@ class $BudgetMembersTable extends BudgetMembers
         DriftSqlType.int,
         data['${effectivePrefix}spending_limit'],
       ),
+      spendingLimitCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.bigInt,
+        data['${effectivePrefix}spending_limit_cents'],
+      ),
     );
   }
 
@@ -10576,6 +10927,7 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
   final int lamportClock;
   final String? versionVector;
   final int? spendingLimit;
+  final BigInt? spendingLimitCents;
   const BudgetMember({
     required this.id,
     required this.budgetId,
@@ -10597,6 +10949,7 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
     required this.lamportClock,
     this.versionVector,
     this.spendingLimit,
+    this.spendingLimitCents,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -10641,6 +10994,9 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
     if (!nullToAbsent || spendingLimit != null) {
       map['spending_limit'] = Variable<int>(spendingLimit);
     }
+    if (!nullToAbsent || spendingLimitCents != null) {
+      map['spending_limit_cents'] = Variable<BigInt>(spendingLimitCents);
+    }
     return map;
   }
 
@@ -10682,6 +11038,9 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
       spendingLimit: spendingLimit == null && nullToAbsent
           ? const Value.absent()
           : Value(spendingLimit),
+      spendingLimitCents: spendingLimitCents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(spendingLimitCents),
     );
   }
 
@@ -10713,6 +11072,9 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
       lamportClock: serializer.fromJson<int>(json['lamportClock']),
       versionVector: serializer.fromJson<String?>(json['versionVector']),
       spendingLimit: serializer.fromJson<int?>(json['spendingLimit']),
+      spendingLimitCents: serializer.fromJson<BigInt?>(
+        json['spendingLimitCents'],
+      ),
     );
   }
   @override
@@ -10741,6 +11103,7 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
       'lamportClock': serializer.toJson<int>(lamportClock),
       'versionVector': serializer.toJson<String?>(versionVector),
       'spendingLimit': serializer.toJson<int?>(spendingLimit),
+      'spendingLimitCents': serializer.toJson<BigInt?>(spendingLimitCents),
     };
   }
 
@@ -10765,6 +11128,7 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
     int? lamportClock,
     Value<String?> versionVector = const Value.absent(),
     Value<int?> spendingLimit = const Value.absent(),
+    Value<BigInt?> spendingLimitCents = const Value.absent(),
   }) => BudgetMember(
     id: id ?? this.id,
     budgetId: budgetId ?? this.budgetId,
@@ -10792,6 +11156,9 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
     spendingLimit: spendingLimit.present
         ? spendingLimit.value
         : this.spendingLimit,
+    spendingLimitCents: spendingLimitCents.present
+        ? spendingLimitCents.value
+        : this.spendingLimitCents,
   );
   BudgetMember copyWithCompanion(BudgetMembersCompanion data) {
     return BudgetMember(
@@ -10829,6 +11196,9 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
       spendingLimit: data.spendingLimit.present
           ? data.spendingLimit.value
           : this.spendingLimit,
+      spendingLimitCents: data.spendingLimitCents.present
+          ? data.spendingLimitCents.value
+          : this.spendingLimitCents,
     );
   }
 
@@ -10854,13 +11224,14 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
           ..write('syncState: $syncState, ')
           ..write('lamportClock: $lamportClock, ')
           ..write('versionVector: $versionVector, ')
-          ..write('spendingLimit: $spendingLimit')
+          ..write('spendingLimit: $spendingLimit, ')
+          ..write('spendingLimitCents: $spendingLimitCents')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     budgetId,
     userId,
@@ -10881,7 +11252,8 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
     lamportClock,
     versionVector,
     spendingLimit,
-  );
+    spendingLimitCents,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -10905,7 +11277,8 @@ class BudgetMember extends DataClass implements Insertable<BudgetMember> {
           other.syncState == this.syncState &&
           other.lamportClock == this.lamportClock &&
           other.versionVector == this.versionVector &&
-          other.spendingLimit == this.spendingLimit);
+          other.spendingLimit == this.spendingLimit &&
+          other.spendingLimitCents == this.spendingLimitCents);
 }
 
 class BudgetMembersCompanion extends UpdateCompanion<BudgetMember> {
@@ -10929,6 +11302,7 @@ class BudgetMembersCompanion extends UpdateCompanion<BudgetMember> {
   final Value<int> lamportClock;
   final Value<String?> versionVector;
   final Value<int?> spendingLimit;
+  final Value<BigInt?> spendingLimitCents;
   final Value<int> rowid;
   const BudgetMembersCompanion({
     this.id = const Value.absent(),
@@ -10951,6 +11325,7 @@ class BudgetMembersCompanion extends UpdateCompanion<BudgetMember> {
     this.lamportClock = const Value.absent(),
     this.versionVector = const Value.absent(),
     this.spendingLimit = const Value.absent(),
+    this.spendingLimitCents = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   BudgetMembersCompanion.insert({
@@ -10974,6 +11349,7 @@ class BudgetMembersCompanion extends UpdateCompanion<BudgetMember> {
     this.lamportClock = const Value.absent(),
     this.versionVector = const Value.absent(),
     this.spendingLimit = const Value.absent(),
+    this.spendingLimitCents = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        budgetId = Value(budgetId),
@@ -11000,6 +11376,7 @@ class BudgetMembersCompanion extends UpdateCompanion<BudgetMember> {
     Expression<int>? lamportClock,
     Expression<String>? versionVector,
     Expression<int>? spendingLimit,
+    Expression<BigInt>? spendingLimitCents,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -11024,6 +11401,8 @@ class BudgetMembersCompanion extends UpdateCompanion<BudgetMember> {
       if (lamportClock != null) 'lamport_clock': lamportClock,
       if (versionVector != null) 'version_vector': versionVector,
       if (spendingLimit != null) 'spending_limit': spendingLimit,
+      if (spendingLimitCents != null)
+        'spending_limit_cents': spendingLimitCents,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -11049,6 +11428,7 @@ class BudgetMembersCompanion extends UpdateCompanion<BudgetMember> {
     Value<int>? lamportClock,
     Value<String?>? versionVector,
     Value<int?>? spendingLimit,
+    Value<BigInt?>? spendingLimitCents,
     Value<int>? rowid,
   }) {
     return BudgetMembersCompanion(
@@ -11073,6 +11453,7 @@ class BudgetMembersCompanion extends UpdateCompanion<BudgetMember> {
       lamportClock: lamportClock ?? this.lamportClock,
       versionVector: versionVector ?? this.versionVector,
       spendingLimit: spendingLimit ?? this.spendingLimit,
+      spendingLimitCents: spendingLimitCents ?? this.spendingLimitCents,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -11144,6 +11525,9 @@ class BudgetMembersCompanion extends UpdateCompanion<BudgetMember> {
     if (spendingLimit.present) {
       map['spending_limit'] = Variable<int>(spendingLimit.value);
     }
+    if (spendingLimitCents.present) {
+      map['spending_limit_cents'] = Variable<BigInt>(spendingLimitCents.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -11173,6 +11557,7 @@ class BudgetMembersCompanion extends UpdateCompanion<BudgetMember> {
           ..write('lamportClock: $lamportClock, ')
           ..write('versionVector: $versionVector, ')
           ..write('spendingLimit: $spendingLimit, ')
+          ..write('spendingLimitCents: $spendingLimitCents, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -13120,6 +13505,18 @@ class $RecurringExpensesTable extends RecurringExpenses
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _amountCentsMeta = const VerificationMeta(
+    'amountCents',
+  );
+  @override
+  late final GeneratedColumn<BigInt> amountCents = GeneratedColumn<BigInt>(
+    'amount_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.bigInt,
+    requiredDuringInsert: false,
+    defaultValue: Constant(BigInt.zero),
+  );
   static const VerificationMeta _frequencyMeta = const VerificationMeta(
     'frequency',
   );
@@ -13324,6 +13721,7 @@ class $RecurringExpensesTable extends RecurringExpenses
     userId,
     title,
     amount,
+    amountCents,
     frequency,
     dayOfMonth,
     dayOfWeek,
@@ -13382,6 +13780,15 @@ class $RecurringExpensesTable extends RecurringExpenses
       );
     } else if (isInserting) {
       context.missing(_amountMeta);
+    }
+    if (data.containsKey('amount_cents')) {
+      context.handle(
+        _amountCentsMeta,
+        amountCents.isAcceptableOrUnknown(
+          data['amount_cents']!,
+          _amountCentsMeta,
+        ),
+      );
     }
     if (data.containsKey('frequency')) {
       context.handle(
@@ -13532,6 +13939,10 @@ class $RecurringExpensesTable extends RecurringExpenses
         DriftSqlType.int,
         data['${effectivePrefix}amount'],
       )!,
+      amountCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.bigInt,
+        data['${effectivePrefix}amount_cents'],
+      )!,
       frequency: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}frequency'],
@@ -13622,6 +14033,7 @@ class RecurringExpense extends DataClass
   final String userId;
   final String title;
   final int amount;
+  final BigInt amountCents;
   final String frequency;
   final int? dayOfMonth;
   final int? dayOfWeek;
@@ -13644,6 +14056,7 @@ class RecurringExpense extends DataClass
     required this.userId,
     required this.title,
     required this.amount,
+    required this.amountCents,
     required this.frequency,
     this.dayOfMonth,
     this.dayOfWeek,
@@ -13669,6 +14082,7 @@ class RecurringExpense extends DataClass
     map['user_id'] = Variable<String>(userId);
     map['title'] = Variable<String>(title);
     map['amount'] = Variable<int>(amount);
+    map['amount_cents'] = Variable<BigInt>(amountCents);
     map['frequency'] = Variable<String>(frequency);
     if (!nullToAbsent || dayOfMonth != null) {
       map['day_of_month'] = Variable<int>(dayOfMonth);
@@ -13715,6 +14129,7 @@ class RecurringExpense extends DataClass
       userId: Value(userId),
       title: Value(title),
       amount: Value(amount),
+      amountCents: Value(amountCents),
       frequency: Value(frequency),
       dayOfMonth: dayOfMonth == null && nullToAbsent
           ? const Value.absent()
@@ -13761,6 +14176,7 @@ class RecurringExpense extends DataClass
       userId: serializer.fromJson<String>(json['userId']),
       title: serializer.fromJson<String>(json['title']),
       amount: serializer.fromJson<int>(json['amount']),
+      amountCents: serializer.fromJson<BigInt>(json['amountCents']),
       frequency: serializer.fromJson<String>(json['frequency']),
       dayOfMonth: serializer.fromJson<int?>(json['dayOfMonth']),
       dayOfWeek: serializer.fromJson<int?>(json['dayOfWeek']),
@@ -13790,6 +14206,7 @@ class RecurringExpense extends DataClass
       'userId': serializer.toJson<String>(userId),
       'title': serializer.toJson<String>(title),
       'amount': serializer.toJson<int>(amount),
+      'amountCents': serializer.toJson<BigInt>(amountCents),
       'frequency': serializer.toJson<String>(frequency),
       'dayOfMonth': serializer.toJson<int?>(dayOfMonth),
       'dayOfWeek': serializer.toJson<int?>(dayOfWeek),
@@ -13817,6 +14234,7 @@ class RecurringExpense extends DataClass
     String? userId,
     String? title,
     int? amount,
+    BigInt? amountCents,
     String? frequency,
     Value<int?> dayOfMonth = const Value.absent(),
     Value<int?> dayOfWeek = const Value.absent(),
@@ -13839,6 +14257,7 @@ class RecurringExpense extends DataClass
     userId: userId ?? this.userId,
     title: title ?? this.title,
     amount: amount ?? this.amount,
+    amountCents: amountCents ?? this.amountCents,
     frequency: frequency ?? this.frequency,
     dayOfMonth: dayOfMonth.present ? dayOfMonth.value : this.dayOfMonth,
     dayOfWeek: dayOfWeek.present ? dayOfWeek.value : this.dayOfWeek,
@@ -13867,6 +14286,9 @@ class RecurringExpense extends DataClass
       userId: data.userId.present ? data.userId.value : this.userId,
       title: data.title.present ? data.title.value : this.title,
       amount: data.amount.present ? data.amount.value : this.amount,
+      amountCents: data.amountCents.present
+          ? data.amountCents.value
+          : this.amountCents,
       frequency: data.frequency.present ? data.frequency.value : this.frequency,
       dayOfMonth: data.dayOfMonth.present
           ? data.dayOfMonth.value
@@ -13910,6 +14332,7 @@ class RecurringExpense extends DataClass
           ..write('userId: $userId, ')
           ..write('title: $title, ')
           ..write('amount: $amount, ')
+          ..write('amountCents: $amountCents, ')
           ..write('frequency: $frequency, ')
           ..write('dayOfMonth: $dayOfMonth, ')
           ..write('dayOfWeek: $dayOfWeek, ')
@@ -13937,6 +14360,7 @@ class RecurringExpense extends DataClass
     userId,
     title,
     amount,
+    amountCents,
     frequency,
     dayOfMonth,
     dayOfWeek,
@@ -13963,6 +14387,7 @@ class RecurringExpense extends DataClass
           other.userId == this.userId &&
           other.title == this.title &&
           other.amount == this.amount &&
+          other.amountCents == this.amountCents &&
           other.frequency == this.frequency &&
           other.dayOfMonth == this.dayOfMonth &&
           other.dayOfWeek == this.dayOfWeek &&
@@ -13987,6 +14412,7 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
   final Value<String> userId;
   final Value<String> title;
   final Value<int> amount;
+  final Value<BigInt> amountCents;
   final Value<String> frequency;
   final Value<int?> dayOfMonth;
   final Value<int?> dayOfWeek;
@@ -14010,6 +14436,7 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
     this.userId = const Value.absent(),
     this.title = const Value.absent(),
     this.amount = const Value.absent(),
+    this.amountCents = const Value.absent(),
     this.frequency = const Value.absent(),
     this.dayOfMonth = const Value.absent(),
     this.dayOfWeek = const Value.absent(),
@@ -14034,6 +14461,7 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
     required String userId,
     required String title,
     required int amount,
+    this.amountCents = const Value.absent(),
     required String frequency,
     this.dayOfMonth = const Value.absent(),
     this.dayOfWeek = const Value.absent(),
@@ -14063,6 +14491,7 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
     Expression<String>? userId,
     Expression<String>? title,
     Expression<int>? amount,
+    Expression<BigInt>? amountCents,
     Expression<String>? frequency,
     Expression<int>? dayOfMonth,
     Expression<int>? dayOfWeek,
@@ -14087,6 +14516,7 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
       if (userId != null) 'user_id': userId,
       if (title != null) 'title': title,
       if (amount != null) 'amount': amount,
+      if (amountCents != null) 'amount_cents': amountCents,
       if (frequency != null) 'frequency': frequency,
       if (dayOfMonth != null) 'day_of_month': dayOfMonth,
       if (dayOfWeek != null) 'day_of_week': dayOfWeek,
@@ -14114,6 +14544,7 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
     Value<String>? userId,
     Value<String>? title,
     Value<int>? amount,
+    Value<BigInt>? amountCents,
     Value<String>? frequency,
     Value<int?>? dayOfMonth,
     Value<int?>? dayOfWeek,
@@ -14138,6 +14569,7 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
       userId: userId ?? this.userId,
       title: title ?? this.title,
       amount: amount ?? this.amount,
+      amountCents: amountCents ?? this.amountCents,
       frequency: frequency ?? this.frequency,
       dayOfMonth: dayOfMonth ?? this.dayOfMonth,
       dayOfWeek: dayOfWeek ?? this.dayOfWeek,
@@ -14174,6 +14606,9 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
     }
     if (amount.present) {
       map['amount'] = Variable<int>(amount.value);
+    }
+    if (amountCents.present) {
+      map['amount_cents'] = Variable<BigInt>(amountCents.value);
     }
     if (frequency.present) {
       map['frequency'] = Variable<String>(frequency.value);
@@ -14243,6 +14678,7 @@ class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpense> {
           ..write('userId: $userId, ')
           ..write('title: $title, ')
           ..write('amount: $amount, ')
+          ..write('amountCents: $amountCents, ')
           ..write('frequency: $frequency, ')
           ..write('dayOfMonth: $dayOfMonth, ')
           ..write('dayOfWeek: $dayOfWeek, ')
@@ -15090,6 +15526,18 @@ class $SavingsGoalsTable extends SavingsGoals
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _currentAmountCentsMeta =
+      const VerificationMeta('currentAmountCents');
+  @override
+  late final GeneratedColumn<BigInt> currentAmountCents =
+      GeneratedColumn<BigInt>(
+        'current_amount_cents',
+        aliasedName,
+        false,
+        type: DriftSqlType.bigInt,
+        requiredDuringInsert: false,
+        defaultValue: Constant(BigInt.zero),
+      );
   static const VerificationMeta _targetAmountMeta = const VerificationMeta(
     'targetAmount',
   );
@@ -15101,6 +15549,18 @@ class $SavingsGoalsTable extends SavingsGoals
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _targetAmountCentsMeta = const VerificationMeta(
+    'targetAmountCents',
+  );
+  @override
+  late final GeneratedColumn<BigInt> targetAmountCents =
+      GeneratedColumn<BigInt>(
+        'target_amount_cents',
+        aliasedName,
+        true,
+        type: DriftSqlType.bigInt,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _currencyMeta = const VerificationMeta(
     'currency',
   );
@@ -15299,7 +15759,9 @@ class $SavingsGoalsTable extends SavingsGoals
     linkedAccountId,
     title,
     currentAmount,
+    currentAmountCents,
     targetAmount,
+    targetAmountCents,
     currency,
     iconName,
     colorHex,
@@ -15368,6 +15830,15 @@ class $SavingsGoalsTable extends SavingsGoals
         ),
       );
     }
+    if (data.containsKey('current_amount_cents')) {
+      context.handle(
+        _currentAmountCentsMeta,
+        currentAmountCents.isAcceptableOrUnknown(
+          data['current_amount_cents']!,
+          _currentAmountCentsMeta,
+        ),
+      );
+    }
     if (data.containsKey('target_amount')) {
       context.handle(
         _targetAmountMeta,
@@ -15378,6 +15849,15 @@ class $SavingsGoalsTable extends SavingsGoals
       );
     } else if (isInserting) {
       context.missing(_targetAmountMeta);
+    }
+    if (data.containsKey('target_amount_cents')) {
+      context.handle(
+        _targetAmountCentsMeta,
+        targetAmountCents.isAcceptableOrUnknown(
+          data['target_amount_cents']!,
+          _targetAmountCentsMeta,
+        ),
+      );
     }
     if (data.containsKey('currency')) {
       context.handle(
@@ -15513,10 +15993,18 @@ class $SavingsGoalsTable extends SavingsGoals
         DriftSqlType.int,
         data['${effectivePrefix}current_amount'],
       )!,
+      currentAmountCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.bigInt,
+        data['${effectivePrefix}current_amount_cents'],
+      )!,
       targetAmount: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}target_amount'],
       )!,
+      targetAmountCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.bigInt,
+        data['${effectivePrefix}target_amount_cents'],
+      ),
       currency: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}currency'],
@@ -15603,7 +16091,9 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
   final String? linkedAccountId;
   final String title;
   final int currentAmount;
+  final BigInt currentAmountCents;
   final int targetAmount;
+  final BigInt? targetAmountCents;
   final String currency;
   final String? iconName;
   final String? colorHex;
@@ -15626,7 +16116,9 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
     this.linkedAccountId,
     required this.title,
     required this.currentAmount,
+    required this.currentAmountCents,
     required this.targetAmount,
+    this.targetAmountCents,
     required this.currency,
     this.iconName,
     this.colorHex,
@@ -15654,7 +16146,11 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
     }
     map['title'] = Variable<String>(title);
     map['current_amount'] = Variable<int>(currentAmount);
+    map['current_amount_cents'] = Variable<BigInt>(currentAmountCents);
     map['target_amount'] = Variable<int>(targetAmount);
+    if (!nullToAbsent || targetAmountCents != null) {
+      map['target_amount_cents'] = Variable<BigInt>(targetAmountCents);
+    }
     map['currency'] = Variable<String>(currency);
     if (!nullToAbsent || iconName != null) {
       map['icon_name'] = Variable<String>(iconName);
@@ -15703,7 +16199,11 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
           : Value(linkedAccountId),
       title: Value(title),
       currentAmount: Value(currentAmount),
+      currentAmountCents: Value(currentAmountCents),
       targetAmount: Value(targetAmount),
+      targetAmountCents: targetAmountCents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(targetAmountCents),
       currency: Value(currency),
       iconName: iconName == null && nullToAbsent
           ? const Value.absent()
@@ -15750,7 +16250,13 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
       linkedAccountId: serializer.fromJson<String?>(json['linkedAccountId']),
       title: serializer.fromJson<String>(json['title']),
       currentAmount: serializer.fromJson<int>(json['currentAmount']),
+      currentAmountCents: serializer.fromJson<BigInt>(
+        json['currentAmountCents'],
+      ),
       targetAmount: serializer.fromJson<int>(json['targetAmount']),
+      targetAmountCents: serializer.fromJson<BigInt?>(
+        json['targetAmountCents'],
+      ),
       currency: serializer.fromJson<String>(json['currency']),
       iconName: serializer.fromJson<String?>(json['iconName']),
       colorHex: serializer.fromJson<String?>(json['colorHex']),
@@ -15780,7 +16286,9 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
       'linkedAccountId': serializer.toJson<String?>(linkedAccountId),
       'title': serializer.toJson<String>(title),
       'currentAmount': serializer.toJson<int>(currentAmount),
+      'currentAmountCents': serializer.toJson<BigInt>(currentAmountCents),
       'targetAmount': serializer.toJson<int>(targetAmount),
+      'targetAmountCents': serializer.toJson<BigInt?>(targetAmountCents),
       'currency': serializer.toJson<String>(currency),
       'iconName': serializer.toJson<String?>(iconName),
       'colorHex': serializer.toJson<String?>(colorHex),
@@ -15808,7 +16316,9 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
     Value<String?> linkedAccountId = const Value.absent(),
     String? title,
     int? currentAmount,
+    BigInt? currentAmountCents,
     int? targetAmount,
+    Value<BigInt?> targetAmountCents = const Value.absent(),
     String? currency,
     Value<String?> iconName = const Value.absent(),
     Value<String?> colorHex = const Value.absent(),
@@ -15833,7 +16343,11 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
         : this.linkedAccountId,
     title: title ?? this.title,
     currentAmount: currentAmount ?? this.currentAmount,
+    currentAmountCents: currentAmountCents ?? this.currentAmountCents,
     targetAmount: targetAmount ?? this.targetAmount,
+    targetAmountCents: targetAmountCents.present
+        ? targetAmountCents.value
+        : this.targetAmountCents,
     currency: currency ?? this.currency,
     iconName: iconName.present ? iconName.value : this.iconName,
     colorHex: colorHex.present ? colorHex.value : this.colorHex,
@@ -15866,9 +16380,15 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
       currentAmount: data.currentAmount.present
           ? data.currentAmount.value
           : this.currentAmount,
+      currentAmountCents: data.currentAmountCents.present
+          ? data.currentAmountCents.value
+          : this.currentAmountCents,
       targetAmount: data.targetAmount.present
           ? data.targetAmount.value
           : this.targetAmount,
+      targetAmountCents: data.targetAmountCents.present
+          ? data.targetAmountCents.value
+          : this.targetAmountCents,
       currency: data.currency.present ? data.currency.value : this.currency,
       iconName: data.iconName.present ? data.iconName.value : this.iconName,
       colorHex: data.colorHex.present ? data.colorHex.value : this.colorHex,
@@ -15908,7 +16428,9 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
           ..write('linkedAccountId: $linkedAccountId, ')
           ..write('title: $title, ')
           ..write('currentAmount: $currentAmount, ')
+          ..write('currentAmountCents: $currentAmountCents, ')
           ..write('targetAmount: $targetAmount, ')
+          ..write('targetAmountCents: $targetAmountCents, ')
           ..write('currency: $currency, ')
           ..write('iconName: $iconName, ')
           ..write('colorHex: $colorHex, ')
@@ -15936,7 +16458,9 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
     linkedAccountId,
     title,
     currentAmount,
+    currentAmountCents,
     targetAmount,
+    targetAmountCents,
     currency,
     iconName,
     colorHex,
@@ -15963,7 +16487,9 @@ class SavingsGoal extends DataClass implements Insertable<SavingsGoal> {
           other.linkedAccountId == this.linkedAccountId &&
           other.title == this.title &&
           other.currentAmount == this.currentAmount &&
+          other.currentAmountCents == this.currentAmountCents &&
           other.targetAmount == this.targetAmount &&
+          other.targetAmountCents == this.targetAmountCents &&
           other.currency == this.currency &&
           other.iconName == this.iconName &&
           other.colorHex == this.colorHex &&
@@ -15988,7 +16514,9 @@ class SavingsGoalsCompanion extends UpdateCompanion<SavingsGoal> {
   final Value<String?> linkedAccountId;
   final Value<String> title;
   final Value<int> currentAmount;
+  final Value<BigInt> currentAmountCents;
   final Value<int> targetAmount;
+  final Value<BigInt?> targetAmountCents;
   final Value<String> currency;
   final Value<String?> iconName;
   final Value<String?> colorHex;
@@ -16012,7 +16540,9 @@ class SavingsGoalsCompanion extends UpdateCompanion<SavingsGoal> {
     this.linkedAccountId = const Value.absent(),
     this.title = const Value.absent(),
     this.currentAmount = const Value.absent(),
+    this.currentAmountCents = const Value.absent(),
     this.targetAmount = const Value.absent(),
+    this.targetAmountCents = const Value.absent(),
     this.currency = const Value.absent(),
     this.iconName = const Value.absent(),
     this.colorHex = const Value.absent(),
@@ -16037,7 +16567,9 @@ class SavingsGoalsCompanion extends UpdateCompanion<SavingsGoal> {
     this.linkedAccountId = const Value.absent(),
     required String title,
     this.currentAmount = const Value.absent(),
+    this.currentAmountCents = const Value.absent(),
     required int targetAmount,
+    this.targetAmountCents = const Value.absent(),
     this.currency = const Value.absent(),
     this.iconName = const Value.absent(),
     this.colorHex = const Value.absent(),
@@ -16065,7 +16597,9 @@ class SavingsGoalsCompanion extends UpdateCompanion<SavingsGoal> {
     Expression<String>? linkedAccountId,
     Expression<String>? title,
     Expression<int>? currentAmount,
+    Expression<BigInt>? currentAmountCents,
     Expression<int>? targetAmount,
+    Expression<BigInt>? targetAmountCents,
     Expression<String>? currency,
     Expression<String>? iconName,
     Expression<String>? colorHex,
@@ -16090,7 +16624,10 @@ class SavingsGoalsCompanion extends UpdateCompanion<SavingsGoal> {
       if (linkedAccountId != null) 'linked_account_id': linkedAccountId,
       if (title != null) 'title': title,
       if (currentAmount != null) 'current_amount': currentAmount,
+      if (currentAmountCents != null)
+        'current_amount_cents': currentAmountCents,
       if (targetAmount != null) 'target_amount': targetAmount,
+      if (targetAmountCents != null) 'target_amount_cents': targetAmountCents,
       if (currency != null) 'currency': currency,
       if (iconName != null) 'icon_name': iconName,
       if (colorHex != null) 'color_hex': colorHex,
@@ -16118,7 +16655,9 @@ class SavingsGoalsCompanion extends UpdateCompanion<SavingsGoal> {
     Value<String?>? linkedAccountId,
     Value<String>? title,
     Value<int>? currentAmount,
+    Value<BigInt>? currentAmountCents,
     Value<int>? targetAmount,
+    Value<BigInt?>? targetAmountCents,
     Value<String>? currency,
     Value<String?>? iconName,
     Value<String?>? colorHex,
@@ -16143,7 +16682,9 @@ class SavingsGoalsCompanion extends UpdateCompanion<SavingsGoal> {
       linkedAccountId: linkedAccountId ?? this.linkedAccountId,
       title: title ?? this.title,
       currentAmount: currentAmount ?? this.currentAmount,
+      currentAmountCents: currentAmountCents ?? this.currentAmountCents,
       targetAmount: targetAmount ?? this.targetAmount,
+      targetAmountCents: targetAmountCents ?? this.targetAmountCents,
       currency: currency ?? this.currency,
       iconName: iconName ?? this.iconName,
       colorHex: colorHex ?? this.colorHex,
@@ -16183,8 +16724,14 @@ class SavingsGoalsCompanion extends UpdateCompanion<SavingsGoal> {
     if (currentAmount.present) {
       map['current_amount'] = Variable<int>(currentAmount.value);
     }
+    if (currentAmountCents.present) {
+      map['current_amount_cents'] = Variable<BigInt>(currentAmountCents.value);
+    }
     if (targetAmount.present) {
       map['target_amount'] = Variable<int>(targetAmount.value);
+    }
+    if (targetAmountCents.present) {
+      map['target_amount_cents'] = Variable<BigInt>(targetAmountCents.value);
     }
     if (currency.present) {
       map['currency'] = Variable<String>(currency.value);
@@ -16252,7 +16799,9 @@ class SavingsGoalsCompanion extends UpdateCompanion<SavingsGoal> {
           ..write('linkedAccountId: $linkedAccountId, ')
           ..write('title: $title, ')
           ..write('currentAmount: $currentAmount, ')
+          ..write('currentAmountCents: $currentAmountCents, ')
           ..write('targetAmount: $targetAmount, ')
+          ..write('targetAmountCents: $targetAmountCents, ')
           ..write('currency: $currency, ')
           ..write('iconName: $iconName, ')
           ..write('colorHex: $colorHex, ')
@@ -28975,6 +29524,19 @@ class $AssetsTable extends Assets with TableInfo<$AssetsTable, Asset> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _currentValueCentsMeta = const VerificationMeta(
+    'currentValueCents',
+  );
+  @override
+  late final GeneratedColumn<BigInt> currentValueCents =
+      GeneratedColumn<BigInt>(
+        'current_value_cents',
+        aliasedName,
+        false,
+        type: DriftSqlType.bigInt,
+        requiredDuringInsert: false,
+        defaultValue: Constant(BigInt.zero),
+      );
   static const VerificationMeta _currencyMeta = const VerificationMeta(
     'currency',
   );
@@ -29135,6 +29697,7 @@ class $AssetsTable extends Assets with TableInfo<$AssetsTable, Asset> {
     name,
     type,
     currentValue,
+    currentValueCents,
     currency,
     isAutomated,
     InstitutionName,
@@ -29200,6 +29763,15 @@ class $AssetsTable extends Assets with TableInfo<$AssetsTable, Asset> {
       );
     } else if (isInserting) {
       context.missing(_currentValueMeta);
+    }
+    if (data.containsKey('current_value_cents')) {
+      context.handle(
+        _currentValueCentsMeta,
+        currentValueCents.isAcceptableOrUnknown(
+          data['current_value_cents']!,
+          _currentValueCentsMeta,
+        ),
+      );
     }
     if (data.containsKey('currency')) {
       context.handle(
@@ -29314,6 +29886,10 @@ class $AssetsTable extends Assets with TableInfo<$AssetsTable, Asset> {
         DriftSqlType.int,
         data['${effectivePrefix}current_value'],
       )!,
+      currentValueCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.bigInt,
+        data['${effectivePrefix}current_value_cents'],
+      )!,
       currency: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}currency'],
@@ -29388,6 +29964,7 @@ class Asset extends DataClass implements Insertable<Asset> {
   final String name;
   final String type;
   final int currentValue;
+  final BigInt currentValueCents;
   final String currency;
   final bool isAutomated;
   final String? InstitutionName;
@@ -29407,6 +29984,7 @@ class Asset extends DataClass implements Insertable<Asset> {
     required this.name,
     required this.type,
     required this.currentValue,
+    required this.currentValueCents,
     required this.currency,
     required this.isAutomated,
     this.InstitutionName,
@@ -29429,6 +30007,7 @@ class Asset extends DataClass implements Insertable<Asset> {
     map['name'] = Variable<String>(name);
     map['type'] = Variable<String>(type);
     map['current_value'] = Variable<int>(currentValue);
+    map['current_value_cents'] = Variable<BigInt>(currentValueCents);
     map['currency'] = Variable<String>(currency);
     map['is_automated'] = Variable<bool>(isAutomated);
     if (!nullToAbsent || InstitutionName != null) {
@@ -29464,6 +30043,7 @@ class Asset extends DataClass implements Insertable<Asset> {
       name: Value(name),
       type: Value(type),
       currentValue: Value(currentValue),
+      currentValueCents: Value(currentValueCents),
       currency: Value(currency),
       isAutomated: Value(isAutomated),
       InstitutionName: InstitutionName == null && nullToAbsent
@@ -29501,6 +30081,7 @@ class Asset extends DataClass implements Insertable<Asset> {
       name: serializer.fromJson<String>(json['name']),
       type: serializer.fromJson<String>(json['type']),
       currentValue: serializer.fromJson<int>(json['currentValue']),
+      currentValueCents: serializer.fromJson<BigInt>(json['currentValueCents']),
       currency: serializer.fromJson<String>(json['currency']),
       isAutomated: serializer.fromJson<bool>(json['isAutomated']),
       InstitutionName: serializer.fromJson<String?>(json['InstitutionName']),
@@ -29525,6 +30106,7 @@ class Asset extends DataClass implements Insertable<Asset> {
       'name': serializer.toJson<String>(name),
       'type': serializer.toJson<String>(type),
       'currentValue': serializer.toJson<int>(currentValue),
+      'currentValueCents': serializer.toJson<BigInt>(currentValueCents),
       'currency': serializer.toJson<String>(currency),
       'isAutomated': serializer.toJson<bool>(isAutomated),
       'InstitutionName': serializer.toJson<String?>(InstitutionName),
@@ -29547,6 +30129,7 @@ class Asset extends DataClass implements Insertable<Asset> {
     String? name,
     String? type,
     int? currentValue,
+    BigInt? currentValueCents,
     String? currency,
     bool? isAutomated,
     Value<String?> InstitutionName = const Value.absent(),
@@ -29566,6 +30149,7 @@ class Asset extends DataClass implements Insertable<Asset> {
     name: name ?? this.name,
     type: type ?? this.type,
     currentValue: currentValue ?? this.currentValue,
+    currentValueCents: currentValueCents ?? this.currentValueCents,
     currency: currency ?? this.currency,
     isAutomated: isAutomated ?? this.isAutomated,
     InstitutionName: InstitutionName.present
@@ -29593,6 +30177,9 @@ class Asset extends DataClass implements Insertable<Asset> {
       currentValue: data.currentValue.present
           ? data.currentValue.value
           : this.currentValue,
+      currentValueCents: data.currentValueCents.present
+          ? data.currentValueCents.value
+          : this.currentValueCents,
       currency: data.currency.present ? data.currency.value : this.currency,
       isAutomated: data.isAutomated.present
           ? data.isAutomated.value
@@ -29627,6 +30214,7 @@ class Asset extends DataClass implements Insertable<Asset> {
           ..write('name: $name, ')
           ..write('type: $type, ')
           ..write('currentValue: $currentValue, ')
+          ..write('currentValueCents: $currentValueCents, ')
           ..write('currency: $currency, ')
           ..write('isAutomated: $isAutomated, ')
           ..write('InstitutionName: $InstitutionName, ')
@@ -29651,6 +30239,7 @@ class Asset extends DataClass implements Insertable<Asset> {
     name,
     type,
     currentValue,
+    currentValueCents,
     currency,
     isAutomated,
     InstitutionName,
@@ -29674,6 +30263,7 @@ class Asset extends DataClass implements Insertable<Asset> {
           other.name == this.name &&
           other.type == this.type &&
           other.currentValue == this.currentValue &&
+          other.currentValueCents == this.currentValueCents &&
           other.currency == this.currency &&
           other.isAutomated == this.isAutomated &&
           other.InstitutionName == this.InstitutionName &&
@@ -29695,6 +30285,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
   final Value<String> name;
   final Value<String> type;
   final Value<int> currentValue;
+  final Value<BigInt> currentValueCents;
   final Value<String> currency;
   final Value<bool> isAutomated;
   final Value<String?> InstitutionName;
@@ -29715,6 +30306,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     this.name = const Value.absent(),
     this.type = const Value.absent(),
     this.currentValue = const Value.absent(),
+    this.currentValueCents = const Value.absent(),
     this.currency = const Value.absent(),
     this.isAutomated = const Value.absent(),
     this.InstitutionName = const Value.absent(),
@@ -29736,6 +30328,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     required String name,
     required String type,
     required int currentValue,
+    this.currentValueCents = const Value.absent(),
     this.currency = const Value.absent(),
     this.isAutomated = const Value.absent(),
     this.InstitutionName = const Value.absent(),
@@ -29761,6 +30354,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     Expression<String>? name,
     Expression<String>? type,
     Expression<int>? currentValue,
+    Expression<BigInt>? currentValueCents,
     Expression<String>? currency,
     Expression<bool>? isAutomated,
     Expression<String>? InstitutionName,
@@ -29782,6 +30376,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
       if (name != null) 'name': name,
       if (type != null) 'type': type,
       if (currentValue != null) 'current_value': currentValue,
+      if (currentValueCents != null) 'current_value_cents': currentValueCents,
       if (currency != null) 'currency': currency,
       if (isAutomated != null) 'is_automated': isAutomated,
       if (InstitutionName != null) 'institution_name': InstitutionName,
@@ -29805,6 +30400,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     Value<String>? name,
     Value<String>? type,
     Value<int>? currentValue,
+    Value<BigInt>? currentValueCents,
     Value<String>? currency,
     Value<bool>? isAutomated,
     Value<String?>? InstitutionName,
@@ -29826,6 +30422,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
       name: name ?? this.name,
       type: type ?? this.type,
       currentValue: currentValue ?? this.currentValue,
+      currentValueCents: currentValueCents ?? this.currentValueCents,
       currency: currency ?? this.currency,
       isAutomated: isAutomated ?? this.isAutomated,
       InstitutionName: InstitutionName ?? this.InstitutionName,
@@ -29860,6 +30457,9 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     }
     if (currentValue.present) {
       map['current_value'] = Variable<int>(currentValue.value);
+    }
+    if (currentValueCents.present) {
+      map['current_value_cents'] = Variable<BigInt>(currentValueCents.value);
     }
     if (currency.present) {
       map['currency'] = Variable<String>(currency.value);
@@ -29916,6 +30516,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
           ..write('name: $name, ')
           ..write('type: $type, ')
           ..write('currentValue: $currentValue, ')
+          ..write('currentValueCents: $currentValueCents, ')
           ..write('currency: $currency, ')
           ..write('isAutomated: $isAutomated, ')
           ..write('InstitutionName: $InstitutionName, ')
@@ -29991,6 +30592,18 @@ class $LiabilitiesTable extends Liabilities
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _currentBalanceCentsMeta =
+      const VerificationMeta('currentBalanceCents');
+  @override
+  late final GeneratedColumn<BigInt> currentBalanceCents =
+      GeneratedColumn<BigInt>(
+        'current_balance_cents',
+        aliasedName,
+        false,
+        type: DriftSqlType.bigInt,
+        requiredDuringInsert: false,
+        defaultValue: Constant(BigInt.zero),
+      );
   static const VerificationMeta _currencyMeta = const VerificationMeta(
     'currency',
   );
@@ -30014,6 +30627,17 @@ class $LiabilitiesTable extends Liabilities
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _interestRateBpsMeta = const VerificationMeta(
+    'interestRateBps',
+  );
+  @override
+  late final GeneratedColumn<BigInt> interestRateBps = GeneratedColumn<BigInt>(
+    'interest_rate_bps',
+    aliasedName,
+    true,
+    type: DriftSqlType.bigInt,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _dueDateMeta = const VerificationMeta(
     'dueDate',
   );
@@ -30034,6 +30658,17 @@ class $LiabilitiesTable extends Liabilities
     aliasedName,
     true,
     type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _minPaymentCentsMeta = const VerificationMeta(
+    'minPaymentCents',
+  );
+  @override
+  late final GeneratedColumn<BigInt> minPaymentCents = GeneratedColumn<BigInt>(
+    'min_payment_cents',
+    aliasedName,
+    true,
+    type: DriftSqlType.bigInt,
     requiredDuringInsert: false,
   );
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
@@ -30138,10 +30773,13 @@ class $LiabilitiesTable extends Liabilities
     name,
     type,
     currentBalance,
+    currentBalanceCents,
     currency,
     interestRate,
+    interestRateBps,
     dueDate,
     minPayment,
+    minPaymentCents,
     notes,
     createdAt,
     updatedAt,
@@ -30203,6 +30841,15 @@ class $LiabilitiesTable extends Liabilities
     } else if (isInserting) {
       context.missing(_currentBalanceMeta);
     }
+    if (data.containsKey('current_balance_cents')) {
+      context.handle(
+        _currentBalanceCentsMeta,
+        currentBalanceCents.isAcceptableOrUnknown(
+          data['current_balance_cents']!,
+          _currentBalanceCentsMeta,
+        ),
+      );
+    }
     if (data.containsKey('currency')) {
       context.handle(
         _currencyMeta,
@@ -30218,6 +30865,15 @@ class $LiabilitiesTable extends Liabilities
         ),
       );
     }
+    if (data.containsKey('interest_rate_bps')) {
+      context.handle(
+        _interestRateBpsMeta,
+        interestRateBps.isAcceptableOrUnknown(
+          data['interest_rate_bps']!,
+          _interestRateBpsMeta,
+        ),
+      );
+    }
     if (data.containsKey('due_date')) {
       context.handle(
         _dueDateMeta,
@@ -30228,6 +30884,15 @@ class $LiabilitiesTable extends Liabilities
       context.handle(
         _minPaymentMeta,
         minPayment.isAcceptableOrUnknown(data['min_payment']!, _minPaymentMeta),
+      );
+    }
+    if (data.containsKey('min_payment_cents')) {
+      context.handle(
+        _minPaymentCentsMeta,
+        minPaymentCents.isAcceptableOrUnknown(
+          data['min_payment_cents']!,
+          _minPaymentCentsMeta,
+        ),
       );
     }
     if (data.containsKey('notes')) {
@@ -30313,6 +30978,10 @@ class $LiabilitiesTable extends Liabilities
         DriftSqlType.int,
         data['${effectivePrefix}current_balance'],
       )!,
+      currentBalanceCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.bigInt,
+        data['${effectivePrefix}current_balance_cents'],
+      )!,
       currency: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}currency'],
@@ -30321,6 +30990,10 @@ class $LiabilitiesTable extends Liabilities
         DriftSqlType.double,
         data['${effectivePrefix}interest_rate'],
       ),
+      interestRateBps: attachedDatabase.typeMapping.read(
+        DriftSqlType.bigInt,
+        data['${effectivePrefix}interest_rate_bps'],
+      ),
       dueDate: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}due_date'],
@@ -30328,6 +31001,10 @@ class $LiabilitiesTable extends Liabilities
       minPayment: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}min_payment'],
+      ),
+      minPaymentCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.bigInt,
+        data['${effectivePrefix}min_payment_cents'],
       ),
       notes: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -30376,10 +31053,13 @@ class Liability extends DataClass implements Insertable<Liability> {
   final String name;
   final String type;
   final int currentBalance;
+  final BigInt currentBalanceCents;
   final String currency;
   final double? interestRate;
+  final BigInt? interestRateBps;
   final DateTime? dueDate;
   final int? minPayment;
+  final BigInt? minPaymentCents;
   final String? notes;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -30394,10 +31074,13 @@ class Liability extends DataClass implements Insertable<Liability> {
     required this.name,
     required this.type,
     required this.currentBalance,
+    required this.currentBalanceCents,
     required this.currency,
     this.interestRate,
+    this.interestRateBps,
     this.dueDate,
     this.minPayment,
+    this.minPaymentCents,
     this.notes,
     required this.createdAt,
     required this.updatedAt,
@@ -30415,15 +31098,22 @@ class Liability extends DataClass implements Insertable<Liability> {
     map['name'] = Variable<String>(name);
     map['type'] = Variable<String>(type);
     map['current_balance'] = Variable<int>(currentBalance);
+    map['current_balance_cents'] = Variable<BigInt>(currentBalanceCents);
     map['currency'] = Variable<String>(currency);
     if (!nullToAbsent || interestRate != null) {
       map['interest_rate'] = Variable<double>(interestRate);
+    }
+    if (!nullToAbsent || interestRateBps != null) {
+      map['interest_rate_bps'] = Variable<BigInt>(interestRateBps);
     }
     if (!nullToAbsent || dueDate != null) {
       map['due_date'] = Variable<DateTime>(dueDate);
     }
     if (!nullToAbsent || minPayment != null) {
       map['min_payment'] = Variable<int>(minPayment);
+    }
+    if (!nullToAbsent || minPaymentCents != null) {
+      map['min_payment_cents'] = Variable<BigInt>(minPaymentCents);
     }
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
@@ -30447,16 +31137,23 @@ class Liability extends DataClass implements Insertable<Liability> {
       name: Value(name),
       type: Value(type),
       currentBalance: Value(currentBalance),
+      currentBalanceCents: Value(currentBalanceCents),
       currency: Value(currency),
       interestRate: interestRate == null && nullToAbsent
           ? const Value.absent()
           : Value(interestRate),
+      interestRateBps: interestRateBps == null && nullToAbsent
+          ? const Value.absent()
+          : Value(interestRateBps),
       dueDate: dueDate == null && nullToAbsent
           ? const Value.absent()
           : Value(dueDate),
       minPayment: minPayment == null && nullToAbsent
           ? const Value.absent()
           : Value(minPayment),
+      minPaymentCents: minPaymentCents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(minPaymentCents),
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
@@ -30483,10 +31180,15 @@ class Liability extends DataClass implements Insertable<Liability> {
       name: serializer.fromJson<String>(json['name']),
       type: serializer.fromJson<String>(json['type']),
       currentBalance: serializer.fromJson<int>(json['currentBalance']),
+      currentBalanceCents: serializer.fromJson<BigInt>(
+        json['currentBalanceCents'],
+      ),
       currency: serializer.fromJson<String>(json['currency']),
       interestRate: serializer.fromJson<double?>(json['interestRate']),
+      interestRateBps: serializer.fromJson<BigInt?>(json['interestRateBps']),
       dueDate: serializer.fromJson<DateTime?>(json['dueDate']),
       minPayment: serializer.fromJson<int?>(json['minPayment']),
+      minPaymentCents: serializer.fromJson<BigInt?>(json['minPaymentCents']),
       notes: serializer.fromJson<String?>(json['notes']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -30506,10 +31208,13 @@ class Liability extends DataClass implements Insertable<Liability> {
       'name': serializer.toJson<String>(name),
       'type': serializer.toJson<String>(type),
       'currentBalance': serializer.toJson<int>(currentBalance),
+      'currentBalanceCents': serializer.toJson<BigInt>(currentBalanceCents),
       'currency': serializer.toJson<String>(currency),
       'interestRate': serializer.toJson<double?>(interestRate),
+      'interestRateBps': serializer.toJson<BigInt?>(interestRateBps),
       'dueDate': serializer.toJson<DateTime?>(dueDate),
       'minPayment': serializer.toJson<int?>(minPayment),
+      'minPaymentCents': serializer.toJson<BigInt?>(minPaymentCents),
       'notes': serializer.toJson<String?>(notes),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -30527,10 +31232,13 @@ class Liability extends DataClass implements Insertable<Liability> {
     String? name,
     String? type,
     int? currentBalance,
+    BigInt? currentBalanceCents,
     String? currency,
     Value<double?> interestRate = const Value.absent(),
+    Value<BigInt?> interestRateBps = const Value.absent(),
     Value<DateTime?> dueDate = const Value.absent(),
     Value<int?> minPayment = const Value.absent(),
+    Value<BigInt?> minPaymentCents = const Value.absent(),
     Value<String?> notes = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -30545,10 +31253,17 @@ class Liability extends DataClass implements Insertable<Liability> {
     name: name ?? this.name,
     type: type ?? this.type,
     currentBalance: currentBalance ?? this.currentBalance,
+    currentBalanceCents: currentBalanceCents ?? this.currentBalanceCents,
     currency: currency ?? this.currency,
     interestRate: interestRate.present ? interestRate.value : this.interestRate,
+    interestRateBps: interestRateBps.present
+        ? interestRateBps.value
+        : this.interestRateBps,
     dueDate: dueDate.present ? dueDate.value : this.dueDate,
     minPayment: minPayment.present ? minPayment.value : this.minPayment,
+    minPaymentCents: minPaymentCents.present
+        ? minPaymentCents.value
+        : this.minPaymentCents,
     notes: notes.present ? notes.value : this.notes,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -30569,14 +31284,23 @@ class Liability extends DataClass implements Insertable<Liability> {
       currentBalance: data.currentBalance.present
           ? data.currentBalance.value
           : this.currentBalance,
+      currentBalanceCents: data.currentBalanceCents.present
+          ? data.currentBalanceCents.value
+          : this.currentBalanceCents,
       currency: data.currency.present ? data.currency.value : this.currency,
       interestRate: data.interestRate.present
           ? data.interestRate.value
           : this.interestRate,
+      interestRateBps: data.interestRateBps.present
+          ? data.interestRateBps.value
+          : this.interestRateBps,
       dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
       minPayment: data.minPayment.present
           ? data.minPayment.value
           : this.minPayment,
+      minPaymentCents: data.minPaymentCents.present
+          ? data.minPaymentCents.value
+          : this.minPaymentCents,
       notes: data.notes.present ? data.notes.value : this.notes,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -30600,10 +31324,13 @@ class Liability extends DataClass implements Insertable<Liability> {
           ..write('name: $name, ')
           ..write('type: $type, ')
           ..write('currentBalance: $currentBalance, ')
+          ..write('currentBalanceCents: $currentBalanceCents, ')
           ..write('currency: $currency, ')
           ..write('interestRate: $interestRate, ')
+          ..write('interestRateBps: $interestRateBps, ')
           ..write('dueDate: $dueDate, ')
           ..write('minPayment: $minPayment, ')
+          ..write('minPaymentCents: $minPaymentCents, ')
           ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -30623,10 +31350,13 @@ class Liability extends DataClass implements Insertable<Liability> {
     name,
     type,
     currentBalance,
+    currentBalanceCents,
     currency,
     interestRate,
+    interestRateBps,
     dueDate,
     minPayment,
+    minPaymentCents,
     notes,
     createdAt,
     updatedAt,
@@ -30645,10 +31375,13 @@ class Liability extends DataClass implements Insertable<Liability> {
           other.name == this.name &&
           other.type == this.type &&
           other.currentBalance == this.currentBalance &&
+          other.currentBalanceCents == this.currentBalanceCents &&
           other.currency == this.currency &&
           other.interestRate == this.interestRate &&
+          other.interestRateBps == this.interestRateBps &&
           other.dueDate == this.dueDate &&
           other.minPayment == this.minPayment &&
+          other.minPaymentCents == this.minPaymentCents &&
           other.notes == this.notes &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -30665,10 +31398,13 @@ class LiabilitiesCompanion extends UpdateCompanion<Liability> {
   final Value<String> name;
   final Value<String> type;
   final Value<int> currentBalance;
+  final Value<BigInt> currentBalanceCents;
   final Value<String> currency;
   final Value<double?> interestRate;
+  final Value<BigInt?> interestRateBps;
   final Value<DateTime?> dueDate;
   final Value<int?> minPayment;
+  final Value<BigInt?> minPaymentCents;
   final Value<String?> notes;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -30684,10 +31420,13 @@ class LiabilitiesCompanion extends UpdateCompanion<Liability> {
     this.name = const Value.absent(),
     this.type = const Value.absent(),
     this.currentBalance = const Value.absent(),
+    this.currentBalanceCents = const Value.absent(),
     this.currency = const Value.absent(),
     this.interestRate = const Value.absent(),
+    this.interestRateBps = const Value.absent(),
     this.dueDate = const Value.absent(),
     this.minPayment = const Value.absent(),
+    this.minPaymentCents = const Value.absent(),
     this.notes = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -30704,10 +31443,13 @@ class LiabilitiesCompanion extends UpdateCompanion<Liability> {
     required String name,
     required String type,
     required int currentBalance,
+    this.currentBalanceCents = const Value.absent(),
     this.currency = const Value.absent(),
     this.interestRate = const Value.absent(),
+    this.interestRateBps = const Value.absent(),
     this.dueDate = const Value.absent(),
     this.minPayment = const Value.absent(),
+    this.minPaymentCents = const Value.absent(),
     this.notes = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -30728,10 +31470,13 @@ class LiabilitiesCompanion extends UpdateCompanion<Liability> {
     Expression<String>? name,
     Expression<String>? type,
     Expression<int>? currentBalance,
+    Expression<BigInt>? currentBalanceCents,
     Expression<String>? currency,
     Expression<double>? interestRate,
+    Expression<BigInt>? interestRateBps,
     Expression<DateTime>? dueDate,
     Expression<int>? minPayment,
+    Expression<BigInt>? minPaymentCents,
     Expression<String>? notes,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -30748,10 +31493,14 @@ class LiabilitiesCompanion extends UpdateCompanion<Liability> {
       if (name != null) 'name': name,
       if (type != null) 'type': type,
       if (currentBalance != null) 'current_balance': currentBalance,
+      if (currentBalanceCents != null)
+        'current_balance_cents': currentBalanceCents,
       if (currency != null) 'currency': currency,
       if (interestRate != null) 'interest_rate': interestRate,
+      if (interestRateBps != null) 'interest_rate_bps': interestRateBps,
       if (dueDate != null) 'due_date': dueDate,
       if (minPayment != null) 'min_payment': minPayment,
+      if (minPaymentCents != null) 'min_payment_cents': minPaymentCents,
       if (notes != null) 'notes': notes,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -30770,10 +31519,13 @@ class LiabilitiesCompanion extends UpdateCompanion<Liability> {
     Value<String>? name,
     Value<String>? type,
     Value<int>? currentBalance,
+    Value<BigInt>? currentBalanceCents,
     Value<String>? currency,
     Value<double?>? interestRate,
+    Value<BigInt?>? interestRateBps,
     Value<DateTime?>? dueDate,
     Value<int?>? minPayment,
+    Value<BigInt?>? minPaymentCents,
     Value<String?>? notes,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -30790,10 +31542,13 @@ class LiabilitiesCompanion extends UpdateCompanion<Liability> {
       name: name ?? this.name,
       type: type ?? this.type,
       currentBalance: currentBalance ?? this.currentBalance,
+      currentBalanceCents: currentBalanceCents ?? this.currentBalanceCents,
       currency: currency ?? this.currency,
       interestRate: interestRate ?? this.interestRate,
+      interestRateBps: interestRateBps ?? this.interestRateBps,
       dueDate: dueDate ?? this.dueDate,
       minPayment: minPayment ?? this.minPayment,
+      minPaymentCents: minPaymentCents ?? this.minPaymentCents,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -30824,17 +31579,28 @@ class LiabilitiesCompanion extends UpdateCompanion<Liability> {
     if (currentBalance.present) {
       map['current_balance'] = Variable<int>(currentBalance.value);
     }
+    if (currentBalanceCents.present) {
+      map['current_balance_cents'] = Variable<BigInt>(
+        currentBalanceCents.value,
+      );
+    }
     if (currency.present) {
       map['currency'] = Variable<String>(currency.value);
     }
     if (interestRate.present) {
       map['interest_rate'] = Variable<double>(interestRate.value);
     }
+    if (interestRateBps.present) {
+      map['interest_rate_bps'] = Variable<BigInt>(interestRateBps.value);
+    }
     if (dueDate.present) {
       map['due_date'] = Variable<DateTime>(dueDate.value);
     }
     if (minPayment.present) {
       map['min_payment'] = Variable<int>(minPayment.value);
+    }
+    if (minPaymentCents.present) {
+      map['min_payment_cents'] = Variable<BigInt>(minPaymentCents.value);
     }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
@@ -30874,10 +31640,13 @@ class LiabilitiesCompanion extends UpdateCompanion<Liability> {
           ..write('name: $name, ')
           ..write('type: $type, ')
           ..write('currentBalance: $currentBalance, ')
+          ..write('currentBalanceCents: $currentBalanceCents, ')
           ..write('currency: $currency, ')
           ..write('interestRate: $interestRate, ')
+          ..write('interestRateBps: $interestRateBps, ')
           ..write('dueDate: $dueDate, ')
           ..write('minPayment: $minPayment, ')
+          ..write('minPaymentCents: $minPaymentCents, ')
           ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -30938,6 +31707,18 @@ class $ValuationHistoryTable extends ValuationHistory
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _valueCentsMeta = const VerificationMeta(
+    'valueCents',
+  );
+  @override
+  late final GeneratedColumn<BigInt> valueCents = GeneratedColumn<BigInt>(
+    'value_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.bigInt,
+    requiredDuringInsert: false,
+    defaultValue: Constant(BigInt.zero),
+  );
   static const VerificationMeta _dateMeta = const VerificationMeta('date');
   @override
   late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
@@ -30965,6 +31746,7 @@ class $ValuationHistoryTable extends ValuationHistory
     entityType,
     entityId,
     value,
+    valueCents,
     date,
     recordedAt,
   ];
@@ -31009,6 +31791,12 @@ class $ValuationHistoryTable extends ValuationHistory
     } else if (isInserting) {
       context.missing(_valueMeta);
     }
+    if (data.containsKey('value_cents')) {
+      context.handle(
+        _valueCentsMeta,
+        valueCents.isAcceptableOrUnknown(data['value_cents']!, _valueCentsMeta),
+      );
+    }
     if (data.containsKey('date')) {
       context.handle(
         _dateMeta,
@@ -31048,6 +31836,10 @@ class $ValuationHistoryTable extends ValuationHistory
         DriftSqlType.int,
         data['${effectivePrefix}value'],
       )!,
+      valueCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.bigInt,
+        data['${effectivePrefix}value_cents'],
+      )!,
       date: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}date'],
@@ -31071,6 +31863,7 @@ class ValuationHistoryData extends DataClass
   final String entityType;
   final String entityId;
   final int value;
+  final BigInt valueCents;
   final DateTime date;
   final DateTime recordedAt;
   const ValuationHistoryData({
@@ -31078,6 +31871,7 @@ class ValuationHistoryData extends DataClass
     required this.entityType,
     required this.entityId,
     required this.value,
+    required this.valueCents,
     required this.date,
     required this.recordedAt,
   });
@@ -31088,6 +31882,7 @@ class ValuationHistoryData extends DataClass
     map['entity_type'] = Variable<String>(entityType);
     map['entity_id'] = Variable<String>(entityId);
     map['value'] = Variable<int>(value);
+    map['value_cents'] = Variable<BigInt>(valueCents);
     map['date'] = Variable<DateTime>(date);
     map['recorded_at'] = Variable<DateTime>(recordedAt);
     return map;
@@ -31099,6 +31894,7 @@ class ValuationHistoryData extends DataClass
       entityType: Value(entityType),
       entityId: Value(entityId),
       value: Value(value),
+      valueCents: Value(valueCents),
       date: Value(date),
       recordedAt: Value(recordedAt),
     );
@@ -31114,6 +31910,7 @@ class ValuationHistoryData extends DataClass
       entityType: serializer.fromJson<String>(json['entityType']),
       entityId: serializer.fromJson<String>(json['entityId']),
       value: serializer.fromJson<int>(json['value']),
+      valueCents: serializer.fromJson<BigInt>(json['valueCents']),
       date: serializer.fromJson<DateTime>(json['date']),
       recordedAt: serializer.fromJson<DateTime>(json['recordedAt']),
     );
@@ -31126,6 +31923,7 @@ class ValuationHistoryData extends DataClass
       'entityType': serializer.toJson<String>(entityType),
       'entityId': serializer.toJson<String>(entityId),
       'value': serializer.toJson<int>(value),
+      'valueCents': serializer.toJson<BigInt>(valueCents),
       'date': serializer.toJson<DateTime>(date),
       'recordedAt': serializer.toJson<DateTime>(recordedAt),
     };
@@ -31136,6 +31934,7 @@ class ValuationHistoryData extends DataClass
     String? entityType,
     String? entityId,
     int? value,
+    BigInt? valueCents,
     DateTime? date,
     DateTime? recordedAt,
   }) => ValuationHistoryData(
@@ -31143,6 +31942,7 @@ class ValuationHistoryData extends DataClass
     entityType: entityType ?? this.entityType,
     entityId: entityId ?? this.entityId,
     value: value ?? this.value,
+    valueCents: valueCents ?? this.valueCents,
     date: date ?? this.date,
     recordedAt: recordedAt ?? this.recordedAt,
   );
@@ -31154,6 +31954,9 @@ class ValuationHistoryData extends DataClass
           : this.entityType,
       entityId: data.entityId.present ? data.entityId.value : this.entityId,
       value: data.value.present ? data.value.value : this.value,
+      valueCents: data.valueCents.present
+          ? data.valueCents.value
+          : this.valueCents,
       date: data.date.present ? data.date.value : this.date,
       recordedAt: data.recordedAt.present
           ? data.recordedAt.value
@@ -31168,6 +31971,7 @@ class ValuationHistoryData extends DataClass
           ..write('entityType: $entityType, ')
           ..write('entityId: $entityId, ')
           ..write('value: $value, ')
+          ..write('valueCents: $valueCents, ')
           ..write('date: $date, ')
           ..write('recordedAt: $recordedAt')
           ..write(')'))
@@ -31175,8 +31979,15 @@ class ValuationHistoryData extends DataClass
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, entityType, entityId, value, date, recordedAt);
+  int get hashCode => Object.hash(
+    id,
+    entityType,
+    entityId,
+    value,
+    valueCents,
+    date,
+    recordedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -31185,6 +31996,7 @@ class ValuationHistoryData extends DataClass
           other.entityType == this.entityType &&
           other.entityId == this.entityId &&
           other.value == this.value &&
+          other.valueCents == this.valueCents &&
           other.date == this.date &&
           other.recordedAt == this.recordedAt);
 }
@@ -31194,6 +32006,7 @@ class ValuationHistoryCompanion extends UpdateCompanion<ValuationHistoryData> {
   final Value<String> entityType;
   final Value<String> entityId;
   final Value<int> value;
+  final Value<BigInt> valueCents;
   final Value<DateTime> date;
   final Value<DateTime> recordedAt;
   final Value<int> rowid;
@@ -31202,6 +32015,7 @@ class ValuationHistoryCompanion extends UpdateCompanion<ValuationHistoryData> {
     this.entityType = const Value.absent(),
     this.entityId = const Value.absent(),
     this.value = const Value.absent(),
+    this.valueCents = const Value.absent(),
     this.date = const Value.absent(),
     this.recordedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -31211,6 +32025,7 @@ class ValuationHistoryCompanion extends UpdateCompanion<ValuationHistoryData> {
     required String entityType,
     required String entityId,
     required int value,
+    this.valueCents = const Value.absent(),
     required DateTime date,
     this.recordedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -31224,6 +32039,7 @@ class ValuationHistoryCompanion extends UpdateCompanion<ValuationHistoryData> {
     Expression<String>? entityType,
     Expression<String>? entityId,
     Expression<int>? value,
+    Expression<BigInt>? valueCents,
     Expression<DateTime>? date,
     Expression<DateTime>? recordedAt,
     Expression<int>? rowid,
@@ -31233,6 +32049,7 @@ class ValuationHistoryCompanion extends UpdateCompanion<ValuationHistoryData> {
       if (entityType != null) 'entity_type': entityType,
       if (entityId != null) 'entity_id': entityId,
       if (value != null) 'value': value,
+      if (valueCents != null) 'value_cents': valueCents,
       if (date != null) 'date': date,
       if (recordedAt != null) 'recorded_at': recordedAt,
       if (rowid != null) 'rowid': rowid,
@@ -31244,6 +32061,7 @@ class ValuationHistoryCompanion extends UpdateCompanion<ValuationHistoryData> {
     Value<String>? entityType,
     Value<String>? entityId,
     Value<int>? value,
+    Value<BigInt>? valueCents,
     Value<DateTime>? date,
     Value<DateTime>? recordedAt,
     Value<int>? rowid,
@@ -31253,6 +32071,7 @@ class ValuationHistoryCompanion extends UpdateCompanion<ValuationHistoryData> {
       entityType: entityType ?? this.entityType,
       entityId: entityId ?? this.entityId,
       value: value ?? this.value,
+      valueCents: valueCents ?? this.valueCents,
       date: date ?? this.date,
       recordedAt: recordedAt ?? this.recordedAt,
       rowid: rowid ?? this.rowid,
@@ -31274,6 +32093,9 @@ class ValuationHistoryCompanion extends UpdateCompanion<ValuationHistoryData> {
     if (value.present) {
       map['value'] = Variable<int>(value.value);
     }
+    if (valueCents.present) {
+      map['value_cents'] = Variable<BigInt>(valueCents.value);
+    }
     if (date.present) {
       map['date'] = Variable<DateTime>(date.value);
     }
@@ -31293,6 +32115,7 @@ class ValuationHistoryCompanion extends UpdateCompanion<ValuationHistoryData> {
           ..write('entityType: $entityType, ')
           ..write('entityId: $entityId, ')
           ..write('value: $value, ')
+          ..write('valueCents: $valueCents, ')
           ..write('date: $date, ')
           ..write('recordedAt: $recordedAt, ')
           ..write('rowid: $rowid')
@@ -31374,6 +32197,28 @@ class $LedgerEventsTable extends LedgerEvents
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _amountCentsMeta = const VerificationMeta(
+    'amountCents',
+  );
+  @override
+  late final GeneratedColumn<BigInt> amountCents = GeneratedColumn<BigInt>(
+    'amount_cents',
+    aliasedName,
+    true,
+    type: DriftSqlType.bigInt,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _currencyMeta = const VerificationMeta(
+    'currency',
+  );
+  @override
+  late final GeneratedColumn<String> currency = GeneratedColumn<String>(
+    'currency',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   late final GeneratedColumnWithTypeConverter<Map<String, dynamic>, String>
   eventData = GeneratedColumn<String>(
@@ -31447,6 +32292,8 @@ class $LedgerEventsTable extends LedgerEvents
     entityId,
     userId,
     deviceId,
+    amountCents,
+    currency,
     eventData,
     timestamp,
     lamportClock,
@@ -31510,6 +32357,21 @@ class $LedgerEventsTable extends LedgerEvents
       context.handle(
         _deviceIdMeta,
         deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    }
+    if (data.containsKey('amount_cents')) {
+      context.handle(
+        _amountCentsMeta,
+        amountCents.isAcceptableOrUnknown(
+          data['amount_cents']!,
+          _amountCentsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('currency')) {
+      context.handle(
+        _currencyMeta,
+        currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta),
       );
     }
     if (data.containsKey('timestamp')) {
@@ -31584,6 +32446,14 @@ class $LedgerEventsTable extends LedgerEvents
         DriftSqlType.string,
         data['${effectivePrefix}device_id'],
       ),
+      amountCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.bigInt,
+        data['${effectivePrefix}amount_cents'],
+      ),
+      currency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency'],
+      ),
       eventData: $LedgerEventsTable.$convertereventData.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -31629,6 +32499,8 @@ class LedgerEvent extends DataClass implements Insertable<LedgerEvent> {
   final String entityId;
   final String userId;
   final String? deviceId;
+  final BigInt? amountCents;
+  final String? currency;
   final Map<String, dynamic> eventData;
   final DateTime timestamp;
   final int lamportClock;
@@ -31642,6 +32514,8 @@ class LedgerEvent extends DataClass implements Insertable<LedgerEvent> {
     required this.entityId,
     required this.userId,
     this.deviceId,
+    this.amountCents,
+    this.currency,
     required this.eventData,
     required this.timestamp,
     required this.lamportClock,
@@ -31659,6 +32533,12 @@ class LedgerEvent extends DataClass implements Insertable<LedgerEvent> {
     map['user_id'] = Variable<String>(userId);
     if (!nullToAbsent || deviceId != null) {
       map['device_id'] = Variable<String>(deviceId);
+    }
+    if (!nullToAbsent || amountCents != null) {
+      map['amount_cents'] = Variable<BigInt>(amountCents);
+    }
+    if (!nullToAbsent || currency != null) {
+      map['currency'] = Variable<String>(currency);
     }
     {
       map['event_data'] = Variable<String>(
@@ -31689,6 +32569,12 @@ class LedgerEvent extends DataClass implements Insertable<LedgerEvent> {
       deviceId: deviceId == null && nullToAbsent
           ? const Value.absent()
           : Value(deviceId),
+      amountCents: amountCents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(amountCents),
+      currency: currency == null && nullToAbsent
+          ? const Value.absent()
+          : Value(currency),
       eventData: Value(eventData),
       timestamp: Value(timestamp),
       lamportClock: Value(lamportClock),
@@ -31714,6 +32600,8 @@ class LedgerEvent extends DataClass implements Insertable<LedgerEvent> {
       entityId: serializer.fromJson<String>(json['entityId']),
       userId: serializer.fromJson<String>(json['userId']),
       deviceId: serializer.fromJson<String?>(json['deviceId']),
+      amountCents: serializer.fromJson<BigInt?>(json['amountCents']),
+      currency: serializer.fromJson<String?>(json['currency']),
       eventData: serializer.fromJson<Map<String, dynamic>>(json['eventData']),
       timestamp: serializer.fromJson<DateTime>(json['timestamp']),
       lamportClock: serializer.fromJson<int>(json['lamportClock']),
@@ -31734,6 +32622,8 @@ class LedgerEvent extends DataClass implements Insertable<LedgerEvent> {
       'entityId': serializer.toJson<String>(entityId),
       'userId': serializer.toJson<String>(userId),
       'deviceId': serializer.toJson<String?>(deviceId),
+      'amountCents': serializer.toJson<BigInt?>(amountCents),
+      'currency': serializer.toJson<String?>(currency),
       'eventData': serializer.toJson<Map<String, dynamic>>(eventData),
       'timestamp': serializer.toJson<DateTime>(timestamp),
       'lamportClock': serializer.toJson<int>(lamportClock),
@@ -31750,6 +32640,8 @@ class LedgerEvent extends DataClass implements Insertable<LedgerEvent> {
     String? entityId,
     String? userId,
     Value<String?> deviceId = const Value.absent(),
+    Value<BigInt?> amountCents = const Value.absent(),
+    Value<String?> currency = const Value.absent(),
     Map<String, dynamic>? eventData,
     DateTime? timestamp,
     int? lamportClock,
@@ -31763,6 +32655,8 @@ class LedgerEvent extends DataClass implements Insertable<LedgerEvent> {
     entityId: entityId ?? this.entityId,
     userId: userId ?? this.userId,
     deviceId: deviceId.present ? deviceId.value : this.deviceId,
+    amountCents: amountCents.present ? amountCents.value : this.amountCents,
+    currency: currency.present ? currency.value : this.currency,
     eventData: eventData ?? this.eventData,
     timestamp: timestamp ?? this.timestamp,
     lamportClock: lamportClock ?? this.lamportClock,
@@ -31784,6 +32678,10 @@ class LedgerEvent extends DataClass implements Insertable<LedgerEvent> {
       entityId: data.entityId.present ? data.entityId.value : this.entityId,
       userId: data.userId.present ? data.userId.value : this.userId,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      amountCents: data.amountCents.present
+          ? data.amountCents.value
+          : this.amountCents,
+      currency: data.currency.present ? data.currency.value : this.currency,
       eventData: data.eventData.present ? data.eventData.value : this.eventData,
       timestamp: data.timestamp.present ? data.timestamp.value : this.timestamp,
       lamportClock: data.lamportClock.present
@@ -31808,6 +32706,8 @@ class LedgerEvent extends DataClass implements Insertable<LedgerEvent> {
           ..write('entityId: $entityId, ')
           ..write('userId: $userId, ')
           ..write('deviceId: $deviceId, ')
+          ..write('amountCents: $amountCents, ')
+          ..write('currency: $currency, ')
           ..write('eventData: $eventData, ')
           ..write('timestamp: $timestamp, ')
           ..write('lamportClock: $lamportClock, ')
@@ -31826,6 +32726,8 @@ class LedgerEvent extends DataClass implements Insertable<LedgerEvent> {
     entityId,
     userId,
     deviceId,
+    amountCents,
+    currency,
     eventData,
     timestamp,
     lamportClock,
@@ -31843,6 +32745,8 @@ class LedgerEvent extends DataClass implements Insertable<LedgerEvent> {
           other.entityId == this.entityId &&
           other.userId == this.userId &&
           other.deviceId == this.deviceId &&
+          other.amountCents == this.amountCents &&
+          other.currency == this.currency &&
           other.eventData == this.eventData &&
           other.timestamp == this.timestamp &&
           other.lamportClock == this.lamportClock &&
@@ -31858,6 +32762,8 @@ class LedgerEventsCompanion extends UpdateCompanion<LedgerEvent> {
   final Value<String> entityId;
   final Value<String> userId;
   final Value<String?> deviceId;
+  final Value<BigInt?> amountCents;
+  final Value<String?> currency;
   final Value<Map<String, dynamic>> eventData;
   final Value<DateTime> timestamp;
   final Value<int> lamportClock;
@@ -31872,6 +32778,8 @@ class LedgerEventsCompanion extends UpdateCompanion<LedgerEvent> {
     this.entityId = const Value.absent(),
     this.userId = const Value.absent(),
     this.deviceId = const Value.absent(),
+    this.amountCents = const Value.absent(),
+    this.currency = const Value.absent(),
     this.eventData = const Value.absent(),
     this.timestamp = const Value.absent(),
     this.lamportClock = const Value.absent(),
@@ -31887,6 +32795,8 @@ class LedgerEventsCompanion extends UpdateCompanion<LedgerEvent> {
     required String entityId,
     required String userId,
     this.deviceId = const Value.absent(),
+    this.amountCents = const Value.absent(),
+    this.currency = const Value.absent(),
     required Map<String, dynamic> eventData,
     this.timestamp = const Value.absent(),
     this.lamportClock = const Value.absent(),
@@ -31907,6 +32817,8 @@ class LedgerEventsCompanion extends UpdateCompanion<LedgerEvent> {
     Expression<String>? entityId,
     Expression<String>? userId,
     Expression<String>? deviceId,
+    Expression<BigInt>? amountCents,
+    Expression<String>? currency,
     Expression<String>? eventData,
     Expression<DateTime>? timestamp,
     Expression<int>? lamportClock,
@@ -31922,6 +32834,8 @@ class LedgerEventsCompanion extends UpdateCompanion<LedgerEvent> {
       if (entityId != null) 'entity_id': entityId,
       if (userId != null) 'user_id': userId,
       if (deviceId != null) 'device_id': deviceId,
+      if (amountCents != null) 'amount_cents': amountCents,
+      if (currency != null) 'currency': currency,
       if (eventData != null) 'event_data': eventData,
       if (timestamp != null) 'timestamp': timestamp,
       if (lamportClock != null) 'lamport_clock': lamportClock,
@@ -31939,6 +32853,8 @@ class LedgerEventsCompanion extends UpdateCompanion<LedgerEvent> {
     Value<String>? entityId,
     Value<String>? userId,
     Value<String?>? deviceId,
+    Value<BigInt?>? amountCents,
+    Value<String?>? currency,
     Value<Map<String, dynamic>>? eventData,
     Value<DateTime>? timestamp,
     Value<int>? lamportClock,
@@ -31954,6 +32870,8 @@ class LedgerEventsCompanion extends UpdateCompanion<LedgerEvent> {
       entityId: entityId ?? this.entityId,
       userId: userId ?? this.userId,
       deviceId: deviceId ?? this.deviceId,
+      amountCents: amountCents ?? this.amountCents,
+      currency: currency ?? this.currency,
       eventData: eventData ?? this.eventData,
       timestamp: timestamp ?? this.timestamp,
       lamportClock: lamportClock ?? this.lamportClock,
@@ -31984,6 +32902,12 @@ class LedgerEventsCompanion extends UpdateCompanion<LedgerEvent> {
     }
     if (deviceId.present) {
       map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (amountCents.present) {
+      map['amount_cents'] = Variable<BigInt>(amountCents.value);
+    }
+    if (currency.present) {
+      map['currency'] = Variable<String>(currency.value);
     }
     if (eventData.present) {
       map['event_data'] = Variable<String>(
@@ -32020,6 +32944,8 @@ class LedgerEventsCompanion extends UpdateCompanion<LedgerEvent> {
           ..write('entityId: $entityId, ')
           ..write('userId: $userId, ')
           ..write('deviceId: $deviceId, ')
+          ..write('amountCents: $amountCents, ')
+          ..write('currency: $currency, ')
           ..write('eventData: $eventData, ')
           ..write('timestamp: $timestamp, ')
           ..write('lamportClock: $lamportClock, ')
@@ -32070,6 +32996,18 @@ class $BudgetHealthSnapshotsTable extends BudgetHealthSnapshots
     type: DriftSqlType.double,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _overallScoreBpsMeta = const VerificationMeta(
+    'overallScoreBps',
+  );
+  @override
+  late final GeneratedColumn<BigInt> overallScoreBps = GeneratedColumn<BigInt>(
+    'overall_score_bps',
+    aliasedName,
+    false,
+    type: DriftSqlType.bigInt,
+    requiredDuringInsert: false,
+    defaultValue: Constant(BigInt.zero),
+  );
   static const VerificationMeta _metricsJsonMeta = const VerificationMeta(
     'metricsJson',
   );
@@ -32098,6 +33036,7 @@ class $BudgetHealthSnapshotsTable extends BudgetHealthSnapshots
     id,
     userId,
     overallScore,
+    overallScoreBps,
     metricsJson,
     timestamp,
   ];
@@ -32137,6 +33076,15 @@ class $BudgetHealthSnapshotsTable extends BudgetHealthSnapshots
     } else if (isInserting) {
       context.missing(_overallScoreMeta);
     }
+    if (data.containsKey('overall_score_bps')) {
+      context.handle(
+        _overallScoreBpsMeta,
+        overallScoreBps.isAcceptableOrUnknown(
+          data['overall_score_bps']!,
+          _overallScoreBpsMeta,
+        ),
+      );
+    }
     if (data.containsKey('metrics_json')) {
       context.handle(
         _metricsJsonMeta,
@@ -32175,6 +33123,10 @@ class $BudgetHealthSnapshotsTable extends BudgetHealthSnapshots
         DriftSqlType.double,
         data['${effectivePrefix}overall_score'],
       )!,
+      overallScoreBps: attachedDatabase.typeMapping.read(
+        DriftSqlType.bigInt,
+        data['${effectivePrefix}overall_score_bps'],
+      )!,
       metricsJson: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}metrics_json'],
@@ -32197,12 +33149,14 @@ class BudgetHealthSnapshot extends DataClass
   final String id;
   final String userId;
   final double overallScore;
+  final BigInt overallScoreBps;
   final String metricsJson;
   final DateTime timestamp;
   const BudgetHealthSnapshot({
     required this.id,
     required this.userId,
     required this.overallScore,
+    required this.overallScoreBps,
     required this.metricsJson,
     required this.timestamp,
   });
@@ -32212,6 +33166,7 @@ class BudgetHealthSnapshot extends DataClass
     map['id'] = Variable<String>(id);
     map['user_id'] = Variable<String>(userId);
     map['overall_score'] = Variable<double>(overallScore);
+    map['overall_score_bps'] = Variable<BigInt>(overallScoreBps);
     map['metrics_json'] = Variable<String>(metricsJson);
     map['timestamp'] = Variable<DateTime>(timestamp);
     return map;
@@ -32222,6 +33177,7 @@ class BudgetHealthSnapshot extends DataClass
       id: Value(id),
       userId: Value(userId),
       overallScore: Value(overallScore),
+      overallScoreBps: Value(overallScoreBps),
       metricsJson: Value(metricsJson),
       timestamp: Value(timestamp),
     );
@@ -32236,6 +33192,7 @@ class BudgetHealthSnapshot extends DataClass
       id: serializer.fromJson<String>(json['id']),
       userId: serializer.fromJson<String>(json['userId']),
       overallScore: serializer.fromJson<double>(json['overallScore']),
+      overallScoreBps: serializer.fromJson<BigInt>(json['overallScoreBps']),
       metricsJson: serializer.fromJson<String>(json['metricsJson']),
       timestamp: serializer.fromJson<DateTime>(json['timestamp']),
     );
@@ -32247,6 +33204,7 @@ class BudgetHealthSnapshot extends DataClass
       'id': serializer.toJson<String>(id),
       'userId': serializer.toJson<String>(userId),
       'overallScore': serializer.toJson<double>(overallScore),
+      'overallScoreBps': serializer.toJson<BigInt>(overallScoreBps),
       'metricsJson': serializer.toJson<String>(metricsJson),
       'timestamp': serializer.toJson<DateTime>(timestamp),
     };
@@ -32256,12 +33214,14 @@ class BudgetHealthSnapshot extends DataClass
     String? id,
     String? userId,
     double? overallScore,
+    BigInt? overallScoreBps,
     String? metricsJson,
     DateTime? timestamp,
   }) => BudgetHealthSnapshot(
     id: id ?? this.id,
     userId: userId ?? this.userId,
     overallScore: overallScore ?? this.overallScore,
+    overallScoreBps: overallScoreBps ?? this.overallScoreBps,
     metricsJson: metricsJson ?? this.metricsJson,
     timestamp: timestamp ?? this.timestamp,
   );
@@ -32272,6 +33232,9 @@ class BudgetHealthSnapshot extends DataClass
       overallScore: data.overallScore.present
           ? data.overallScore.value
           : this.overallScore,
+      overallScoreBps: data.overallScoreBps.present
+          ? data.overallScoreBps.value
+          : this.overallScoreBps,
       metricsJson: data.metricsJson.present
           ? data.metricsJson.value
           : this.metricsJson,
@@ -32285,6 +33248,7 @@ class BudgetHealthSnapshot extends DataClass
           ..write('id: $id, ')
           ..write('userId: $userId, ')
           ..write('overallScore: $overallScore, ')
+          ..write('overallScoreBps: $overallScoreBps, ')
           ..write('metricsJson: $metricsJson, ')
           ..write('timestamp: $timestamp')
           ..write(')'))
@@ -32292,8 +33256,14 @@ class BudgetHealthSnapshot extends DataClass
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, userId, overallScore, metricsJson, timestamp);
+  int get hashCode => Object.hash(
+    id,
+    userId,
+    overallScore,
+    overallScoreBps,
+    metricsJson,
+    timestamp,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -32301,6 +33271,7 @@ class BudgetHealthSnapshot extends DataClass
           other.id == this.id &&
           other.userId == this.userId &&
           other.overallScore == this.overallScore &&
+          other.overallScoreBps == this.overallScoreBps &&
           other.metricsJson == this.metricsJson &&
           other.timestamp == this.timestamp);
 }
@@ -32310,6 +33281,7 @@ class BudgetHealthSnapshotsCompanion
   final Value<String> id;
   final Value<String> userId;
   final Value<double> overallScore;
+  final Value<BigInt> overallScoreBps;
   final Value<String> metricsJson;
   final Value<DateTime> timestamp;
   final Value<int> rowid;
@@ -32317,6 +33289,7 @@ class BudgetHealthSnapshotsCompanion
     this.id = const Value.absent(),
     this.userId = const Value.absent(),
     this.overallScore = const Value.absent(),
+    this.overallScoreBps = const Value.absent(),
     this.metricsJson = const Value.absent(),
     this.timestamp = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -32325,6 +33298,7 @@ class BudgetHealthSnapshotsCompanion
     required String id,
     required String userId,
     required double overallScore,
+    this.overallScoreBps = const Value.absent(),
     required String metricsJson,
     this.timestamp = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -32336,6 +33310,7 @@ class BudgetHealthSnapshotsCompanion
     Expression<String>? id,
     Expression<String>? userId,
     Expression<double>? overallScore,
+    Expression<BigInt>? overallScoreBps,
     Expression<String>? metricsJson,
     Expression<DateTime>? timestamp,
     Expression<int>? rowid,
@@ -32344,6 +33319,7 @@ class BudgetHealthSnapshotsCompanion
       if (id != null) 'id': id,
       if (userId != null) 'user_id': userId,
       if (overallScore != null) 'overall_score': overallScore,
+      if (overallScoreBps != null) 'overall_score_bps': overallScoreBps,
       if (metricsJson != null) 'metrics_json': metricsJson,
       if (timestamp != null) 'timestamp': timestamp,
       if (rowid != null) 'rowid': rowid,
@@ -32354,6 +33330,7 @@ class BudgetHealthSnapshotsCompanion
     Value<String>? id,
     Value<String>? userId,
     Value<double>? overallScore,
+    Value<BigInt>? overallScoreBps,
     Value<String>? metricsJson,
     Value<DateTime>? timestamp,
     Value<int>? rowid,
@@ -32362,6 +33339,7 @@ class BudgetHealthSnapshotsCompanion
       id: id ?? this.id,
       userId: userId ?? this.userId,
       overallScore: overallScore ?? this.overallScore,
+      overallScoreBps: overallScoreBps ?? this.overallScoreBps,
       metricsJson: metricsJson ?? this.metricsJson,
       timestamp: timestamp ?? this.timestamp,
       rowid: rowid ?? this.rowid,
@@ -32379,6 +33357,9 @@ class BudgetHealthSnapshotsCompanion
     }
     if (overallScore.present) {
       map['overall_score'] = Variable<double>(overallScore.value);
+    }
+    if (overallScoreBps.present) {
+      map['overall_score_bps'] = Variable<BigInt>(overallScoreBps.value);
     }
     if (metricsJson.present) {
       map['metrics_json'] = Variable<String>(metricsJson.value);
@@ -32398,6 +33379,7 @@ class BudgetHealthSnapshotsCompanion
           ..write('id: $id, ')
           ..write('userId: $userId, ')
           ..write('overallScore: $overallScore, ')
+          ..write('overallScoreBps: $overallScoreBps, ')
           ..write('metricsJson: $metricsJson, ')
           ..write('timestamp: $timestamp, ')
           ..write('rowid: $rowid')
@@ -32461,6 +33443,18 @@ class $CanonicalLedgerTable extends CanonicalLedger
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountCentsMeta = const VerificationMeta(
+    'amountCents',
+  );
+  @override
+  late final GeneratedColumn<BigInt> amountCents = GeneratedColumn<BigInt>(
+    'amount_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.bigInt,
+    requiredDuringInsert: false,
+    defaultValue: Constant(BigInt.zero),
   );
   static const VerificationMeta _currencyMeta = const VerificationMeta(
     'currency',
@@ -32564,6 +33558,7 @@ class $CanonicalLedgerTable extends CanonicalLedger
     source,
     sourceReference,
     amount,
+    amountCents,
     currency,
     bookingDate,
     description,
@@ -32622,6 +33617,15 @@ class $CanonicalLedgerTable extends CanonicalLedger
       );
     } else if (isInserting) {
       context.missing(_amountMeta);
+    }
+    if (data.containsKey('amount_cents')) {
+      context.handle(
+        _amountCentsMeta,
+        amountCents.isAcceptableOrUnknown(
+          data['amount_cents']!,
+          _amountCentsMeta,
+        ),
+      );
     }
     if (data.containsKey('currency')) {
       context.handle(
@@ -32717,6 +33721,10 @@ class $CanonicalLedgerTable extends CanonicalLedger
         DriftSqlType.int,
         data['${effectivePrefix}amount'],
       )!,
+      amountCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.bigInt,
+        data['${effectivePrefix}amount_cents'],
+      )!,
       currency: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}currency'],
@@ -32769,6 +33777,7 @@ class CanonicalLedgerData extends DataClass
   /// External reference (Bank Transaction ID, Receipt ID)
   final String? sourceReference;
   final int amount;
+  final BigInt amountCents;
   final String currency;
   final DateTime bookingDate;
   final String? description;
@@ -32789,6 +33798,7 @@ class CanonicalLedgerData extends DataClass
     required this.source,
     this.sourceReference,
     required this.amount,
+    required this.amountCents,
     required this.currency,
     required this.bookingDate,
     this.description,
@@ -32808,6 +33818,7 @@ class CanonicalLedgerData extends DataClass
       map['source_reference'] = Variable<String>(sourceReference);
     }
     map['amount'] = Variable<int>(amount);
+    map['amount_cents'] = Variable<BigInt>(amountCents);
     map['currency'] = Variable<String>(currency);
     map['booking_date'] = Variable<DateTime>(bookingDate);
     if (!nullToAbsent || description != null) {
@@ -32834,6 +33845,7 @@ class CanonicalLedgerData extends DataClass
           ? const Value.absent()
           : Value(sourceReference),
       amount: Value(amount),
+      amountCents: Value(amountCents),
       currency: Value(currency),
       bookingDate: Value(bookingDate),
       description: description == null && nullToAbsent
@@ -32862,6 +33874,7 @@ class CanonicalLedgerData extends DataClass
       source: serializer.fromJson<String>(json['source']),
       sourceReference: serializer.fromJson<String?>(json['sourceReference']),
       amount: serializer.fromJson<int>(json['amount']),
+      amountCents: serializer.fromJson<BigInt>(json['amountCents']),
       currency: serializer.fromJson<String>(json['currency']),
       bookingDate: serializer.fromJson<DateTime>(json['bookingDate']),
       description: serializer.fromJson<String?>(json['description']),
@@ -32883,6 +33896,7 @@ class CanonicalLedgerData extends DataClass
       'source': serializer.toJson<String>(source),
       'sourceReference': serializer.toJson<String?>(sourceReference),
       'amount': serializer.toJson<int>(amount),
+      'amountCents': serializer.toJson<BigInt>(amountCents),
       'currency': serializer.toJson<String>(currency),
       'bookingDate': serializer.toJson<DateTime>(bookingDate),
       'description': serializer.toJson<String?>(description),
@@ -32900,6 +33914,7 @@ class CanonicalLedgerData extends DataClass
     String? source,
     Value<String?> sourceReference = const Value.absent(),
     int? amount,
+    BigInt? amountCents,
     String? currency,
     DateTime? bookingDate,
     Value<String?> description = const Value.absent(),
@@ -32916,6 +33931,7 @@ class CanonicalLedgerData extends DataClass
         ? sourceReference.value
         : this.sourceReference,
     amount: amount ?? this.amount,
+    amountCents: amountCents ?? this.amountCents,
     currency: currency ?? this.currency,
     bookingDate: bookingDate ?? this.bookingDate,
     description: description.present ? description.value : this.description,
@@ -32936,6 +33952,9 @@ class CanonicalLedgerData extends DataClass
           ? data.sourceReference.value
           : this.sourceReference,
       amount: data.amount.present ? data.amount.value : this.amount,
+      amountCents: data.amountCents.present
+          ? data.amountCents.value
+          : this.amountCents,
       currency: data.currency.present ? data.currency.value : this.currency,
       bookingDate: data.bookingDate.present
           ? data.bookingDate.value
@@ -32965,6 +33984,7 @@ class CanonicalLedgerData extends DataClass
           ..write('source: $source, ')
           ..write('sourceReference: $sourceReference, ')
           ..write('amount: $amount, ')
+          ..write('amountCents: $amountCents, ')
           ..write('currency: $currency, ')
           ..write('bookingDate: $bookingDate, ')
           ..write('description: $description, ')
@@ -32984,6 +34004,7 @@ class CanonicalLedgerData extends DataClass
     source,
     sourceReference,
     amount,
+    amountCents,
     currency,
     bookingDate,
     description,
@@ -33002,6 +34023,7 @@ class CanonicalLedgerData extends DataClass
           other.source == this.source &&
           other.sourceReference == this.sourceReference &&
           other.amount == this.amount &&
+          other.amountCents == this.amountCents &&
           other.currency == this.currency &&
           other.bookingDate == this.bookingDate &&
           other.description == this.description &&
@@ -33018,6 +34040,7 @@ class CanonicalLedgerCompanion extends UpdateCompanion<CanonicalLedgerData> {
   final Value<String> source;
   final Value<String?> sourceReference;
   final Value<int> amount;
+  final Value<BigInt> amountCents;
   final Value<String> currency;
   final Value<DateTime> bookingDate;
   final Value<String?> description;
@@ -33033,6 +34056,7 @@ class CanonicalLedgerCompanion extends UpdateCompanion<CanonicalLedgerData> {
     this.source = const Value.absent(),
     this.sourceReference = const Value.absent(),
     this.amount = const Value.absent(),
+    this.amountCents = const Value.absent(),
     this.currency = const Value.absent(),
     this.bookingDate = const Value.absent(),
     this.description = const Value.absent(),
@@ -33049,6 +34073,7 @@ class CanonicalLedgerCompanion extends UpdateCompanion<CanonicalLedgerData> {
     required String source,
     this.sourceReference = const Value.absent(),
     required int amount,
+    this.amountCents = const Value.absent(),
     this.currency = const Value.absent(),
     required DateTime bookingDate,
     this.description = const Value.absent(),
@@ -33069,6 +34094,7 @@ class CanonicalLedgerCompanion extends UpdateCompanion<CanonicalLedgerData> {
     Expression<String>? source,
     Expression<String>? sourceReference,
     Expression<int>? amount,
+    Expression<BigInt>? amountCents,
     Expression<String>? currency,
     Expression<DateTime>? bookingDate,
     Expression<String>? description,
@@ -33085,6 +34111,7 @@ class CanonicalLedgerCompanion extends UpdateCompanion<CanonicalLedgerData> {
       if (source != null) 'source': source,
       if (sourceReference != null) 'source_reference': sourceReference,
       if (amount != null) 'amount': amount,
+      if (amountCents != null) 'amount_cents': amountCents,
       if (currency != null) 'currency': currency,
       if (bookingDate != null) 'booking_date': bookingDate,
       if (description != null) 'description': description,
@@ -33103,6 +34130,7 @@ class CanonicalLedgerCompanion extends UpdateCompanion<CanonicalLedgerData> {
     Value<String>? source,
     Value<String?>? sourceReference,
     Value<int>? amount,
+    Value<BigInt>? amountCents,
     Value<String>? currency,
     Value<DateTime>? bookingDate,
     Value<String?>? description,
@@ -33119,6 +34147,7 @@ class CanonicalLedgerCompanion extends UpdateCompanion<CanonicalLedgerData> {
       source: source ?? this.source,
       sourceReference: sourceReference ?? this.sourceReference,
       amount: amount ?? this.amount,
+      amountCents: amountCents ?? this.amountCents,
       currency: currency ?? this.currency,
       bookingDate: bookingDate ?? this.bookingDate,
       description: description ?? this.description,
@@ -33148,6 +34177,9 @@ class CanonicalLedgerCompanion extends UpdateCompanion<CanonicalLedgerData> {
     }
     if (amount.present) {
       map['amount'] = Variable<int>(amount.value);
+    }
+    if (amountCents.present) {
+      map['amount_cents'] = Variable<BigInt>(amountCents.value);
     }
     if (currency.present) {
       map['currency'] = Variable<String>(currency.value);
@@ -33187,6 +34219,7 @@ class CanonicalLedgerCompanion extends UpdateCompanion<CanonicalLedgerData> {
           ..write('source: $source, ')
           ..write('sourceReference: $sourceReference, ')
           ..write('amount: $amount, ')
+          ..write('amountCents: $amountCents, ')
           ..write('currency: $currency, ')
           ..write('bookingDate: $bookingDate, ')
           ..write('description: $description, ')
@@ -34196,6 +35229,18 @@ class $SplitTransactionsTable extends SplitTransactions
       'REFERENCES semi_budgets (id) ON DELETE CASCADE',
     ),
   );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES users (id) ON DELETE CASCADE',
+    ),
+  );
   static const VerificationMeta _amountMeta = const VerificationMeta('amount');
   @override
   late final GeneratedColumn<int> amount = GeneratedColumn<int>(
@@ -34204,6 +35249,33 @@ class $SplitTransactionsTable extends SplitTransactions
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountCentsMeta = const VerificationMeta(
+    'amountCents',
+  );
+  @override
+  late final GeneratedColumn<BigInt> amountCents = GeneratedColumn<BigInt>(
+    'amount_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.bigInt,
+    requiredDuringInsert: false,
+    defaultValue: Constant(BigInt.zero),
+  );
+  static const VerificationMeta _isSettledMeta = const VerificationMeta(
+    'isSettled',
+  );
+  @override
+  late final GeneratedColumn<bool> isSettled = GeneratedColumn<bool>(
+    'is_settled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_settled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
   );
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
   @override
@@ -34267,7 +35339,10 @@ class $SplitTransactionsTable extends SplitTransactions
     id,
     expenseId,
     semiBudgetId,
+    userId,
     amount,
+    amountCents,
+    isSettled,
     notes,
     createdAt,
     updatedAt,
@@ -34310,6 +35385,14 @@ class $SplitTransactionsTable extends SplitTransactions
     } else if (isInserting) {
       context.missing(_semiBudgetIdMeta);
     }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
     if (data.containsKey('amount')) {
       context.handle(
         _amountMeta,
@@ -34317,6 +35400,21 @@ class $SplitTransactionsTable extends SplitTransactions
       );
     } else if (isInserting) {
       context.missing(_amountMeta);
+    }
+    if (data.containsKey('amount_cents')) {
+      context.handle(
+        _amountCentsMeta,
+        amountCents.isAcceptableOrUnknown(
+          data['amount_cents']!,
+          _amountCentsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_settled')) {
+      context.handle(
+        _isSettledMeta,
+        isSettled.isAcceptableOrUnknown(data['is_settled']!, _isSettledMeta),
+      );
     }
     if (data.containsKey('notes')) {
       context.handle(
@@ -34369,9 +35467,21 @@ class $SplitTransactionsTable extends SplitTransactions
         DriftSqlType.string,
         data['${effectivePrefix}semi_budget_id'],
       )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
       amount: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}amount'],
+      )!,
+      amountCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.bigInt,
+        data['${effectivePrefix}amount_cents'],
+      )!,
+      isSettled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_settled'],
       )!,
       notes: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -34407,7 +35517,10 @@ class SplitTransaction extends DataClass
   final String id;
   final String expenseId;
   final String semiBudgetId;
+  final String userId;
   final int amount;
+  final BigInt amountCents;
+  final bool isSettled;
   final String? notes;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -34417,7 +35530,10 @@ class SplitTransaction extends DataClass
     required this.id,
     required this.expenseId,
     required this.semiBudgetId,
+    required this.userId,
     required this.amount,
+    required this.amountCents,
+    required this.isSettled,
     this.notes,
     required this.createdAt,
     required this.updatedAt,
@@ -34430,7 +35546,10 @@ class SplitTransaction extends DataClass
     map['id'] = Variable<String>(id);
     map['expense_id'] = Variable<String>(expenseId);
     map['semi_budget_id'] = Variable<String>(semiBudgetId);
+    map['user_id'] = Variable<String>(userId);
     map['amount'] = Variable<int>(amount);
+    map['amount_cents'] = Variable<BigInt>(amountCents);
+    map['is_settled'] = Variable<bool>(isSettled);
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
     }
@@ -34446,7 +35565,10 @@ class SplitTransaction extends DataClass
       id: Value(id),
       expenseId: Value(expenseId),
       semiBudgetId: Value(semiBudgetId),
+      userId: Value(userId),
       amount: Value(amount),
+      amountCents: Value(amountCents),
+      isSettled: Value(isSettled),
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
@@ -34466,7 +35588,10 @@ class SplitTransaction extends DataClass
       id: serializer.fromJson<String>(json['id']),
       expenseId: serializer.fromJson<String>(json['expenseId']),
       semiBudgetId: serializer.fromJson<String>(json['semiBudgetId']),
+      userId: serializer.fromJson<String>(json['userId']),
       amount: serializer.fromJson<int>(json['amount']),
+      amountCents: serializer.fromJson<BigInt>(json['amountCents']),
+      isSettled: serializer.fromJson<bool>(json['isSettled']),
       notes: serializer.fromJson<String?>(json['notes']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -34481,7 +35606,10 @@ class SplitTransaction extends DataClass
       'id': serializer.toJson<String>(id),
       'expenseId': serializer.toJson<String>(expenseId),
       'semiBudgetId': serializer.toJson<String>(semiBudgetId),
+      'userId': serializer.toJson<String>(userId),
       'amount': serializer.toJson<int>(amount),
+      'amountCents': serializer.toJson<BigInt>(amountCents),
+      'isSettled': serializer.toJson<bool>(isSettled),
       'notes': serializer.toJson<String?>(notes),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -34494,7 +35622,10 @@ class SplitTransaction extends DataClass
     String? id,
     String? expenseId,
     String? semiBudgetId,
+    String? userId,
     int? amount,
+    BigInt? amountCents,
+    bool? isSettled,
     Value<String?> notes = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -34504,7 +35635,10 @@ class SplitTransaction extends DataClass
     id: id ?? this.id,
     expenseId: expenseId ?? this.expenseId,
     semiBudgetId: semiBudgetId ?? this.semiBudgetId,
+    userId: userId ?? this.userId,
     amount: amount ?? this.amount,
+    amountCents: amountCents ?? this.amountCents,
+    isSettled: isSettled ?? this.isSettled,
     notes: notes.present ? notes.value : this.notes,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -34518,7 +35652,12 @@ class SplitTransaction extends DataClass
       semiBudgetId: data.semiBudgetId.present
           ? data.semiBudgetId.value
           : this.semiBudgetId,
+      userId: data.userId.present ? data.userId.value : this.userId,
       amount: data.amount.present ? data.amount.value : this.amount,
+      amountCents: data.amountCents.present
+          ? data.amountCents.value
+          : this.amountCents,
+      isSettled: data.isSettled.present ? data.isSettled.value : this.isSettled,
       notes: data.notes.present ? data.notes.value : this.notes,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -34533,7 +35672,10 @@ class SplitTransaction extends DataClass
           ..write('id: $id, ')
           ..write('expenseId: $expenseId, ')
           ..write('semiBudgetId: $semiBudgetId, ')
+          ..write('userId: $userId, ')
           ..write('amount: $amount, ')
+          ..write('amountCents: $amountCents, ')
+          ..write('isSettled: $isSettled, ')
           ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -34548,7 +35690,10 @@ class SplitTransaction extends DataClass
     id,
     expenseId,
     semiBudgetId,
+    userId,
     amount,
+    amountCents,
+    isSettled,
     notes,
     createdAt,
     updatedAt,
@@ -34562,7 +35707,10 @@ class SplitTransaction extends DataClass
           other.id == this.id &&
           other.expenseId == this.expenseId &&
           other.semiBudgetId == this.semiBudgetId &&
+          other.userId == this.userId &&
           other.amount == this.amount &&
+          other.amountCents == this.amountCents &&
+          other.isSettled == this.isSettled &&
           other.notes == this.notes &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -34574,7 +35722,10 @@ class SplitTransactionsCompanion extends UpdateCompanion<SplitTransaction> {
   final Value<String> id;
   final Value<String> expenseId;
   final Value<String> semiBudgetId;
+  final Value<String> userId;
   final Value<int> amount;
+  final Value<BigInt> amountCents;
+  final Value<bool> isSettled;
   final Value<String?> notes;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -34585,7 +35736,10 @@ class SplitTransactionsCompanion extends UpdateCompanion<SplitTransaction> {
     this.id = const Value.absent(),
     this.expenseId = const Value.absent(),
     this.semiBudgetId = const Value.absent(),
+    this.userId = const Value.absent(),
     this.amount = const Value.absent(),
+    this.amountCents = const Value.absent(),
+    this.isSettled = const Value.absent(),
     this.notes = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -34597,7 +35751,10 @@ class SplitTransactionsCompanion extends UpdateCompanion<SplitTransaction> {
     required String id,
     required String expenseId,
     required String semiBudgetId,
+    required String userId,
     required int amount,
+    this.amountCents = const Value.absent(),
+    this.isSettled = const Value.absent(),
     this.notes = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -34607,12 +35764,16 @@ class SplitTransactionsCompanion extends UpdateCompanion<SplitTransaction> {
   }) : id = Value(id),
        expenseId = Value(expenseId),
        semiBudgetId = Value(semiBudgetId),
+       userId = Value(userId),
        amount = Value(amount);
   static Insertable<SplitTransaction> custom({
     Expression<String>? id,
     Expression<String>? expenseId,
     Expression<String>? semiBudgetId,
+    Expression<String>? userId,
     Expression<int>? amount,
+    Expression<BigInt>? amountCents,
+    Expression<bool>? isSettled,
     Expression<String>? notes,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -34624,7 +35785,10 @@ class SplitTransactionsCompanion extends UpdateCompanion<SplitTransaction> {
       if (id != null) 'id': id,
       if (expenseId != null) 'expense_id': expenseId,
       if (semiBudgetId != null) 'semi_budget_id': semiBudgetId,
+      if (userId != null) 'user_id': userId,
       if (amount != null) 'amount': amount,
+      if (amountCents != null) 'amount_cents': amountCents,
+      if (isSettled != null) 'is_settled': isSettled,
       if (notes != null) 'notes': notes,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -34638,7 +35802,10 @@ class SplitTransactionsCompanion extends UpdateCompanion<SplitTransaction> {
     Value<String>? id,
     Value<String>? expenseId,
     Value<String>? semiBudgetId,
+    Value<String>? userId,
     Value<int>? amount,
+    Value<BigInt>? amountCents,
+    Value<bool>? isSettled,
     Value<String?>? notes,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -34650,7 +35817,10 @@ class SplitTransactionsCompanion extends UpdateCompanion<SplitTransaction> {
       id: id ?? this.id,
       expenseId: expenseId ?? this.expenseId,
       semiBudgetId: semiBudgetId ?? this.semiBudgetId,
+      userId: userId ?? this.userId,
       amount: amount ?? this.amount,
+      amountCents: amountCents ?? this.amountCents,
+      isSettled: isSettled ?? this.isSettled,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -34672,8 +35842,17 @@ class SplitTransactionsCompanion extends UpdateCompanion<SplitTransaction> {
     if (semiBudgetId.present) {
       map['semi_budget_id'] = Variable<String>(semiBudgetId.value);
     }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
     if (amount.present) {
       map['amount'] = Variable<int>(amount.value);
+    }
+    if (amountCents.present) {
+      map['amount_cents'] = Variable<BigInt>(amountCents.value);
+    }
+    if (isSettled.present) {
+      map['is_settled'] = Variable<bool>(isSettled.value);
     }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
@@ -34702,12 +35881,1060 @@ class SplitTransactionsCompanion extends UpdateCompanion<SplitTransaction> {
           ..write('id: $id, ')
           ..write('expenseId: $expenseId, ')
           ..write('semiBudgetId: $semiBudgetId, ')
+          ..write('userId: $userId, ')
           ..write('amount: $amount, ')
+          ..write('amountCents: $amountCents, ')
+          ..write('isSettled: $isSettled, ')
           ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('revision: $revision, ')
           ..write('syncState: $syncState, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ExpenseApprovalsTable extends ExpenseApprovals
+    with TableInfo<$ExpenseApprovalsTable, ExpenseApproval> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ExpenseApprovalsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _expenseIdMeta = const VerificationMeta(
+    'expenseId',
+  );
+  @override
+  late final GeneratedColumn<String> expenseId = GeneratedColumn<String>(
+    'expense_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES expenses (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _approvedByMeta = const VerificationMeta(
+    'approvedBy',
+  );
+  @override
+  late final GeneratedColumn<String> approvedBy = GeneratedColumn<String>(
+    'approved_by',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES users (id)',
+    ),
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('pending'),
+  );
+  static const VerificationMeta _rejectionReasonMeta = const VerificationMeta(
+    'rejectionReason',
+  );
+  @override
+  late final GeneratedColumn<String> rejectionReason = GeneratedColumn<String>(
+    'rejection_reason',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    expenseId,
+    approvedBy,
+    status,
+    rejectionReason,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'expense_approvals';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ExpenseApproval> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('expense_id')) {
+      context.handle(
+        _expenseIdMeta,
+        expenseId.isAcceptableOrUnknown(data['expense_id']!, _expenseIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_expenseIdMeta);
+    }
+    if (data.containsKey('approved_by')) {
+      context.handle(
+        _approvedByMeta,
+        approvedBy.isAcceptableOrUnknown(data['approved_by']!, _approvedByMeta),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('rejection_reason')) {
+      context.handle(
+        _rejectionReasonMeta,
+        rejectionReason.isAcceptableOrUnknown(
+          data['rejection_reason']!,
+          _rejectionReasonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ExpenseApproval map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ExpenseApproval(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      expenseId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}expense_id'],
+      )!,
+      approvedBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}approved_by'],
+      ),
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      rejectionReason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rejection_reason'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ExpenseApprovalsTable createAlias(String alias) {
+    return $ExpenseApprovalsTable(attachedDatabase, alias);
+  }
+}
+
+class ExpenseApproval extends DataClass implements Insertable<ExpenseApproval> {
+  final String id;
+  final String expenseId;
+  final String? approvedBy;
+  final String status;
+  final String? rejectionReason;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const ExpenseApproval({
+    required this.id,
+    required this.expenseId,
+    this.approvedBy,
+    required this.status,
+    this.rejectionReason,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['expense_id'] = Variable<String>(expenseId);
+    if (!nullToAbsent || approvedBy != null) {
+      map['approved_by'] = Variable<String>(approvedBy);
+    }
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || rejectionReason != null) {
+      map['rejection_reason'] = Variable<String>(rejectionReason);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ExpenseApprovalsCompanion toCompanion(bool nullToAbsent) {
+    return ExpenseApprovalsCompanion(
+      id: Value(id),
+      expenseId: Value(expenseId),
+      approvedBy: approvedBy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(approvedBy),
+      status: Value(status),
+      rejectionReason: rejectionReason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rejectionReason),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ExpenseApproval.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ExpenseApproval(
+      id: serializer.fromJson<String>(json['id']),
+      expenseId: serializer.fromJson<String>(json['expenseId']),
+      approvedBy: serializer.fromJson<String?>(json['approvedBy']),
+      status: serializer.fromJson<String>(json['status']),
+      rejectionReason: serializer.fromJson<String?>(json['rejectionReason']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'expenseId': serializer.toJson<String>(expenseId),
+      'approvedBy': serializer.toJson<String?>(approvedBy),
+      'status': serializer.toJson<String>(status),
+      'rejectionReason': serializer.toJson<String?>(rejectionReason),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  ExpenseApproval copyWith({
+    String? id,
+    String? expenseId,
+    Value<String?> approvedBy = const Value.absent(),
+    String? status,
+    Value<String?> rejectionReason = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => ExpenseApproval(
+    id: id ?? this.id,
+    expenseId: expenseId ?? this.expenseId,
+    approvedBy: approvedBy.present ? approvedBy.value : this.approvedBy,
+    status: status ?? this.status,
+    rejectionReason: rejectionReason.present
+        ? rejectionReason.value
+        : this.rejectionReason,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  ExpenseApproval copyWithCompanion(ExpenseApprovalsCompanion data) {
+    return ExpenseApproval(
+      id: data.id.present ? data.id.value : this.id,
+      expenseId: data.expenseId.present ? data.expenseId.value : this.expenseId,
+      approvedBy: data.approvedBy.present
+          ? data.approvedBy.value
+          : this.approvedBy,
+      status: data.status.present ? data.status.value : this.status,
+      rejectionReason: data.rejectionReason.present
+          ? data.rejectionReason.value
+          : this.rejectionReason,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExpenseApproval(')
+          ..write('id: $id, ')
+          ..write('expenseId: $expenseId, ')
+          ..write('approvedBy: $approvedBy, ')
+          ..write('status: $status, ')
+          ..write('rejectionReason: $rejectionReason, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    expenseId,
+    approvedBy,
+    status,
+    rejectionReason,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ExpenseApproval &&
+          other.id == this.id &&
+          other.expenseId == this.expenseId &&
+          other.approvedBy == this.approvedBy &&
+          other.status == this.status &&
+          other.rejectionReason == this.rejectionReason &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ExpenseApprovalsCompanion extends UpdateCompanion<ExpenseApproval> {
+  final Value<String> id;
+  final Value<String> expenseId;
+  final Value<String?> approvedBy;
+  final Value<String> status;
+  final Value<String?> rejectionReason;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const ExpenseApprovalsCompanion({
+    this.id = const Value.absent(),
+    this.expenseId = const Value.absent(),
+    this.approvedBy = const Value.absent(),
+    this.status = const Value.absent(),
+    this.rejectionReason = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ExpenseApprovalsCompanion.insert({
+    required String id,
+    required String expenseId,
+    this.approvedBy = const Value.absent(),
+    this.status = const Value.absent(),
+    this.rejectionReason = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       expenseId = Value(expenseId);
+  static Insertable<ExpenseApproval> custom({
+    Expression<String>? id,
+    Expression<String>? expenseId,
+    Expression<String>? approvedBy,
+    Expression<String>? status,
+    Expression<String>? rejectionReason,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (expenseId != null) 'expense_id': expenseId,
+      if (approvedBy != null) 'approved_by': approvedBy,
+      if (status != null) 'status': status,
+      if (rejectionReason != null) 'rejection_reason': rejectionReason,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ExpenseApprovalsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? expenseId,
+    Value<String?>? approvedBy,
+    Value<String>? status,
+    Value<String?>? rejectionReason,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return ExpenseApprovalsCompanion(
+      id: id ?? this.id,
+      expenseId: expenseId ?? this.expenseId,
+      approvedBy: approvedBy ?? this.approvedBy,
+      status: status ?? this.status,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (expenseId.present) {
+      map['expense_id'] = Variable<String>(expenseId.value);
+    }
+    if (approvedBy.present) {
+      map['approved_by'] = Variable<String>(approvedBy.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (rejectionReason.present) {
+      map['rejection_reason'] = Variable<String>(rejectionReason.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExpenseApprovalsCompanion(')
+          ..write('id: $id, ')
+          ..write('expenseId: $expenseId, ')
+          ..write('approvedBy: $approvedBy, ')
+          ..write('status: $status, ')
+          ..write('rejectionReason: $rejectionReason, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $AllowancesTable extends Allowances
+    with TableInfo<$AllowancesTable, Allowance> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AllowancesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _budgetIdMeta = const VerificationMeta(
+    'budgetId',
+  );
+  @override
+  late final GeneratedColumn<String> budgetId = GeneratedColumn<String>(
+    'budget_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES budgets (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES users (id)',
+    ),
+  );
+  static const VerificationMeta _amountCentsMeta = const VerificationMeta(
+    'amountCents',
+  );
+  @override
+  late final GeneratedColumn<BigInt> amountCents = GeneratedColumn<BigInt>(
+    'amount_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.bigInt,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _frequencyMeta = const VerificationMeta(
+    'frequency',
+  );
+  @override
+  late final GeneratedColumn<String> frequency = GeneratedColumn<String>(
+    'frequency',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nextPayoutDateMeta = const VerificationMeta(
+    'nextPayoutDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> nextPayoutDate =
+      GeneratedColumn<DateTime>(
+        'next_payout_date',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _isActiveMeta = const VerificationMeta(
+    'isActive',
+  );
+  @override
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+    'is_active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_active" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    budgetId,
+    userId,
+    amountCents,
+    frequency,
+    nextPayoutDate,
+    isActive,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'allowances';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Allowance> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('budget_id')) {
+      context.handle(
+        _budgetIdMeta,
+        budgetId.isAcceptableOrUnknown(data['budget_id']!, _budgetIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_budgetIdMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('amount_cents')) {
+      context.handle(
+        _amountCentsMeta,
+        amountCents.isAcceptableOrUnknown(
+          data['amount_cents']!,
+          _amountCentsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_amountCentsMeta);
+    }
+    if (data.containsKey('frequency')) {
+      context.handle(
+        _frequencyMeta,
+        frequency.isAcceptableOrUnknown(data['frequency']!, _frequencyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_frequencyMeta);
+    }
+    if (data.containsKey('next_payout_date')) {
+      context.handle(
+        _nextPayoutDateMeta,
+        nextPayoutDate.isAcceptableOrUnknown(
+          data['next_payout_date']!,
+          _nextPayoutDateMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_nextPayoutDateMeta);
+    }
+    if (data.containsKey('is_active')) {
+      context.handle(
+        _isActiveMeta,
+        isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Allowance map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Allowance(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      budgetId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}budget_id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      amountCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.bigInt,
+        data['${effectivePrefix}amount_cents'],
+      )!,
+      frequency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}frequency'],
+      )!,
+      nextPayoutDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}next_payout_date'],
+      )!,
+      isActive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_active'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $AllowancesTable createAlias(String alias) {
+    return $AllowancesTable(attachedDatabase, alias);
+  }
+}
+
+class Allowance extends DataClass implements Insertable<Allowance> {
+  final String id;
+  final String budgetId;
+  final String userId;
+  final BigInt amountCents;
+  final String frequency;
+  final DateTime nextPayoutDate;
+  final bool isActive;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const Allowance({
+    required this.id,
+    required this.budgetId,
+    required this.userId,
+    required this.amountCents,
+    required this.frequency,
+    required this.nextPayoutDate,
+    required this.isActive,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['budget_id'] = Variable<String>(budgetId);
+    map['user_id'] = Variable<String>(userId);
+    map['amount_cents'] = Variable<BigInt>(amountCents);
+    map['frequency'] = Variable<String>(frequency);
+    map['next_payout_date'] = Variable<DateTime>(nextPayoutDate);
+    map['is_active'] = Variable<bool>(isActive);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  AllowancesCompanion toCompanion(bool nullToAbsent) {
+    return AllowancesCompanion(
+      id: Value(id),
+      budgetId: Value(budgetId),
+      userId: Value(userId),
+      amountCents: Value(amountCents),
+      frequency: Value(frequency),
+      nextPayoutDate: Value(nextPayoutDate),
+      isActive: Value(isActive),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory Allowance.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Allowance(
+      id: serializer.fromJson<String>(json['id']),
+      budgetId: serializer.fromJson<String>(json['budgetId']),
+      userId: serializer.fromJson<String>(json['userId']),
+      amountCents: serializer.fromJson<BigInt>(json['amountCents']),
+      frequency: serializer.fromJson<String>(json['frequency']),
+      nextPayoutDate: serializer.fromJson<DateTime>(json['nextPayoutDate']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'budgetId': serializer.toJson<String>(budgetId),
+      'userId': serializer.toJson<String>(userId),
+      'amountCents': serializer.toJson<BigInt>(amountCents),
+      'frequency': serializer.toJson<String>(frequency),
+      'nextPayoutDate': serializer.toJson<DateTime>(nextPayoutDate),
+      'isActive': serializer.toJson<bool>(isActive),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  Allowance copyWith({
+    String? id,
+    String? budgetId,
+    String? userId,
+    BigInt? amountCents,
+    String? frequency,
+    DateTime? nextPayoutDate,
+    bool? isActive,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => Allowance(
+    id: id ?? this.id,
+    budgetId: budgetId ?? this.budgetId,
+    userId: userId ?? this.userId,
+    amountCents: amountCents ?? this.amountCents,
+    frequency: frequency ?? this.frequency,
+    nextPayoutDate: nextPayoutDate ?? this.nextPayoutDate,
+    isActive: isActive ?? this.isActive,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  Allowance copyWithCompanion(AllowancesCompanion data) {
+    return Allowance(
+      id: data.id.present ? data.id.value : this.id,
+      budgetId: data.budgetId.present ? data.budgetId.value : this.budgetId,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      amountCents: data.amountCents.present
+          ? data.amountCents.value
+          : this.amountCents,
+      frequency: data.frequency.present ? data.frequency.value : this.frequency,
+      nextPayoutDate: data.nextPayoutDate.present
+          ? data.nextPayoutDate.value
+          : this.nextPayoutDate,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Allowance(')
+          ..write('id: $id, ')
+          ..write('budgetId: $budgetId, ')
+          ..write('userId: $userId, ')
+          ..write('amountCents: $amountCents, ')
+          ..write('frequency: $frequency, ')
+          ..write('nextPayoutDate: $nextPayoutDate, ')
+          ..write('isActive: $isActive, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    budgetId,
+    userId,
+    amountCents,
+    frequency,
+    nextPayoutDate,
+    isActive,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Allowance &&
+          other.id == this.id &&
+          other.budgetId == this.budgetId &&
+          other.userId == this.userId &&
+          other.amountCents == this.amountCents &&
+          other.frequency == this.frequency &&
+          other.nextPayoutDate == this.nextPayoutDate &&
+          other.isActive == this.isActive &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class AllowancesCompanion extends UpdateCompanion<Allowance> {
+  final Value<String> id;
+  final Value<String> budgetId;
+  final Value<String> userId;
+  final Value<BigInt> amountCents;
+  final Value<String> frequency;
+  final Value<DateTime> nextPayoutDate;
+  final Value<bool> isActive;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const AllowancesCompanion({
+    this.id = const Value.absent(),
+    this.budgetId = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.amountCents = const Value.absent(),
+    this.frequency = const Value.absent(),
+    this.nextPayoutDate = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AllowancesCompanion.insert({
+    required String id,
+    required String budgetId,
+    required String userId,
+    required BigInt amountCents,
+    required String frequency,
+    required DateTime nextPayoutDate,
+    this.isActive = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       budgetId = Value(budgetId),
+       userId = Value(userId),
+       amountCents = Value(amountCents),
+       frequency = Value(frequency),
+       nextPayoutDate = Value(nextPayoutDate);
+  static Insertable<Allowance> custom({
+    Expression<String>? id,
+    Expression<String>? budgetId,
+    Expression<String>? userId,
+    Expression<BigInt>? amountCents,
+    Expression<String>? frequency,
+    Expression<DateTime>? nextPayoutDate,
+    Expression<bool>? isActive,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (budgetId != null) 'budget_id': budgetId,
+      if (userId != null) 'user_id': userId,
+      if (amountCents != null) 'amount_cents': amountCents,
+      if (frequency != null) 'frequency': frequency,
+      if (nextPayoutDate != null) 'next_payout_date': nextPayoutDate,
+      if (isActive != null) 'is_active': isActive,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AllowancesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? budgetId,
+    Value<String>? userId,
+    Value<BigInt>? amountCents,
+    Value<String>? frequency,
+    Value<DateTime>? nextPayoutDate,
+    Value<bool>? isActive,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return AllowancesCompanion(
+      id: id ?? this.id,
+      budgetId: budgetId ?? this.budgetId,
+      userId: userId ?? this.userId,
+      amountCents: amountCents ?? this.amountCents,
+      frequency: frequency ?? this.frequency,
+      nextPayoutDate: nextPayoutDate ?? this.nextPayoutDate,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (budgetId.present) {
+      map['budget_id'] = Variable<String>(budgetId.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (amountCents.present) {
+      map['amount_cents'] = Variable<BigInt>(amountCents.value);
+    }
+    if (frequency.present) {
+      map['frequency'] = Variable<String>(frequency.value);
+    }
+    if (nextPayoutDate.present) {
+      map['next_payout_date'] = Variable<DateTime>(nextPayoutDate.value);
+    }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AllowancesCompanion(')
+          ..write('id: $id, ')
+          ..write('budgetId: $budgetId, ')
+          ..write('userId: $userId, ')
+          ..write('amountCents: $amountCents, ')
+          ..write('frequency: $frequency, ')
+          ..write('nextPayoutDate: $nextPayoutDate, ')
+          ..write('isActive: $isActive, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -34779,6 +37006,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $FinancialIngestionLogsTable(this);
   late final $SplitTransactionsTable splitTransactions =
       $SplitTransactionsTable(this);
+  late final $ExpenseApprovalsTable expenseApprovals = $ExpenseApprovalsTable(
+    this,
+  );
+  late final $AllowancesTable allowances = $AllowancesTable(this);
   late final Index idxBudgetsOwner = Index(
     'idx_budgets_owner',
     'CREATE INDEX idx_budgets_owner ON budgets (owner_id)',
@@ -34958,6 +37189,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     userConsents,
     financialIngestionLogs,
     splitTransactions,
+    expenseApprovals,
+    allowances,
     idxBudgetsOwner,
     idxBudgetsDates,
     idxBudgetsType,
@@ -35119,6 +37352,27 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('split_transactions', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'users',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('split_transactions', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'expenses',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('expense_approvals', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'budgets',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('allowances', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -35596,6 +37850,71 @@ final class $$UsersTableReferences
     ).filter((f) => f.userId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_userConsentsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$SplitTransactionsTable, List<SplitTransaction>>
+  _splitTransactionsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.splitTransactions,
+        aliasName: $_aliasNameGenerator(
+          db.users.id,
+          db.splitTransactions.userId,
+        ),
+      );
+
+  $$SplitTransactionsTableProcessedTableManager get splitTransactionsRefs {
+    final manager = $$SplitTransactionsTableTableManager(
+      $_db,
+      $_db.splitTransactions,
+    ).filter((f) => f.userId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _splitTransactionsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$ExpenseApprovalsTable, List<ExpenseApproval>>
+  _expenseApprovalsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.expenseApprovals,
+    aliasName: $_aliasNameGenerator(
+      db.users.id,
+      db.expenseApprovals.approvedBy,
+    ),
+  );
+
+  $$ExpenseApprovalsTableProcessedTableManager get expenseApprovalsRefs {
+    final manager = $$ExpenseApprovalsTableTableManager(
+      $_db,
+      $_db.expenseApprovals,
+    ).filter((f) => f.approvedBy.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _expenseApprovalsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$AllowancesTable, List<Allowance>>
+  _allowancesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.allowances,
+    aliasName: $_aliasNameGenerator(db.users.id, db.allowances.userId),
+  );
+
+  $$AllowancesTableProcessedTableManager get allowancesRefs {
+    final manager = $$AllowancesTableTableManager(
+      $_db,
+      $_db.allowances,
+    ).filter((f) => f.userId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_allowancesRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -36272,6 +38591,81 @@ class $$UsersTableFilterComposer extends Composer<_$AppDatabase, $UsersTable> {
           }) => $$UserConsentsTableFilterComposer(
             $db: $db,
             $table: $db.userConsents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> splitTransactionsRefs(
+    Expression<bool> Function($$SplitTransactionsTableFilterComposer f) f,
+  ) {
+    final $$SplitTransactionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.splitTransactions,
+      getReferencedColumn: (t) => t.userId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SplitTransactionsTableFilterComposer(
+            $db: $db,
+            $table: $db.splitTransactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> expenseApprovalsRefs(
+    Expression<bool> Function($$ExpenseApprovalsTableFilterComposer f) f,
+  ) {
+    final $$ExpenseApprovalsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.expenseApprovals,
+      getReferencedColumn: (t) => t.approvedBy,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpenseApprovalsTableFilterComposer(
+            $db: $db,
+            $table: $db.expenseApprovals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> allowancesRefs(
+    Expression<bool> Function($$AllowancesTableFilterComposer f) f,
+  ) {
+    final $$AllowancesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.allowances,
+      getReferencedColumn: (t) => t.userId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AllowancesTableFilterComposer(
+            $db: $db,
+            $table: $db.allowances,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -37087,6 +39481,82 @@ class $$UsersTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> splitTransactionsRefs<T extends Object>(
+    Expression<T> Function($$SplitTransactionsTableAnnotationComposer a) f,
+  ) {
+    final $$SplitTransactionsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.splitTransactions,
+          getReferencedColumn: (t) => t.userId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$SplitTransactionsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.splitTransactions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> expenseApprovalsRefs<T extends Object>(
+    Expression<T> Function($$ExpenseApprovalsTableAnnotationComposer a) f,
+  ) {
+    final $$ExpenseApprovalsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.expenseApprovals,
+      getReferencedColumn: (t) => t.approvedBy,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpenseApprovalsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.expenseApprovals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> allowancesRefs<T extends Object>(
+    Expression<T> Function($$AllowancesTableAnnotationComposer a) f,
+  ) {
+    final $$AllowancesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.allowances,
+      getReferencedColumn: (t) => t.userId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AllowancesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.allowances,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$UsersTableTableManager
@@ -37124,6 +39594,9 @@ class $$UsersTableTableManager
             bool budgetHealthSnapshotsRefs,
             bool canonicalLedgerRefs,
             bool userConsentsRefs,
+            bool splitTransactionsRefs,
+            bool expenseApprovalsRefs,
+            bool allowancesRefs,
           })
         > {
   $$UsersTableTableManager(_$AppDatabase db, $UsersTable table)
@@ -37290,6 +39763,9 @@ class $$UsersTableTableManager
                 budgetHealthSnapshotsRefs = false,
                 canonicalLedgerRefs = false,
                 userConsentsRefs = false,
+                splitTransactionsRefs = false,
+                expenseApprovalsRefs = false,
+                allowancesRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -37315,6 +39791,9 @@ class $$UsersTableTableManager
                     if (budgetHealthSnapshotsRefs) db.budgetHealthSnapshots,
                     if (canonicalLedgerRefs) db.canonicalLedger,
                     if (userConsentsRefs) db.userConsents,
+                    if (splitTransactionsRefs) db.splitTransactions,
+                    if (expenseApprovalsRefs) db.expenseApprovals,
+                    if (allowancesRefs) db.allowances,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -37716,6 +40195,65 @@ class $$UsersTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (splitTransactionsRefs)
+                        await $_getPrefetchedData<
+                          User,
+                          $UsersTable,
+                          SplitTransaction
+                        >(
+                          currentTable: table,
+                          referencedTable: $$UsersTableReferences
+                              ._splitTransactionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$UsersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).splitTransactionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.userId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (expenseApprovalsRefs)
+                        await $_getPrefetchedData<
+                          User,
+                          $UsersTable,
+                          ExpenseApproval
+                        >(
+                          currentTable: table,
+                          referencedTable: $$UsersTableReferences
+                              ._expenseApprovalsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$UsersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).expenseApprovalsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.approvedBy == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (allowancesRefs)
+                        await $_getPrefetchedData<User, $UsersTable, Allowance>(
+                          currentTable: table,
+                          referencedTable: $$UsersTableReferences
+                              ._allowancesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$UsersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).allowancesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.userId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -37758,6 +40296,9 @@ typedef $$UsersTableProcessedTableManager =
         bool budgetHealthSnapshotsRefs,
         bool canonicalLedgerRefs,
         bool userConsentsRefs,
+        bool splitTransactionsRefs,
+        bool expenseApprovalsRefs,
+        bool allowancesRefs,
       })
     >;
 typedef $$BudgetsTableCreateCompanionBuilder =
@@ -37771,6 +40312,7 @@ typedef $$BudgetsTableCreateCompanionBuilder =
       required DateTime endDate,
       Value<String> currency,
       Value<int?> totalLimit,
+      Value<BigInt?> totalLimitCents,
       Value<bool> isShared,
       Value<bool> isTemplate,
       Value<String> status,
@@ -37803,6 +40345,7 @@ typedef $$BudgetsTableUpdateCompanionBuilder =
       Value<DateTime> endDate,
       Value<String> currency,
       Value<int?> totalLimit,
+      Value<BigInt?> totalLimitCents,
       Value<bool> isShared,
       Value<bool> isTemplate,
       Value<String> status,
@@ -37919,6 +40462,24 @@ final class $$BudgetsTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$AllowancesTable, List<Allowance>>
+  _allowancesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.allowances,
+    aliasName: $_aliasNameGenerator(db.budgets.id, db.allowances.budgetId),
+  );
+
+  $$AllowancesTableProcessedTableManager get allowancesRefs {
+    final manager = $$AllowancesTableTableManager(
+      $_db,
+      $_db.allowances,
+    ).filter((f) => f.budgetId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_allowancesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$BudgetsTableFilterComposer
@@ -37967,6 +40528,11 @@ class $$BudgetsTableFilterComposer
 
   ColumnFilters<int> get totalLimit => $composableBuilder(
     column: $table.totalLimit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<BigInt> get totalLimitCents => $composableBuilder(
+    column: $table.totalLimitCents,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -38192,6 +40758,31 @@ class $$BudgetsTableFilterComposer
     );
     return f(composer);
   }
+
+  Expression<bool> allowancesRefs(
+    Expression<bool> Function($$AllowancesTableFilterComposer f) f,
+  ) {
+    final $$AllowancesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.allowances,
+      getReferencedColumn: (t) => t.budgetId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AllowancesTableFilterComposer(
+            $db: $db,
+            $table: $db.allowances,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$BudgetsTableOrderingComposer
@@ -38240,6 +40831,11 @@ class $$BudgetsTableOrderingComposer
 
   ColumnOrderings<int> get totalLimit => $composableBuilder(
     column: $table.totalLimit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<BigInt> get totalLimitCents => $composableBuilder(
+    column: $table.totalLimitCents,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -38396,6 +40992,11 @@ class $$BudgetsTableAnnotationComposer
 
   GeneratedColumn<int> get totalLimit => $composableBuilder(
     column: $table.totalLimit,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<BigInt> get totalLimitCents => $composableBuilder(
+    column: $table.totalLimitCents,
     builder: (column) => column,
   );
 
@@ -38591,6 +41192,31 @@ class $$BudgetsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> allowancesRefs<T extends Object>(
+    Expression<T> Function($$AllowancesTableAnnotationComposer a) f,
+  ) {
+    final $$AllowancesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.allowances,
+      getReferencedColumn: (t) => t.budgetId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AllowancesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.allowances,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$BudgetsTableTableManager
@@ -38612,6 +41238,7 @@ class $$BudgetsTableTableManager
             bool expensesRefs,
             bool budgetMembersRefs,
             bool activityLogsRefs,
+            bool allowancesRefs,
           })
         > {
   $$BudgetsTableTableManager(_$AppDatabase db, $BudgetsTable table)
@@ -38636,6 +41263,7 @@ class $$BudgetsTableTableManager
                 Value<DateTime> endDate = const Value.absent(),
                 Value<String> currency = const Value.absent(),
                 Value<int?> totalLimit = const Value.absent(),
+                Value<BigInt?> totalLimitCents = const Value.absent(),
                 Value<bool> isShared = const Value.absent(),
                 Value<bool> isTemplate = const Value.absent(),
                 Value<String> status = const Value.absent(),
@@ -38666,6 +41294,7 @@ class $$BudgetsTableTableManager
                 endDate: endDate,
                 currency: currency,
                 totalLimit: totalLimit,
+                totalLimitCents: totalLimitCents,
                 isShared: isShared,
                 isTemplate: isTemplate,
                 status: status,
@@ -38698,6 +41327,7 @@ class $$BudgetsTableTableManager
                 required DateTime endDate,
                 Value<String> currency = const Value.absent(),
                 Value<int?> totalLimit = const Value.absent(),
+                Value<BigInt?> totalLimitCents = const Value.absent(),
                 Value<bool> isShared = const Value.absent(),
                 Value<bool> isTemplate = const Value.absent(),
                 Value<String> status = const Value.absent(),
@@ -38728,6 +41358,7 @@ class $$BudgetsTableTableManager
                 endDate: endDate,
                 currency: currency,
                 totalLimit: totalLimit,
+                totalLimitCents: totalLimitCents,
                 isShared: isShared,
                 isTemplate: isTemplate,
                 status: status,
@@ -38764,6 +41395,7 @@ class $$BudgetsTableTableManager
                 expensesRefs = false,
                 budgetMembersRefs = false,
                 activityLogsRefs = false,
+                allowancesRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -38772,6 +41404,7 @@ class $$BudgetsTableTableManager
                     if (expensesRefs) db.expenses,
                     if (budgetMembersRefs) db.budgetMembers,
                     if (activityLogsRefs) db.activityLogs,
+                    if (allowancesRefs) db.allowances,
                   ],
                   addJoins:
                       <
@@ -38891,6 +41524,27 @@ class $$BudgetsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (allowancesRefs)
+                        await $_getPrefetchedData<
+                          Budget,
+                          $BudgetsTable,
+                          Allowance
+                        >(
+                          currentTable: table,
+                          referencedTable: $$BudgetsTableReferences
+                              ._allowancesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$BudgetsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).allowancesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.budgetId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -38917,6 +41571,7 @@ typedef $$BudgetsTableProcessedTableManager =
         bool expensesRefs,
         bool budgetMembersRefs,
         bool activityLogsRefs,
+        bool allowancesRefs,
       })
     >;
 typedef $$CategoriesTableCreateCompanionBuilder =
@@ -39873,6 +42528,7 @@ typedef $$SemiBudgetsTableCreateCompanionBuilder =
       required String budgetId,
       required String name,
       required int limitAmount,
+      Value<BigInt?> limitAmountCents,
       Value<int> priority,
       Value<String?> iconName,
       Value<String?> colorHex,
@@ -39880,6 +42536,7 @@ typedef $$SemiBudgetsTableCreateCompanionBuilder =
       Value<String?> parentCategoryId,
       Value<bool> isSubcategory,
       Value<double?> suggestedPercent,
+      Value<BigInt?> suggestedPercentBps,
       Value<int> displayOrder,
       Value<String?> masterCategoryId,
       Value<DateTime> createdAt,
@@ -39900,6 +42557,7 @@ typedef $$SemiBudgetsTableUpdateCompanionBuilder =
       Value<String> budgetId,
       Value<String> name,
       Value<int> limitAmount,
+      Value<BigInt?> limitAmountCents,
       Value<int> priority,
       Value<String?> iconName,
       Value<String?> colorHex,
@@ -39907,6 +42565,7 @@ typedef $$SemiBudgetsTableUpdateCompanionBuilder =
       Value<String?> parentCategoryId,
       Value<bool> isSubcategory,
       Value<double?> suggestedPercent,
+      Value<BigInt?> suggestedPercentBps,
       Value<int> displayOrder,
       Value<String?> masterCategoryId,
       Value<DateTime> createdAt,
@@ -40057,6 +42716,11 @@ class $$SemiBudgetsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<BigInt> get limitAmountCents => $composableBuilder(
+    column: $table.limitAmountCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get priority => $composableBuilder(
     column: $table.priority,
     builder: (column) => ColumnFilters(column),
@@ -40089,6 +42753,11 @@ class $$SemiBudgetsTableFilterComposer
 
   ColumnFilters<double> get suggestedPercent => $composableBuilder(
     column: $table.suggestedPercent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<BigInt> get suggestedPercentBps => $composableBuilder(
+    column: $table.suggestedPercentBps,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -40291,6 +42960,11 @@ class $$SemiBudgetsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<BigInt> get limitAmountCents => $composableBuilder(
+    column: $table.limitAmountCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get priority => $composableBuilder(
     column: $table.priority,
     builder: (column) => ColumnOrderings(column),
@@ -40318,6 +42992,11 @@ class $$SemiBudgetsTableOrderingComposer
 
   ColumnOrderings<double> get suggestedPercent => $composableBuilder(
     column: $table.suggestedPercent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<BigInt> get suggestedPercentBps => $composableBuilder(
+    column: $table.suggestedPercentBps,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -40466,6 +43145,11 @@ class $$SemiBudgetsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<BigInt> get limitAmountCents => $composableBuilder(
+    column: $table.limitAmountCents,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get priority =>
       $composableBuilder(column: $table.priority, builder: (column) => column);
 
@@ -40486,6 +43170,11 @@ class $$SemiBudgetsTableAnnotationComposer
 
   GeneratedColumn<double> get suggestedPercent => $composableBuilder(
     column: $table.suggestedPercent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<BigInt> get suggestedPercentBps => $composableBuilder(
+    column: $table.suggestedPercentBps,
     builder: (column) => column,
   );
 
@@ -40693,6 +43382,7 @@ class $$SemiBudgetsTableTableManager
                 Value<String> budgetId = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<int> limitAmount = const Value.absent(),
+                Value<BigInt?> limitAmountCents = const Value.absent(),
                 Value<int> priority = const Value.absent(),
                 Value<String?> iconName = const Value.absent(),
                 Value<String?> colorHex = const Value.absent(),
@@ -40700,6 +43390,7 @@ class $$SemiBudgetsTableTableManager
                 Value<String?> parentCategoryId = const Value.absent(),
                 Value<bool> isSubcategory = const Value.absent(),
                 Value<double?> suggestedPercent = const Value.absent(),
+                Value<BigInt?> suggestedPercentBps = const Value.absent(),
                 Value<int> displayOrder = const Value.absent(),
                 Value<String?> masterCategoryId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -40718,6 +43409,7 @@ class $$SemiBudgetsTableTableManager
                 budgetId: budgetId,
                 name: name,
                 limitAmount: limitAmount,
+                limitAmountCents: limitAmountCents,
                 priority: priority,
                 iconName: iconName,
                 colorHex: colorHex,
@@ -40725,6 +43417,7 @@ class $$SemiBudgetsTableTableManager
                 parentCategoryId: parentCategoryId,
                 isSubcategory: isSubcategory,
                 suggestedPercent: suggestedPercent,
+                suggestedPercentBps: suggestedPercentBps,
                 displayOrder: displayOrder,
                 masterCategoryId: masterCategoryId,
                 createdAt: createdAt,
@@ -40745,6 +43438,7 @@ class $$SemiBudgetsTableTableManager
                 required String budgetId,
                 required String name,
                 required int limitAmount,
+                Value<BigInt?> limitAmountCents = const Value.absent(),
                 Value<int> priority = const Value.absent(),
                 Value<String?> iconName = const Value.absent(),
                 Value<String?> colorHex = const Value.absent(),
@@ -40752,6 +43446,7 @@ class $$SemiBudgetsTableTableManager
                 Value<String?> parentCategoryId = const Value.absent(),
                 Value<bool> isSubcategory = const Value.absent(),
                 Value<double?> suggestedPercent = const Value.absent(),
+                Value<BigInt?> suggestedPercentBps = const Value.absent(),
                 Value<int> displayOrder = const Value.absent(),
                 Value<String?> masterCategoryId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -40770,6 +43465,7 @@ class $$SemiBudgetsTableTableManager
                 budgetId: budgetId,
                 name: name,
                 limitAmount: limitAmount,
+                limitAmountCents: limitAmountCents,
                 priority: priority,
                 iconName: iconName,
                 colorHex: colorHex,
@@ -40777,6 +43473,7 @@ class $$SemiBudgetsTableTableManager
                 parentCategoryId: parentCategoryId,
                 isSubcategory: isSubcategory,
                 suggestedPercent: suggestedPercent,
+                suggestedPercentBps: suggestedPercentBps,
                 displayOrder: displayOrder,
                 masterCategoryId: masterCategoryId,
                 createdAt: createdAt,
@@ -40956,6 +43653,7 @@ typedef $$AccountsTableCreateCompanionBuilder =
       required String name,
       required String type,
       required int balance,
+      Value<BigInt> balanceCents,
       Value<String> currency,
       Value<String?> iconName,
       Value<String?> colorHex,
@@ -40982,6 +43680,7 @@ typedef $$AccountsTableUpdateCompanionBuilder =
       Value<String> name,
       Value<String> type,
       Value<int> balance,
+      Value<BigInt> balanceCents,
       Value<String> currency,
       Value<String?> iconName,
       Value<String?> colorHex,
@@ -41091,6 +43790,11 @@ class $$AccountsTableFilterComposer
 
   ColumnFilters<int> get balance => $composableBuilder(
     column: $table.balance,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<BigInt> get balanceCents => $composableBuilder(
+    column: $table.balanceCents,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -41287,6 +43991,11 @@ class $$AccountsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<BigInt> get balanceCents => $composableBuilder(
+    column: $table.balanceCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get currency => $composableBuilder(
     column: $table.currency,
     builder: (column) => ColumnOrderings(column),
@@ -41416,6 +44125,11 @@ class $$AccountsTableAnnotationComposer
 
   GeneratedColumn<int> get balance =>
       $composableBuilder(column: $table.balance, builder: (column) => column);
+
+  GeneratedColumn<BigInt> get balanceCents => $composableBuilder(
+    column: $table.balanceCents,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get currency =>
       $composableBuilder(column: $table.currency, builder: (column) => column);
@@ -41594,6 +44308,7 @@ class $$AccountsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String> type = const Value.absent(),
                 Value<int> balance = const Value.absent(),
+                Value<BigInt> balanceCents = const Value.absent(),
                 Value<String> currency = const Value.absent(),
                 Value<String?> iconName = const Value.absent(),
                 Value<String?> colorHex = const Value.absent(),
@@ -41618,6 +44333,7 @@ class $$AccountsTableTableManager
                 name: name,
                 type: type,
                 balance: balance,
+                balanceCents: balanceCents,
                 currency: currency,
                 iconName: iconName,
                 colorHex: colorHex,
@@ -41644,6 +44360,7 @@ class $$AccountsTableTableManager
                 required String name,
                 required String type,
                 required int balance,
+                Value<BigInt> balanceCents = const Value.absent(),
                 Value<String> currency = const Value.absent(),
                 Value<String?> iconName = const Value.absent(),
                 Value<String?> colorHex = const Value.absent(),
@@ -41668,6 +44385,7 @@ class $$AccountsTableTableManager
                 name: name,
                 type: type,
                 balance: balance,
+                balanceCents: balanceCents,
                 currency: currency,
                 iconName: iconName,
                 colorHex: colorHex,
@@ -42661,6 +45379,7 @@ typedef $$ExpensesTableCreateCompanionBuilder =
       required String enteredBy,
       required String title,
       required int amount,
+      Value<BigInt> amountCents,
       Value<String> currency,
       required DateTime date,
       Value<String?> accountId,
@@ -42690,6 +45409,7 @@ typedef $$ExpensesTableCreateCompanionBuilder =
       Value<String?> subCategoryRaw,
       Value<String?> semanticTokens,
       Value<double> confidence,
+      Value<BigInt> confidenceBps,
       Value<String> source,
       Value<bool> isAiAssigned,
       Value<bool> isVerified,
@@ -42711,6 +45431,7 @@ typedef $$ExpensesTableUpdateCompanionBuilder =
       Value<String> enteredBy,
       Value<String> title,
       Value<int> amount,
+      Value<BigInt> amountCents,
       Value<String> currency,
       Value<DateTime> date,
       Value<String?> accountId,
@@ -42740,6 +45461,7 @@ typedef $$ExpensesTableUpdateCompanionBuilder =
       Value<String?> subCategoryRaw,
       Value<String?> semanticTokens,
       Value<double> confidence,
+      Value<BigInt> confidenceBps,
       Value<String> source,
       Value<bool> isAiAssigned,
       Value<bool> isVerified,
@@ -42934,6 +45656,29 @@ final class $$ExpensesTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$ExpenseApprovalsTable, List<ExpenseApproval>>
+  _expenseApprovalsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.expenseApprovals,
+    aliasName: $_aliasNameGenerator(
+      db.expenses.id,
+      db.expenseApprovals.expenseId,
+    ),
+  );
+
+  $$ExpenseApprovalsTableProcessedTableManager get expenseApprovalsRefs {
+    final manager = $$ExpenseApprovalsTableTableManager(
+      $_db,
+      $_db.expenseApprovals,
+    ).filter((f) => f.expenseId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _expenseApprovalsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$ExpensesTableFilterComposer
@@ -42957,6 +45702,11 @@ class $$ExpensesTableFilterComposer
 
   ColumnFilters<int> get amount => $composableBuilder(
     column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<BigInt> get amountCents => $composableBuilder(
+    column: $table.amountCents,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -43102,6 +45852,11 @@ class $$ExpensesTableFilterComposer
 
   ColumnFilters<double> get confidence => $composableBuilder(
     column: $table.confidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<BigInt> get confidenceBps => $composableBuilder(
+    column: $table.confidenceBps,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -43362,6 +46117,31 @@ class $$ExpensesTableFilterComposer
     );
     return f(composer);
   }
+
+  Expression<bool> expenseApprovalsRefs(
+    Expression<bool> Function($$ExpenseApprovalsTableFilterComposer f) f,
+  ) {
+    final $$ExpenseApprovalsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.expenseApprovals,
+      getReferencedColumn: (t) => t.expenseId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpenseApprovalsTableFilterComposer(
+            $db: $db,
+            $table: $db.expenseApprovals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$ExpensesTableOrderingComposer
@@ -43385,6 +46165,11 @@ class $$ExpensesTableOrderingComposer
 
   ColumnOrderings<int> get amount => $composableBuilder(
     column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<BigInt> get amountCents => $composableBuilder(
+    column: $table.amountCents,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -43525,6 +46310,11 @@ class $$ExpensesTableOrderingComposer
 
   ColumnOrderings<double> get confidence => $composableBuilder(
     column: $table.confidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<BigInt> get confidenceBps => $composableBuilder(
+    column: $table.confidenceBps,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -43730,6 +46520,11 @@ class $$ExpensesTableAnnotationComposer
   GeneratedColumn<int> get amount =>
       $composableBuilder(column: $table.amount, builder: (column) => column);
 
+  GeneratedColumn<BigInt> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get currency =>
       $composableBuilder(column: $table.currency, builder: (column) => column);
 
@@ -43844,6 +46639,11 @@ class $$ExpensesTableAnnotationComposer
 
   GeneratedColumn<double> get confidence => $composableBuilder(
     column: $table.confidence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<BigInt> get confidenceBps => $composableBuilder(
+    column: $table.confidenceBps,
     builder: (column) => column,
   );
 
@@ -44099,6 +46899,31 @@ class $$ExpensesTableAnnotationComposer
         );
     return f(composer);
   }
+
+  Expression<T> expenseApprovalsRefs<T extends Object>(
+    Expression<T> Function($$ExpenseApprovalsTableAnnotationComposer a) f,
+  ) {
+    final $$ExpenseApprovalsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.expenseApprovals,
+      getReferencedColumn: (t) => t.expenseId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpenseApprovalsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.expenseApprovals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$ExpensesTableTableManager
@@ -44124,6 +46949,7 @@ class $$ExpensesTableTableManager
             bool expenseLocationsRefs,
             bool canonicalLedgerRefs,
             bool splitTransactionsRefs,
+            bool expenseApprovalsRefs,
           })
         > {
   $$ExpensesTableTableManager(_$AppDatabase db, $ExpensesTable table)
@@ -44147,6 +46973,7 @@ class $$ExpensesTableTableManager
                 Value<String> enteredBy = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<int> amount = const Value.absent(),
+                Value<BigInt> amountCents = const Value.absent(),
                 Value<String> currency = const Value.absent(),
                 Value<DateTime> date = const Value.absent(),
                 Value<String?> accountId = const Value.absent(),
@@ -44176,6 +47003,7 @@ class $$ExpensesTableTableManager
                 Value<String?> subCategoryRaw = const Value.absent(),
                 Value<String?> semanticTokens = const Value.absent(),
                 Value<double> confidence = const Value.absent(),
+                Value<BigInt> confidenceBps = const Value.absent(),
                 Value<String> source = const Value.absent(),
                 Value<bool> isAiAssigned = const Value.absent(),
                 Value<bool> isVerified = const Value.absent(),
@@ -44195,6 +47023,7 @@ class $$ExpensesTableTableManager
                 enteredBy: enteredBy,
                 title: title,
                 amount: amount,
+                amountCents: amountCents,
                 currency: currency,
                 date: date,
                 accountId: accountId,
@@ -44224,6 +47053,7 @@ class $$ExpensesTableTableManager
                 subCategoryRaw: subCategoryRaw,
                 semanticTokens: semanticTokens,
                 confidence: confidence,
+                confidenceBps: confidenceBps,
                 source: source,
                 isAiAssigned: isAiAssigned,
                 isVerified: isVerified,
@@ -44245,6 +47075,7 @@ class $$ExpensesTableTableManager
                 required String enteredBy,
                 required String title,
                 required int amount,
+                Value<BigInt> amountCents = const Value.absent(),
                 Value<String> currency = const Value.absent(),
                 required DateTime date,
                 Value<String?> accountId = const Value.absent(),
@@ -44274,6 +47105,7 @@ class $$ExpensesTableTableManager
                 Value<String?> subCategoryRaw = const Value.absent(),
                 Value<String?> semanticTokens = const Value.absent(),
                 Value<double> confidence = const Value.absent(),
+                Value<BigInt> confidenceBps = const Value.absent(),
                 Value<String> source = const Value.absent(),
                 Value<bool> isAiAssigned = const Value.absent(),
                 Value<bool> isVerified = const Value.absent(),
@@ -44293,6 +47125,7 @@ class $$ExpensesTableTableManager
                 enteredBy: enteredBy,
                 title: title,
                 amount: amount,
+                amountCents: amountCents,
                 currency: currency,
                 date: date,
                 accountId: accountId,
@@ -44322,6 +47155,7 @@ class $$ExpensesTableTableManager
                 subCategoryRaw: subCategoryRaw,
                 semanticTokens: semanticTokens,
                 confidence: confidence,
+                confidenceBps: confidenceBps,
                 source: source,
                 isAiAssigned: isAiAssigned,
                 isVerified: isVerified,
@@ -44352,6 +47186,7 @@ class $$ExpensesTableTableManager
                 expenseLocationsRefs = false,
                 canonicalLedgerRefs = false,
                 splitTransactionsRefs = false,
+                expenseApprovalsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -44359,6 +47194,7 @@ class $$ExpensesTableTableManager
                     if (expenseLocationsRefs) db.expenseLocations,
                     if (canonicalLedgerRefs) db.canonicalLedger,
                     if (splitTransactionsRefs) db.splitTransactions,
+                    if (expenseApprovalsRefs) db.expenseApprovals,
                   ],
                   addJoins:
                       <
@@ -44522,6 +47358,27 @@ class $$ExpensesTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (expenseApprovalsRefs)
+                        await $_getPrefetchedData<
+                          Expense,
+                          $ExpensesTable,
+                          ExpenseApproval
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ExpensesTableReferences
+                              ._expenseApprovalsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ExpensesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).expenseApprovalsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.expenseId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -44552,6 +47409,7 @@ typedef $$ExpensesTableProcessedTableManager =
         bool expenseLocationsRefs,
         bool canonicalLedgerRefs,
         bool splitTransactionsRefs,
+        bool expenseApprovalsRefs,
       })
     >;
 typedef $$BudgetMembersTableCreateCompanionBuilder =
@@ -44576,6 +47434,7 @@ typedef $$BudgetMembersTableCreateCompanionBuilder =
       Value<int> lamportClock,
       Value<String?> versionVector,
       Value<int?> spendingLimit,
+      Value<BigInt?> spendingLimitCents,
       Value<int> rowid,
     });
 typedef $$BudgetMembersTableUpdateCompanionBuilder =
@@ -44600,6 +47459,7 @@ typedef $$BudgetMembersTableUpdateCompanionBuilder =
       Value<int> lamportClock,
       Value<String?> versionVector,
       Value<int?> spendingLimit,
+      Value<BigInt?> spendingLimitCents,
       Value<int> rowid,
     });
 
@@ -44763,6 +47623,11 @@ class $$BudgetMembersTableFilterComposer
 
   ColumnFilters<int> get spendingLimit => $composableBuilder(
     column: $table.spendingLimit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<BigInt> get spendingLimitCents => $composableBuilder(
+    column: $table.spendingLimitCents,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -44930,6 +47795,11 @@ class $$BudgetMembersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<BigInt> get spendingLimitCents => $composableBuilder(
+    column: $table.spendingLimitCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$BudgetsTableOrderingComposer get budgetId {
     final $$BudgetsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -45075,6 +47945,11 @@ class $$BudgetMembersTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<BigInt> get spendingLimitCents => $composableBuilder(
+    column: $table.spendingLimitCents,
+    builder: (column) => column,
+  );
+
   $$BudgetsTableAnnotationComposer get budgetId {
     final $$BudgetsTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -45193,6 +48068,7 @@ class $$BudgetMembersTableTableManager
                 Value<int> lamportClock = const Value.absent(),
                 Value<String?> versionVector = const Value.absent(),
                 Value<int?> spendingLimit = const Value.absent(),
+                Value<BigInt?> spendingLimitCents = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => BudgetMembersCompanion(
                 id: id,
@@ -45215,6 +48091,7 @@ class $$BudgetMembersTableTableManager
                 lamportClock: lamportClock,
                 versionVector: versionVector,
                 spendingLimit: spendingLimit,
+                spendingLimitCents: spendingLimitCents,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -45239,6 +48116,7 @@ class $$BudgetMembersTableTableManager
                 Value<int> lamportClock = const Value.absent(),
                 Value<String?> versionVector = const Value.absent(),
                 Value<int?> spendingLimit = const Value.absent(),
+                Value<BigInt?> spendingLimitCents = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => BudgetMembersCompanion.insert(
                 id: id,
@@ -45261,6 +48139,7 @@ class $$BudgetMembersTableTableManager
                 lamportClock: lamportClock,
                 versionVector: versionVector,
                 spendingLimit: spendingLimit,
+                spendingLimitCents: spendingLimitCents,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -46616,6 +49495,7 @@ typedef $$RecurringExpensesTableCreateCompanionBuilder =
       required String userId,
       required String title,
       required int amount,
+      Value<BigInt> amountCents,
       required String frequency,
       Value<int?> dayOfMonth,
       Value<int?> dayOfWeek,
@@ -46641,6 +49521,7 @@ typedef $$RecurringExpensesTableUpdateCompanionBuilder =
       Value<String> userId,
       Value<String> title,
       Value<int> amount,
+      Value<BigInt> amountCents,
       Value<String> frequency,
       Value<int?> dayOfMonth,
       Value<int?> dayOfWeek,
@@ -46745,6 +49626,11 @@ class $$RecurringExpensesTableFilterComposer
 
   ColumnFilters<int> get amount => $composableBuilder(
     column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<BigInt> get amountCents => $composableBuilder(
+    column: $table.amountCents,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -46913,6 +49799,11 @@ class $$RecurringExpensesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<BigInt> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get frequency => $composableBuilder(
     column: $table.frequency,
     builder: (column) => ColumnOrderings(column),
@@ -47039,6 +49930,11 @@ class $$RecurringExpensesTableAnnotationComposer
 
   GeneratedColumn<int> get amount =>
       $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<BigInt> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get frequency =>
       $composableBuilder(column: $table.frequency, builder: (column) => column);
@@ -47199,6 +50095,7 @@ class $$RecurringExpensesTableTableManager
                 Value<String> userId = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<int> amount = const Value.absent(),
+                Value<BigInt> amountCents = const Value.absent(),
                 Value<String> frequency = const Value.absent(),
                 Value<int?> dayOfMonth = const Value.absent(),
                 Value<int?> dayOfWeek = const Value.absent(),
@@ -47222,6 +50119,7 @@ class $$RecurringExpensesTableTableManager
                 userId: userId,
                 title: title,
                 amount: amount,
+                amountCents: amountCents,
                 frequency: frequency,
                 dayOfMonth: dayOfMonth,
                 dayOfWeek: dayOfWeek,
@@ -47247,6 +50145,7 @@ class $$RecurringExpensesTableTableManager
                 required String userId,
                 required String title,
                 required int amount,
+                Value<BigInt> amountCents = const Value.absent(),
                 required String frequency,
                 Value<int?> dayOfMonth = const Value.absent(),
                 Value<int?> dayOfWeek = const Value.absent(),
@@ -47270,6 +50169,7 @@ class $$RecurringExpensesTableTableManager
                 userId: userId,
                 title: title,
                 amount: amount,
+                amountCents: amountCents,
                 frequency: frequency,
                 dayOfMonth: dayOfMonth,
                 dayOfWeek: dayOfWeek,
@@ -47862,7 +50762,9 @@ typedef $$SavingsGoalsTableCreateCompanionBuilder =
       Value<String?> linkedAccountId,
       required String title,
       Value<int> currentAmount,
+      Value<BigInt> currentAmountCents,
       required int targetAmount,
+      Value<BigInt?> targetAmountCents,
       Value<String> currency,
       Value<String?> iconName,
       Value<String?> colorHex,
@@ -47888,7 +50790,9 @@ typedef $$SavingsGoalsTableUpdateCompanionBuilder =
       Value<String?> linkedAccountId,
       Value<String> title,
       Value<int> currentAmount,
+      Value<BigInt> currentAmountCents,
       Value<int> targetAmount,
+      Value<BigInt?> targetAmountCents,
       Value<String> currency,
       Value<String?> iconName,
       Value<String?> colorHex,
@@ -47974,8 +50878,18 @@ class $$SavingsGoalsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<BigInt> get currentAmountCents => $composableBuilder(
+    column: $table.currentAmountCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get targetAmount => $composableBuilder(
     column: $table.targetAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<BigInt> get targetAmountCents => $composableBuilder(
+    column: $table.targetAmountCents,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -48135,8 +51049,18 @@ class $$SavingsGoalsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<BigInt> get currentAmountCents => $composableBuilder(
+    column: $table.currentAmountCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get targetAmount => $composableBuilder(
     column: $table.targetAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<BigInt> get targetAmountCents => $composableBuilder(
+    column: $table.targetAmountCents,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -48287,8 +51211,18 @@ class $$SavingsGoalsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<BigInt> get currentAmountCents => $composableBuilder(
+    column: $table.currentAmountCents,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get targetAmount => $composableBuilder(
     column: $table.targetAmount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<BigInt> get targetAmountCents => $composableBuilder(
+    column: $table.targetAmountCents,
     builder: (column) => column,
   );
 
@@ -48433,7 +51367,9 @@ class $$SavingsGoalsTableTableManager
                 Value<String?> linkedAccountId = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<int> currentAmount = const Value.absent(),
+                Value<BigInt> currentAmountCents = const Value.absent(),
                 Value<int> targetAmount = const Value.absent(),
+                Value<BigInt?> targetAmountCents = const Value.absent(),
                 Value<String> currency = const Value.absent(),
                 Value<String?> iconName = const Value.absent(),
                 Value<String?> colorHex = const Value.absent(),
@@ -48457,7 +51393,9 @@ class $$SavingsGoalsTableTableManager
                 linkedAccountId: linkedAccountId,
                 title: title,
                 currentAmount: currentAmount,
+                currentAmountCents: currentAmountCents,
                 targetAmount: targetAmount,
+                targetAmountCents: targetAmountCents,
                 currency: currency,
                 iconName: iconName,
                 colorHex: colorHex,
@@ -48483,7 +51421,9 @@ class $$SavingsGoalsTableTableManager
                 Value<String?> linkedAccountId = const Value.absent(),
                 required String title,
                 Value<int> currentAmount = const Value.absent(),
+                Value<BigInt> currentAmountCents = const Value.absent(),
                 required int targetAmount,
+                Value<BigInt?> targetAmountCents = const Value.absent(),
                 Value<String> currency = const Value.absent(),
                 Value<String?> iconName = const Value.absent(),
                 Value<String?> colorHex = const Value.absent(),
@@ -48507,7 +51447,9 @@ class $$SavingsGoalsTableTableManager
                 linkedAccountId: linkedAccountId,
                 title: title,
                 currentAmount: currentAmount,
+                currentAmountCents: currentAmountCents,
                 targetAmount: targetAmount,
+                targetAmountCents: targetAmountCents,
                 currency: currency,
                 iconName: iconName,
                 colorHex: colorHex,
@@ -56734,6 +59676,7 @@ typedef $$AssetsTableCreateCompanionBuilder =
       required String name,
       required String type,
       required int currentValue,
+      Value<BigInt> currentValueCents,
       Value<String> currency,
       Value<bool> isAutomated,
       Value<String?> InstitutionName,
@@ -56756,6 +59699,7 @@ typedef $$AssetsTableUpdateCompanionBuilder =
       Value<String> name,
       Value<String> type,
       Value<int> currentValue,
+      Value<BigInt> currentValueCents,
       Value<String> currency,
       Value<bool> isAutomated,
       Value<String?> InstitutionName,
@@ -56820,6 +59764,11 @@ class $$AssetsTableFilterComposer
 
   ColumnFilters<int> get currentValue => $composableBuilder(
     column: $table.currentValue,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<BigInt> get currentValueCents => $composableBuilder(
+    column: $table.currentValueCents,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -56946,6 +59895,11 @@ class $$AssetsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<BigInt> get currentValueCents => $composableBuilder(
+    column: $table.currentValueCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get currency => $composableBuilder(
     column: $table.currency,
     builder: (column) => ColumnOrderings(column),
@@ -57058,6 +60012,11 @@ class $$AssetsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<BigInt> get currentValueCents => $composableBuilder(
+    column: $table.currentValueCents,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get currency =>
       $composableBuilder(column: $table.currency, builder: (column) => column);
 
@@ -57165,6 +60124,7 @@ class $$AssetsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String> type = const Value.absent(),
                 Value<int> currentValue = const Value.absent(),
+                Value<BigInt> currentValueCents = const Value.absent(),
                 Value<String> currency = const Value.absent(),
                 Value<bool> isAutomated = const Value.absent(),
                 Value<String?> InstitutionName = const Value.absent(),
@@ -57185,6 +60145,7 @@ class $$AssetsTableTableManager
                 name: name,
                 type: type,
                 currentValue: currentValue,
+                currentValueCents: currentValueCents,
                 currency: currency,
                 isAutomated: isAutomated,
                 InstitutionName: InstitutionName,
@@ -57207,6 +60168,7 @@ class $$AssetsTableTableManager
                 required String name,
                 required String type,
                 required int currentValue,
+                Value<BigInt> currentValueCents = const Value.absent(),
                 Value<String> currency = const Value.absent(),
                 Value<bool> isAutomated = const Value.absent(),
                 Value<String?> InstitutionName = const Value.absent(),
@@ -57227,6 +60189,7 @@ class $$AssetsTableTableManager
                 name: name,
                 type: type,
                 currentValue: currentValue,
+                currentValueCents: currentValueCents,
                 currency: currency,
                 isAutomated: isAutomated,
                 InstitutionName: InstitutionName,
@@ -57314,10 +60277,13 @@ typedef $$LiabilitiesTableCreateCompanionBuilder =
       required String name,
       required String type,
       required int currentBalance,
+      Value<BigInt> currentBalanceCents,
       Value<String> currency,
       Value<double?> interestRate,
+      Value<BigInt?> interestRateBps,
       Value<DateTime?> dueDate,
       Value<int?> minPayment,
+      Value<BigInt?> minPaymentCents,
       Value<String?> notes,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -57335,10 +60301,13 @@ typedef $$LiabilitiesTableUpdateCompanionBuilder =
       Value<String> name,
       Value<String> type,
       Value<int> currentBalance,
+      Value<BigInt> currentBalanceCents,
       Value<String> currency,
       Value<double?> interestRate,
+      Value<BigInt?> interestRateBps,
       Value<DateTime?> dueDate,
       Value<int?> minPayment,
+      Value<BigInt?> minPaymentCents,
       Value<String?> notes,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -57402,6 +60371,11 @@ class $$LiabilitiesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<BigInt> get currentBalanceCents => $composableBuilder(
+    column: $table.currentBalanceCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get currency => $composableBuilder(
     column: $table.currency,
     builder: (column) => ColumnFilters(column),
@@ -57412,6 +60386,11 @@ class $$LiabilitiesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<BigInt> get interestRateBps => $composableBuilder(
+    column: $table.interestRateBps,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<DateTime> get dueDate => $composableBuilder(
     column: $table.dueDate,
     builder: (column) => ColumnFilters(column),
@@ -57419,6 +60398,11 @@ class $$LiabilitiesTableFilterComposer
 
   ColumnFilters<int> get minPayment => $composableBuilder(
     column: $table.minPayment,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<BigInt> get minPaymentCents => $composableBuilder(
+    column: $table.minPaymentCents,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -57515,6 +60499,11 @@ class $$LiabilitiesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<BigInt> get currentBalanceCents => $composableBuilder(
+    column: $table.currentBalanceCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get currency => $composableBuilder(
     column: $table.currency,
     builder: (column) => ColumnOrderings(column),
@@ -57525,6 +60514,11 @@ class $$LiabilitiesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<BigInt> get interestRateBps => $composableBuilder(
+    column: $table.interestRateBps,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get dueDate => $composableBuilder(
     column: $table.dueDate,
     builder: (column) => ColumnOrderings(column),
@@ -57532,6 +60526,11 @@ class $$LiabilitiesTableOrderingComposer
 
   ColumnOrderings<int> get minPayment => $composableBuilder(
     column: $table.minPayment,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<BigInt> get minPaymentCents => $composableBuilder(
+    column: $table.minPaymentCents,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -57622,6 +60621,11 @@ class $$LiabilitiesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<BigInt> get currentBalanceCents => $composableBuilder(
+    column: $table.currentBalanceCents,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get currency =>
       $composableBuilder(column: $table.currency, builder: (column) => column);
 
@@ -57630,11 +60634,21 @@ class $$LiabilitiesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<BigInt> get interestRateBps => $composableBuilder(
+    column: $table.interestRateBps,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<DateTime> get dueDate =>
       $composableBuilder(column: $table.dueDate, builder: (column) => column);
 
   GeneratedColumn<int> get minPayment => $composableBuilder(
     column: $table.minPayment,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<BigInt> get minPaymentCents => $composableBuilder(
+    column: $table.minPaymentCents,
     builder: (column) => column,
   );
 
@@ -57723,10 +60737,13 @@ class $$LiabilitiesTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String> type = const Value.absent(),
                 Value<int> currentBalance = const Value.absent(),
+                Value<BigInt> currentBalanceCents = const Value.absent(),
                 Value<String> currency = const Value.absent(),
                 Value<double?> interestRate = const Value.absent(),
+                Value<BigInt?> interestRateBps = const Value.absent(),
                 Value<DateTime?> dueDate = const Value.absent(),
                 Value<int?> minPayment = const Value.absent(),
+                Value<BigInt?> minPaymentCents = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -57742,10 +60759,13 @@ class $$LiabilitiesTableTableManager
                 name: name,
                 type: type,
                 currentBalance: currentBalance,
+                currentBalanceCents: currentBalanceCents,
                 currency: currency,
                 interestRate: interestRate,
+                interestRateBps: interestRateBps,
                 dueDate: dueDate,
                 minPayment: minPayment,
+                minPaymentCents: minPaymentCents,
                 notes: notes,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -57763,10 +60783,13 @@ class $$LiabilitiesTableTableManager
                 required String name,
                 required String type,
                 required int currentBalance,
+                Value<BigInt> currentBalanceCents = const Value.absent(),
                 Value<String> currency = const Value.absent(),
                 Value<double?> interestRate = const Value.absent(),
+                Value<BigInt?> interestRateBps = const Value.absent(),
                 Value<DateTime?> dueDate = const Value.absent(),
                 Value<int?> minPayment = const Value.absent(),
+                Value<BigInt?> minPaymentCents = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -57782,10 +60805,13 @@ class $$LiabilitiesTableTableManager
                 name: name,
                 type: type,
                 currentBalance: currentBalance,
+                currentBalanceCents: currentBalanceCents,
                 currency: currency,
                 interestRate: interestRate,
+                interestRateBps: interestRateBps,
                 dueDate: dueDate,
                 minPayment: minPayment,
+                minPaymentCents: minPaymentCents,
                 notes: notes,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -57869,6 +60895,7 @@ typedef $$ValuationHistoryTableCreateCompanionBuilder =
       required String entityType,
       required String entityId,
       required int value,
+      Value<BigInt> valueCents,
       required DateTime date,
       Value<DateTime> recordedAt,
       Value<int> rowid,
@@ -57879,6 +60906,7 @@ typedef $$ValuationHistoryTableUpdateCompanionBuilder =
       Value<String> entityType,
       Value<String> entityId,
       Value<int> value,
+      Value<BigInt> valueCents,
       Value<DateTime> date,
       Value<DateTime> recordedAt,
       Value<int> rowid,
@@ -57910,6 +60938,11 @@ class $$ValuationHistoryTableFilterComposer
 
   ColumnFilters<int> get value => $composableBuilder(
     column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<BigInt> get valueCents => $composableBuilder(
+    column: $table.valueCents,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -57953,6 +60986,11 @@ class $$ValuationHistoryTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<BigInt> get valueCents => $composableBuilder(
+    column: $table.valueCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get date => $composableBuilder(
     column: $table.date,
     builder: (column) => ColumnOrderings(column),
@@ -57986,6 +61024,11 @@ class $$ValuationHistoryTableAnnotationComposer
 
   GeneratedColumn<int> get value =>
       $composableBuilder(column: $table.value, builder: (column) => column);
+
+  GeneratedColumn<BigInt> get valueCents => $composableBuilder(
+    column: $table.valueCents,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get date =>
       $composableBuilder(column: $table.date, builder: (column) => column);
@@ -58037,6 +61080,7 @@ class $$ValuationHistoryTableTableManager
                 Value<String> entityType = const Value.absent(),
                 Value<String> entityId = const Value.absent(),
                 Value<int> value = const Value.absent(),
+                Value<BigInt> valueCents = const Value.absent(),
                 Value<DateTime> date = const Value.absent(),
                 Value<DateTime> recordedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -58045,6 +61089,7 @@ class $$ValuationHistoryTableTableManager
                 entityType: entityType,
                 entityId: entityId,
                 value: value,
+                valueCents: valueCents,
                 date: date,
                 recordedAt: recordedAt,
                 rowid: rowid,
@@ -58055,6 +61100,7 @@ class $$ValuationHistoryTableTableManager
                 required String entityType,
                 required String entityId,
                 required int value,
+                Value<BigInt> valueCents = const Value.absent(),
                 required DateTime date,
                 Value<DateTime> recordedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -58063,6 +61109,7 @@ class $$ValuationHistoryTableTableManager
                 entityType: entityType,
                 entityId: entityId,
                 value: value,
+                valueCents: valueCents,
                 date: date,
                 recordedAt: recordedAt,
                 rowid: rowid,
@@ -58104,6 +61151,8 @@ typedef $$LedgerEventsTableCreateCompanionBuilder =
       required String entityId,
       required String userId,
       Value<String?> deviceId,
+      Value<BigInt?> amountCents,
+      Value<String?> currency,
       required Map<String, dynamic> eventData,
       Value<DateTime> timestamp,
       Value<int> lamportClock,
@@ -58120,6 +61169,8 @@ typedef $$LedgerEventsTableUpdateCompanionBuilder =
       Value<String> entityId,
       Value<String> userId,
       Value<String?> deviceId,
+      Value<BigInt?> amountCents,
+      Value<String?> currency,
       Value<Map<String, dynamic>> eventData,
       Value<DateTime> timestamp,
       Value<int> lamportClock,
@@ -58183,6 +61234,16 @@ class $$LedgerEventsTableFilterComposer
 
   ColumnFilters<String> get deviceId => $composableBuilder(
     column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<BigInt> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get currency => $composableBuilder(
+    column: $table.currency,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -58279,6 +61340,16 @@ class $$LedgerEventsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<BigInt> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get eventData => $composableBuilder(
     column: $table.eventData,
     builder: (column) => ColumnOrderings(column),
@@ -58358,6 +61429,14 @@ class $$LedgerEventsTableAnnotationComposer
 
   GeneratedColumn<String> get deviceId =>
       $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<BigInt> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get currency =>
+      $composableBuilder(column: $table.currency, builder: (column) => column);
 
   GeneratedColumnWithTypeConverter<Map<String, dynamic>, String>
   get eventData =>
@@ -58442,6 +61521,8 @@ class $$LedgerEventsTableTableManager
                 Value<String> entityId = const Value.absent(),
                 Value<String> userId = const Value.absent(),
                 Value<String?> deviceId = const Value.absent(),
+                Value<BigInt?> amountCents = const Value.absent(),
+                Value<String?> currency = const Value.absent(),
                 Value<Map<String, dynamic>> eventData = const Value.absent(),
                 Value<DateTime> timestamp = const Value.absent(),
                 Value<int> lamportClock = const Value.absent(),
@@ -58456,6 +61537,8 @@ class $$LedgerEventsTableTableManager
                 entityId: entityId,
                 userId: userId,
                 deviceId: deviceId,
+                amountCents: amountCents,
+                currency: currency,
                 eventData: eventData,
                 timestamp: timestamp,
                 lamportClock: lamportClock,
@@ -58472,6 +61555,8 @@ class $$LedgerEventsTableTableManager
                 required String entityId,
                 required String userId,
                 Value<String?> deviceId = const Value.absent(),
+                Value<BigInt?> amountCents = const Value.absent(),
+                Value<String?> currency = const Value.absent(),
                 required Map<String, dynamic> eventData,
                 Value<DateTime> timestamp = const Value.absent(),
                 Value<int> lamportClock = const Value.absent(),
@@ -58486,6 +61571,8 @@ class $$LedgerEventsTableTableManager
                 entityId: entityId,
                 userId: userId,
                 deviceId: deviceId,
+                amountCents: amountCents,
+                currency: currency,
                 eventData: eventData,
                 timestamp: timestamp,
                 lamportClock: lamportClock,
@@ -58566,6 +61653,7 @@ typedef $$BudgetHealthSnapshotsTableCreateCompanionBuilder =
       required String id,
       required String userId,
       required double overallScore,
+      Value<BigInt> overallScoreBps,
       required String metricsJson,
       Value<DateTime> timestamp,
       Value<int> rowid,
@@ -58575,6 +61663,7 @@ typedef $$BudgetHealthSnapshotsTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> userId,
       Value<double> overallScore,
+      Value<BigInt> overallScoreBps,
       Value<String> metricsJson,
       Value<DateTime> timestamp,
       Value<int> rowid,
@@ -58631,6 +61720,11 @@ class $$BudgetHealthSnapshotsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<BigInt> get overallScoreBps => $composableBuilder(
+    column: $table.overallScoreBps,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get metricsJson => $composableBuilder(
     column: $table.metricsJson,
     builder: (column) => ColumnFilters(column),
@@ -58684,6 +61778,11 @@ class $$BudgetHealthSnapshotsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<BigInt> get overallScoreBps => $composableBuilder(
+    column: $table.overallScoreBps,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get metricsJson => $composableBuilder(
     column: $table.metricsJson,
     builder: (column) => ColumnOrderings(column),
@@ -58732,6 +61831,11 @@ class $$BudgetHealthSnapshotsTableAnnotationComposer
 
   GeneratedColumn<double> get overallScore => $composableBuilder(
     column: $table.overallScore,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<BigInt> get overallScoreBps => $composableBuilder(
+    column: $table.overallScoreBps,
     builder: (column) => column,
   );
 
@@ -58809,6 +61913,7 @@ class $$BudgetHealthSnapshotsTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> userId = const Value.absent(),
                 Value<double> overallScore = const Value.absent(),
+                Value<BigInt> overallScoreBps = const Value.absent(),
                 Value<String> metricsJson = const Value.absent(),
                 Value<DateTime> timestamp = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -58816,6 +61921,7 @@ class $$BudgetHealthSnapshotsTableTableManager
                 id: id,
                 userId: userId,
                 overallScore: overallScore,
+                overallScoreBps: overallScoreBps,
                 metricsJson: metricsJson,
                 timestamp: timestamp,
                 rowid: rowid,
@@ -58825,6 +61931,7 @@ class $$BudgetHealthSnapshotsTableTableManager
                 required String id,
                 required String userId,
                 required double overallScore,
+                Value<BigInt> overallScoreBps = const Value.absent(),
                 required String metricsJson,
                 Value<DateTime> timestamp = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -58832,6 +61939,7 @@ class $$BudgetHealthSnapshotsTableTableManager
                 id: id,
                 userId: userId,
                 overallScore: overallScore,
+                overallScoreBps: overallScoreBps,
                 metricsJson: metricsJson,
                 timestamp: timestamp,
                 rowid: rowid,
@@ -58912,6 +62020,7 @@ typedef $$CanonicalLedgerTableCreateCompanionBuilder =
       required String source,
       Value<String?> sourceReference,
       required int amount,
+      Value<BigInt> amountCents,
       Value<String> currency,
       required DateTime bookingDate,
       Value<String?> description,
@@ -58929,6 +62038,7 @@ typedef $$CanonicalLedgerTableUpdateCompanionBuilder =
       Value<String> source,
       Value<String?> sourceReference,
       Value<int> amount,
+      Value<BigInt> amountCents,
       Value<String> currency,
       Value<DateTime> bookingDate,
       Value<String?> description,
@@ -59020,6 +62130,11 @@ class $$CanonicalLedgerTableFilterComposer
 
   ColumnFilters<int> get amount => $composableBuilder(
     column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<BigInt> get amountCents => $composableBuilder(
+    column: $table.amountCents,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -59134,6 +62249,11 @@ class $$CanonicalLedgerTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<BigInt> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get currency => $composableBuilder(
     column: $table.currency,
     builder: (column) => ColumnOrderings(column),
@@ -59238,6 +62358,11 @@ class $$CanonicalLedgerTableAnnotationComposer
 
   GeneratedColumn<int> get amount =>
       $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<BigInt> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get currency =>
       $composableBuilder(column: $table.currency, builder: (column) => column);
@@ -59350,6 +62475,7 @@ class $$CanonicalLedgerTableTableManager
                 Value<String> source = const Value.absent(),
                 Value<String?> sourceReference = const Value.absent(),
                 Value<int> amount = const Value.absent(),
+                Value<BigInt> amountCents = const Value.absent(),
                 Value<String> currency = const Value.absent(),
                 Value<DateTime> bookingDate = const Value.absent(),
                 Value<String?> description = const Value.absent(),
@@ -59365,6 +62491,7 @@ class $$CanonicalLedgerTableTableManager
                 source: source,
                 sourceReference: sourceReference,
                 amount: amount,
+                amountCents: amountCents,
                 currency: currency,
                 bookingDate: bookingDate,
                 description: description,
@@ -59382,6 +62509,7 @@ class $$CanonicalLedgerTableTableManager
                 required String source,
                 Value<String?> sourceReference = const Value.absent(),
                 required int amount,
+                Value<BigInt> amountCents = const Value.absent(),
                 Value<String> currency = const Value.absent(),
                 required DateTime bookingDate,
                 Value<String?> description = const Value.absent(),
@@ -59397,6 +62525,7 @@ class $$CanonicalLedgerTableTableManager
                 source: source,
                 sourceReference: sourceReference,
                 amount: amount,
+                amountCents: amountCents,
                 currency: currency,
                 bookingDate: bookingDate,
                 description: description,
@@ -60117,7 +63246,10 @@ typedef $$SplitTransactionsTableCreateCompanionBuilder =
       required String id,
       required String expenseId,
       required String semiBudgetId,
+      required String userId,
       required int amount,
+      Value<BigInt> amountCents,
+      Value<bool> isSettled,
       Value<String?> notes,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -60130,7 +63262,10 @@ typedef $$SplitTransactionsTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> expenseId,
       Value<String> semiBudgetId,
+      Value<String> userId,
       Value<int> amount,
+      Value<BigInt> amountCents,
+      Value<bool> isSettled,
       Value<String?> notes,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -60192,6 +63327,24 @@ final class $$SplitTransactionsTableReferences
       manager.$state.copyWith(prefetchedData: [item]),
     );
   }
+
+  static $UsersTable _userIdTable(_$AppDatabase db) => db.users.createAlias(
+    $_aliasNameGenerator(db.splitTransactions.userId, db.users.id),
+  );
+
+  $$UsersTableProcessedTableManager get userId {
+    final $_column = $_itemColumn<String>('user_id')!;
+
+    final manager = $$UsersTableTableManager(
+      $_db,
+      $_db.users,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_userIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
 }
 
 class $$SplitTransactionsTableFilterComposer
@@ -60210,6 +63363,16 @@ class $$SplitTransactionsTableFilterComposer
 
   ColumnFilters<int> get amount => $composableBuilder(
     column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<BigInt> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSettled => $composableBuilder(
+    column: $table.isSettled,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -60283,6 +63446,29 @@ class $$SplitTransactionsTableFilterComposer
     );
     return composer;
   }
+
+  $$UsersTableFilterComposer get userId {
+    final $$UsersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.userId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableFilterComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$SplitTransactionsTableOrderingComposer
@@ -60301,6 +63487,16 @@ class $$SplitTransactionsTableOrderingComposer
 
   ColumnOrderings<int> get amount => $composableBuilder(
     column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<BigInt> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSettled => $composableBuilder(
+    column: $table.isSettled,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -60374,6 +63570,29 @@ class $$SplitTransactionsTableOrderingComposer
     );
     return composer;
   }
+
+  $$UsersTableOrderingComposer get userId {
+    final $$UsersTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.userId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableOrderingComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$SplitTransactionsTableAnnotationComposer
@@ -60390,6 +63609,14 @@ class $$SplitTransactionsTableAnnotationComposer
 
   GeneratedColumn<int> get amount =>
       $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<BigInt> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isSettled =>
+      $composableBuilder(column: $table.isSettled, builder: (column) => column);
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
@@ -60451,6 +63678,29 @@ class $$SplitTransactionsTableAnnotationComposer
     );
     return composer;
   }
+
+  $$UsersTableAnnotationComposer get userId {
+    final $$UsersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.userId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$SplitTransactionsTableTableManager
@@ -60466,7 +63716,11 @@ class $$SplitTransactionsTableTableManager
           $$SplitTransactionsTableUpdateCompanionBuilder,
           (SplitTransaction, $$SplitTransactionsTableReferences),
           SplitTransaction,
-          PrefetchHooks Function({bool expenseId, bool semiBudgetId})
+          PrefetchHooks Function({
+            bool expenseId,
+            bool semiBudgetId,
+            bool userId,
+          })
         > {
   $$SplitTransactionsTableTableManager(
     _$AppDatabase db,
@@ -60489,7 +63743,10 @@ class $$SplitTransactionsTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> expenseId = const Value.absent(),
                 Value<String> semiBudgetId = const Value.absent(),
+                Value<String> userId = const Value.absent(),
                 Value<int> amount = const Value.absent(),
+                Value<BigInt> amountCents = const Value.absent(),
+                Value<bool> isSettled = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -60500,7 +63757,10 @@ class $$SplitTransactionsTableTableManager
                 id: id,
                 expenseId: expenseId,
                 semiBudgetId: semiBudgetId,
+                userId: userId,
                 amount: amount,
+                amountCents: amountCents,
+                isSettled: isSettled,
                 notes: notes,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -60513,7 +63773,10 @@ class $$SplitTransactionsTableTableManager
                 required String id,
                 required String expenseId,
                 required String semiBudgetId,
+                required String userId,
                 required int amount,
+                Value<BigInt> amountCents = const Value.absent(),
+                Value<bool> isSettled = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -60524,7 +63787,10 @@ class $$SplitTransactionsTableTableManager
                 id: id,
                 expenseId: expenseId,
                 semiBudgetId: semiBudgetId,
+                userId: userId,
                 amount: amount,
+                amountCents: amountCents,
+                isSettled: isSettled,
                 notes: notes,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -60540,7 +63806,480 @@ class $$SplitTransactionsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({expenseId = false, semiBudgetId = false}) {
+          prefetchHooksCallback:
+              ({expenseId = false, semiBudgetId = false, userId = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (expenseId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.expenseId,
+                                    referencedTable:
+                                        $$SplitTransactionsTableReferences
+                                            ._expenseIdTable(db),
+                                    referencedColumn:
+                                        $$SplitTransactionsTableReferences
+                                            ._expenseIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (semiBudgetId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.semiBudgetId,
+                                    referencedTable:
+                                        $$SplitTransactionsTableReferences
+                                            ._semiBudgetIdTable(db),
+                                    referencedColumn:
+                                        $$SplitTransactionsTableReferences
+                                            ._semiBudgetIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (userId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.userId,
+                                    referencedTable:
+                                        $$SplitTransactionsTableReferences
+                                            ._userIdTable(db),
+                                    referencedColumn:
+                                        $$SplitTransactionsTableReferences
+                                            ._userIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$SplitTransactionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SplitTransactionsTable,
+      SplitTransaction,
+      $$SplitTransactionsTableFilterComposer,
+      $$SplitTransactionsTableOrderingComposer,
+      $$SplitTransactionsTableAnnotationComposer,
+      $$SplitTransactionsTableCreateCompanionBuilder,
+      $$SplitTransactionsTableUpdateCompanionBuilder,
+      (SplitTransaction, $$SplitTransactionsTableReferences),
+      SplitTransaction,
+      PrefetchHooks Function({bool expenseId, bool semiBudgetId, bool userId})
+    >;
+typedef $$ExpenseApprovalsTableCreateCompanionBuilder =
+    ExpenseApprovalsCompanion Function({
+      required String id,
+      required String expenseId,
+      Value<String?> approvedBy,
+      Value<String> status,
+      Value<String?> rejectionReason,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$ExpenseApprovalsTableUpdateCompanionBuilder =
+    ExpenseApprovalsCompanion Function({
+      Value<String> id,
+      Value<String> expenseId,
+      Value<String?> approvedBy,
+      Value<String> status,
+      Value<String?> rejectionReason,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$ExpenseApprovalsTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $ExpenseApprovalsTable, ExpenseApproval> {
+  $$ExpenseApprovalsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $ExpensesTable _expenseIdTable(_$AppDatabase db) =>
+      db.expenses.createAlias(
+        $_aliasNameGenerator(db.expenseApprovals.expenseId, db.expenses.id),
+      );
+
+  $$ExpensesTableProcessedTableManager get expenseId {
+    final $_column = $_itemColumn<String>('expense_id')!;
+
+    final manager = $$ExpensesTableTableManager(
+      $_db,
+      $_db.expenses,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_expenseIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $UsersTable _approvedByTable(_$AppDatabase db) => db.users.createAlias(
+    $_aliasNameGenerator(db.expenseApprovals.approvedBy, db.users.id),
+  );
+
+  $$UsersTableProcessedTableManager? get approvedBy {
+    final $_column = $_itemColumn<String>('approved_by');
+    if ($_column == null) return null;
+    final manager = $$UsersTableTableManager(
+      $_db,
+      $_db.users,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_approvedByTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$ExpenseApprovalsTableFilterComposer
+    extends Composer<_$AppDatabase, $ExpenseApprovalsTable> {
+  $$ExpenseApprovalsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rejectionReason => $composableBuilder(
+    column: $table.rejectionReason,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ExpensesTableFilterComposer get expenseId {
+    final $$ExpensesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.expenseId,
+      referencedTable: $db.expenses,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpensesTableFilterComposer(
+            $db: $db,
+            $table: $db.expenses,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$UsersTableFilterComposer get approvedBy {
+    final $$UsersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.approvedBy,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableFilterComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ExpenseApprovalsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ExpenseApprovalsTable> {
+  $$ExpenseApprovalsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rejectionReason => $composableBuilder(
+    column: $table.rejectionReason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ExpensesTableOrderingComposer get expenseId {
+    final $$ExpensesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.expenseId,
+      referencedTable: $db.expenses,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpensesTableOrderingComposer(
+            $db: $db,
+            $table: $db.expenses,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$UsersTableOrderingComposer get approvedBy {
+    final $$UsersTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.approvedBy,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableOrderingComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ExpenseApprovalsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ExpenseApprovalsTable> {
+  $$ExpenseApprovalsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get rejectionReason => $composableBuilder(
+    column: $table.rejectionReason,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$ExpensesTableAnnotationComposer get expenseId {
+    final $$ExpensesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.expenseId,
+      referencedTable: $db.expenses,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpensesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.expenses,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$UsersTableAnnotationComposer get approvedBy {
+    final $$UsersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.approvedBy,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ExpenseApprovalsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ExpenseApprovalsTable,
+          ExpenseApproval,
+          $$ExpenseApprovalsTableFilterComposer,
+          $$ExpenseApprovalsTableOrderingComposer,
+          $$ExpenseApprovalsTableAnnotationComposer,
+          $$ExpenseApprovalsTableCreateCompanionBuilder,
+          $$ExpenseApprovalsTableUpdateCompanionBuilder,
+          (ExpenseApproval, $$ExpenseApprovalsTableReferences),
+          ExpenseApproval,
+          PrefetchHooks Function({bool expenseId, bool approvedBy})
+        > {
+  $$ExpenseApprovalsTableTableManager(
+    _$AppDatabase db,
+    $ExpenseApprovalsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ExpenseApprovalsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ExpenseApprovalsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ExpenseApprovalsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> expenseId = const Value.absent(),
+                Value<String?> approvedBy = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String?> rejectionReason = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ExpenseApprovalsCompanion(
+                id: id,
+                expenseId: expenseId,
+                approvedBy: approvedBy,
+                status: status,
+                rejectionReason: rejectionReason,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String expenseId,
+                Value<String?> approvedBy = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String?> rejectionReason = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ExpenseApprovalsCompanion.insert(
+                id: id,
+                expenseId: expenseId,
+                approvedBy: approvedBy,
+                status: status,
+                rejectionReason: rejectionReason,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ExpenseApprovalsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({expenseId = false, approvedBy = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
@@ -60566,26 +64305,26 @@ class $$SplitTransactionsTableTableManager
                                 currentTable: table,
                                 currentColumn: table.expenseId,
                                 referencedTable:
-                                    $$SplitTransactionsTableReferences
+                                    $$ExpenseApprovalsTableReferences
                                         ._expenseIdTable(db),
                                 referencedColumn:
-                                    $$SplitTransactionsTableReferences
+                                    $$ExpenseApprovalsTableReferences
                                         ._expenseIdTable(db)
                                         .id,
                               )
                               as T;
                     }
-                    if (semiBudgetId) {
+                    if (approvedBy) {
                       state =
                           state.withJoin(
                                 currentTable: table,
-                                currentColumn: table.semiBudgetId,
+                                currentColumn: table.approvedBy,
                                 referencedTable:
-                                    $$SplitTransactionsTableReferences
-                                        ._semiBudgetIdTable(db),
+                                    $$ExpenseApprovalsTableReferences
+                                        ._approvedByTable(db),
                                 referencedColumn:
-                                    $$SplitTransactionsTableReferences
-                                        ._semiBudgetIdTable(db)
+                                    $$ExpenseApprovalsTableReferences
+                                        ._approvedByTable(db)
                                         .id,
                               )
                               as T;
@@ -60602,19 +64341,503 @@ class $$SplitTransactionsTableTableManager
       );
 }
 
-typedef $$SplitTransactionsTableProcessedTableManager =
+typedef $$ExpenseApprovalsTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $SplitTransactionsTable,
-      SplitTransaction,
-      $$SplitTransactionsTableFilterComposer,
-      $$SplitTransactionsTableOrderingComposer,
-      $$SplitTransactionsTableAnnotationComposer,
-      $$SplitTransactionsTableCreateCompanionBuilder,
-      $$SplitTransactionsTableUpdateCompanionBuilder,
-      (SplitTransaction, $$SplitTransactionsTableReferences),
-      SplitTransaction,
-      PrefetchHooks Function({bool expenseId, bool semiBudgetId})
+      $ExpenseApprovalsTable,
+      ExpenseApproval,
+      $$ExpenseApprovalsTableFilterComposer,
+      $$ExpenseApprovalsTableOrderingComposer,
+      $$ExpenseApprovalsTableAnnotationComposer,
+      $$ExpenseApprovalsTableCreateCompanionBuilder,
+      $$ExpenseApprovalsTableUpdateCompanionBuilder,
+      (ExpenseApproval, $$ExpenseApprovalsTableReferences),
+      ExpenseApproval,
+      PrefetchHooks Function({bool expenseId, bool approvedBy})
+    >;
+typedef $$AllowancesTableCreateCompanionBuilder =
+    AllowancesCompanion Function({
+      required String id,
+      required String budgetId,
+      required String userId,
+      required BigInt amountCents,
+      required String frequency,
+      required DateTime nextPayoutDate,
+      Value<bool> isActive,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$AllowancesTableUpdateCompanionBuilder =
+    AllowancesCompanion Function({
+      Value<String> id,
+      Value<String> budgetId,
+      Value<String> userId,
+      Value<BigInt> amountCents,
+      Value<String> frequency,
+      Value<DateTime> nextPayoutDate,
+      Value<bool> isActive,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$AllowancesTableReferences
+    extends BaseReferences<_$AppDatabase, $AllowancesTable, Allowance> {
+  $$AllowancesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $BudgetsTable _budgetIdTable(_$AppDatabase db) => db.budgets
+      .createAlias($_aliasNameGenerator(db.allowances.budgetId, db.budgets.id));
+
+  $$BudgetsTableProcessedTableManager get budgetId {
+    final $_column = $_itemColumn<String>('budget_id')!;
+
+    final manager = $$BudgetsTableTableManager(
+      $_db,
+      $_db.budgets,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_budgetIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $UsersTable _userIdTable(_$AppDatabase db) => db.users.createAlias(
+    $_aliasNameGenerator(db.allowances.userId, db.users.id),
+  );
+
+  $$UsersTableProcessedTableManager get userId {
+    final $_column = $_itemColumn<String>('user_id')!;
+
+    final manager = $$UsersTableTableManager(
+      $_db,
+      $_db.users,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_userIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$AllowancesTableFilterComposer
+    extends Composer<_$AppDatabase, $AllowancesTable> {
+  $$AllowancesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<BigInt> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get frequency => $composableBuilder(
+    column: $table.frequency,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get nextPayoutDate => $composableBuilder(
+    column: $table.nextPayoutDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$BudgetsTableFilterComposer get budgetId {
+    final $$BudgetsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.budgetId,
+      referencedTable: $db.budgets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BudgetsTableFilterComposer(
+            $db: $db,
+            $table: $db.budgets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$UsersTableFilterComposer get userId {
+    final $$UsersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.userId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableFilterComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AllowancesTableOrderingComposer
+    extends Composer<_$AppDatabase, $AllowancesTable> {
+  $$AllowancesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<BigInt> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get frequency => $composableBuilder(
+    column: $table.frequency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get nextPayoutDate => $composableBuilder(
+    column: $table.nextPayoutDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$BudgetsTableOrderingComposer get budgetId {
+    final $$BudgetsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.budgetId,
+      referencedTable: $db.budgets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BudgetsTableOrderingComposer(
+            $db: $db,
+            $table: $db.budgets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$UsersTableOrderingComposer get userId {
+    final $$UsersTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.userId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableOrderingComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AllowancesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AllowancesTable> {
+  $$AllowancesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<BigInt> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get frequency =>
+      $composableBuilder(column: $table.frequency, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get nextPayoutDate => $composableBuilder(
+    column: $table.nextPayoutDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$BudgetsTableAnnotationComposer get budgetId {
+    final $$BudgetsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.budgetId,
+      referencedTable: $db.budgets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BudgetsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.budgets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$UsersTableAnnotationComposer get userId {
+    final $$UsersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.userId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AllowancesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AllowancesTable,
+          Allowance,
+          $$AllowancesTableFilterComposer,
+          $$AllowancesTableOrderingComposer,
+          $$AllowancesTableAnnotationComposer,
+          $$AllowancesTableCreateCompanionBuilder,
+          $$AllowancesTableUpdateCompanionBuilder,
+          (Allowance, $$AllowancesTableReferences),
+          Allowance,
+          PrefetchHooks Function({bool budgetId, bool userId})
+        > {
+  $$AllowancesTableTableManager(_$AppDatabase db, $AllowancesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AllowancesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AllowancesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AllowancesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> budgetId = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<BigInt> amountCents = const Value.absent(),
+                Value<String> frequency = const Value.absent(),
+                Value<DateTime> nextPayoutDate = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AllowancesCompanion(
+                id: id,
+                budgetId: budgetId,
+                userId: userId,
+                amountCents: amountCents,
+                frequency: frequency,
+                nextPayoutDate: nextPayoutDate,
+                isActive: isActive,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String budgetId,
+                required String userId,
+                required BigInt amountCents,
+                required String frequency,
+                required DateTime nextPayoutDate,
+                Value<bool> isActive = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AllowancesCompanion.insert(
+                id: id,
+                budgetId: budgetId,
+                userId: userId,
+                amountCents: amountCents,
+                frequency: frequency,
+                nextPayoutDate: nextPayoutDate,
+                isActive: isActive,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$AllowancesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({budgetId = false, userId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (budgetId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.budgetId,
+                                referencedTable: $$AllowancesTableReferences
+                                    ._budgetIdTable(db),
+                                referencedColumn: $$AllowancesTableReferences
+                                    ._budgetIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+                    if (userId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.userId,
+                                referencedTable: $$AllowancesTableReferences
+                                    ._userIdTable(db),
+                                referencedColumn: $$AllowancesTableReferences
+                                    ._userIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$AllowancesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AllowancesTable,
+      Allowance,
+      $$AllowancesTableFilterComposer,
+      $$AllowancesTableOrderingComposer,
+      $$AllowancesTableAnnotationComposer,
+      $$AllowancesTableCreateCompanionBuilder,
+      $$AllowancesTableUpdateCompanionBuilder,
+      (Allowance, $$AllowancesTableReferences),
+      Allowance,
+      PrefetchHooks Function({bool budgetId, bool userId})
     >;
 
 class $AppDatabaseManager {
@@ -60710,4 +64933,8 @@ class $AppDatabaseManager {
       );
   $$SplitTransactionsTableTableManager get splitTransactions =>
       $$SplitTransactionsTableTableManager(_db, _db.splitTransactions);
+  $$ExpenseApprovalsTableTableManager get expenseApprovals =>
+      $$ExpenseApprovalsTableTableManager(_db, _db.expenseApprovals);
+  $$AllowancesTableTableManager get allowances =>
+      $$AllowancesTableTableManager(_db, _db.allowances);
 }

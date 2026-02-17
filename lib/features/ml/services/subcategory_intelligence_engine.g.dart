@@ -6,25 +6,56 @@ part of 'subcategory_intelligence_engine.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$subcategoryIntelligenceEngineHash() =>
-    r'80d91d9625e3399f15a7dbdc7fe08d80f7a742f5';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
 
-/// See also [subcategoryIntelligenceEngine].
 @ProviderFor(subcategoryIntelligenceEngine)
 final subcategoryIntelligenceEngineProvider =
-    Provider<SubcategoryIntelligenceEngine>.internal(
-      subcategoryIntelligenceEngine,
-      name: r'subcategoryIntelligenceEngineProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$subcategoryIntelligenceEngineHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+    SubcategoryIntelligenceEngineProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef SubcategoryIntelligenceEngineRef =
-    ProviderRef<SubcategoryIntelligenceEngine>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+final class SubcategoryIntelligenceEngineProvider
+    extends
+        $FunctionalProvider<
+          SubcategoryIntelligenceEngine,
+          SubcategoryIntelligenceEngine,
+          SubcategoryIntelligenceEngine
+        >
+    with $Provider<SubcategoryIntelligenceEngine> {
+  SubcategoryIntelligenceEngineProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'subcategoryIntelligenceEngineProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$subcategoryIntelligenceEngineHash();
+
+  @$internal
+  @override
+  $ProviderElement<SubcategoryIntelligenceEngine> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  SubcategoryIntelligenceEngine create(Ref ref) {
+    return subcategoryIntelligenceEngine(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(SubcategoryIntelligenceEngine value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<SubcategoryIntelligenceEngine>(
+        value,
+      ),
+    );
+  }
+}
+
+String _$subcategoryIntelligenceEngineHash() =>
+    r'80d91d9625e3399f15a7dbdc7fe08d80f7a742f5';

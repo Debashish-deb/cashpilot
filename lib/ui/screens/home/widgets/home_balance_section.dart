@@ -18,7 +18,7 @@ class HomeBalanceSection extends ConsumerWidget {
     final homeStateAsync = ref.watch(homeViewModelProvider);
     final state = homeStateAsync.valueOrNull;
 
-    final balance = (state?.totalBalance ?? 0) / 100.0;
+    final balanceDisplay = formatManager.formatCents(state?.totalBalance ?? BigInt.zero, currencyCode: currency);
     final currency = state?.currency ?? 'USD';
 
     final theme = Theme.of(context);
@@ -43,7 +43,7 @@ class HomeBalanceSection extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                formatManager.formatCurrency(balance, currencyCode: currency),
+                balanceDisplay,
                 style: AppTypography.moneyLarge.copyWith(
                   fontSize: 34,
                   fontWeight: FontWeight.w900,

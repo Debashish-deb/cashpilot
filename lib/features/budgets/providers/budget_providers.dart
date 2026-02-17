@@ -239,10 +239,10 @@ final sortedBudgetsProvider = Provider<AsyncValue<List<Budget>>>((ref) {
           filtered.sort((a, b) => b.title.toLowerCase().compareTo(a.title.toLowerCase()));
           break;
         case BudgetSortOption.amountHighest:
-          filtered.sort((a, b) => (b.totalLimit ?? 0).compareTo(a.totalLimit ?? 0));
+          filtered.sort((a, b) => (b.totalLimitCents ?? BigInt.zero).compareTo(a.totalLimitCents ?? BigInt.zero));
           break;
         case BudgetSortOption.amountLowest:
-          filtered.sort((a, b) => (a.totalLimit ?? 0).compareTo(b.totalLimit ?? 0));
+          filtered.sort((a, b) => (a.totalLimitCents ?? BigInt.zero).compareTo(b.totalLimitCents ?? BigInt.zero));
           break;
       }
       
@@ -291,7 +291,7 @@ final budgetStatisticsProvider = Provider<BudgetStatistics>((ref) {
       ).length;
       final upcoming = budgets.where((b) => b.startDate.isAfter(now)).length;
       final completed = budgets.where((b) => b.endDate.isBefore(now)).length;
-      final totalBudget = budgets.fold<int>(0, (sum, b) => sum + (b.totalLimit ?? 0));
+      final totalBudget = budgets.fold<BigInt>(BigInt.zero, (sum, b) => sum + (b.totalLimitCents ?? BigInt.zero));
       
       return BudgetStatistics(
         total: budgets.length,
@@ -312,7 +312,7 @@ class BudgetStatistics {
   final int active;
   final int upcoming;
   final int completed;
-  final int totalBudget;
+  final BigInt totalBudget;
   
   const BudgetStatistics({
     required this.total,
@@ -322,12 +322,12 @@ class BudgetStatistics {
     required this.totalBudget,
   });
   
-  factory BudgetStatistics.empty() => const BudgetStatistics(
+  factory BudgetStatistics.empty() => BudgetStatistics(
     total: 0,
     active: 0,
     upcoming: 0,
     completed: 0,
-    totalBudget: 0,
+    totalBudget: BigInt.zero,
   );
 }
 
@@ -360,13 +360,13 @@ final semiBudgetsByBudgetIdProvider = StreamProvider.family<List<SemiBudget>, St
 });
 
 /// Stream of total spent in a budget
-final budgetTotalSpentProvider = StreamProvider.family<int, String>((ref, budgetId) {
+final budgetTotalSpentProvider = StreamProvider.family<BigInt, String>((ref, budgetId) {
   final db = ref.watch(databaseProvider);
   return db.watchTotalSpentInBudget(budgetId);
 });
 
 /// Stream of spending per semi-budget
-final budgetSemiBudgetSpendingProvider = StreamProvider.family<Map<String, int>, String>((ref, budgetId) {
+final budgetSemiBudgetSpendingProvider = StreamProvider.family<Map<String, BigInt>, String>((ref, budgetId) {
   final db = ref.watch(databaseProvider);
   return db.watchSemiBudgetSpending(budgetId);
 });
@@ -394,7 +394,7 @@ final budgetWithSemiBudgetsProvider = Provider.family<AsyncValue<BudgetWithSemiB
   if (budget == null) return const AsyncValue.data(null);
   
   final semiBudgets = semiBudgetsAsync.valueOrNull ?? [];
-  final totalSpent = totalSpentAsync.valueOrNull ?? 0;
+  final totalSpent = totalSpentAsync.valueOrNull ?? BigInt.zero;
   final spendingMap = spendingMapAsync.valueOrNull ?? {};
   final recurringExpenses = recurringExpensesAsync.valueOrNull ?? [];
   
@@ -411,8 +411,8 @@ final budgetWithSemiBudgetsProvider = Provider.family<AsyncValue<BudgetWithSemiB
 class BudgetWithSemiBudgets {
   final Budget budget;
   final List<SemiBudget> semiBudgets;
-  final int totalSpent;
-  final Map<String, int> semiBudgetSpending;
+  final BigInt totalSpent;
+  final Map<String, BigInt> semiBudgetSpending;
   final List<RecurringExpense> recurringExpenses;
 
   BudgetWithSemiBudgets({
@@ -424,13 +424,13 @@ class BudgetWithSemiBudgets {
   });
 
   double get spentPercentage {
-    if (budget.totalLimit == null || budget.totalLimit == 0) return 0;
-    return totalSpent / budget.totalLimit!;
+    if (budget.totalLimitCents == null || budget.totalLimitCents == BigInt.zero) return 0;
+    return totalSpent.toDouble() / budget.totalLimitCents!.toDouble();
   }
 
-  int get remaining {
-    if (budget.totalLimit == null) return 0;
-    return budget.totalLimit! - totalSpent;
+  BigInt get remaining {
+    if (budget.totalLimitCents == null) return BigInt.zero;
+    return budget.totalLimitCents! - totalSpent;
   }
 
   // --- P0 BUDGET MATH ENHANCEMENTS ---
@@ -449,17 +449,17 @@ class BudgetWithSemiBudgets {
   }
 
   /// The amount that "should" have been spent by now if spending was linear
-  int get proratedLimit {
-    if (budget.totalLimit == null) return 0;
-    return (budget.totalLimit! * elapsedTimePercentage).toInt();
+  BigInt get proratedLimit {
+    if (budget.totalLimitCents == null) return BigInt.zero;
+    return BigInt.from((budget.totalLimitCents!.toDouble() * elapsedTimePercentage).toInt());
   }
 
   /// Whether the user is over their linear spending allowance
   bool get isProratedOverBudget => totalSpent > proratedLimit;
 
   /// Projected end-of-period total including known recurring expenses
-  int get projectedSpent {
-    int projected = totalSpent;
+  BigInt get projectedSpent {
+    BigInt projected = totalSpent;
     
     final now = DateTime.now();
     for (final recurring in recurringExpenses) {
@@ -470,7 +470,7 @@ class BudgetWithSemiBudgets {
       // This is a simplified projection as requested in P0.
       if (recurring.nextDueDate.isAfter(now) && 
           recurring.nextDueDate.isBefore(budget.endDate)) {
-        projected += recurring.amount;
+        projected += recurring.amountCents;
       }
     }
     
@@ -478,8 +478,8 @@ class BudgetWithSemiBudgets {
   }
 
   double get projectedSpentPercentage {
-    if (budget.totalLimit == null || budget.totalLimit == 0) return 0;
-    return projectedSpent / budget.totalLimit!;
+    if (budget.totalLimitCents == null || budget.totalLimitCents == BigInt.zero) return 0;
+    return projectedSpent.toDouble() / budget.totalLimitCents!.toDouble();
   }
 
   /// Groups semi-budgets by parent ID.
@@ -496,22 +496,22 @@ class BudgetWithSemiBudgets {
   }
 
   /// Gets total spent for a category including all its subcategories
-  int getAggregatedSpending(String categoryId) {
-    int total = semiBudgetSpending[categoryId] ?? 0;
+  BigInt getAggregatedSpending(String categoryId) {
+    BigInt total = semiBudgetSpending[categoryId] ?? BigInt.zero;
     
     // Find children
     final children = semiBudgets.where((s) => s.parentCategoryId == categoryId);
     for (final child in children) {
-      total += semiBudgetSpending[child.id] ?? 0;
+      total += semiBudgetSpending[child.id] ?? BigInt.zero;
     }
     
     return total;
   }
 
   /// Gets total limit for a category including all its subcategories
-  int getAggregatedLimit(String categoryId) {
+  BigInt getAggregatedLimit(String categoryId) {
     final parent = semiBudgets.firstWhere((s) => s.id == categoryId);
-    int total = parent.limitAmount;
+    BigInt total = parent.limitAmountCents ?? BigInt.zero;
     
     // In some systems, subcategory limits might be "parts" of the parent limit
     // or additional. Usually they are parts. 
@@ -519,10 +519,10 @@ class BudgetWithSemiBudgets {
     // the parent limit is the source of truth.
     // If parent limit is 0, we sum sub limits.
     
-    if (total == 0) {
+    if (total == BigInt.zero) {
       final children = semiBudgets.where((s) => s.parentCategoryId == categoryId);
       for (final child in children) {
-        total += child.limitAmount;
+        total += child.limitAmountCents ?? BigInt.zero;
       }
     }
     
@@ -571,7 +571,7 @@ class BudgetController extends StateNotifier<BudgetState> {
     required DateTime startDate,
     required DateTime endDate,
     required String currency,
-    int? totalLimit,
+    BigInt? totalLimit,
     String? notes,
     String? tags,
     String status = 'active',
@@ -612,7 +612,8 @@ class BudgetController extends StateNotifier<BudgetState> {
         startDate: Value(startDate),
         endDate: Value(endDate),
         currency: Value(currency),
-        totalLimit: Value(totalLimit),
+        totalLimit: Value(totalLimit?.toInt()), // Keep legacy column updated
+        totalLimitCents: Value(totalLimit), // P1 Migration
         notes: Value(notes),
         tags: Value(tags),
         status: Value(status),
@@ -654,7 +655,7 @@ class BudgetController extends StateNotifier<BudgetState> {
     DateTime? startDate,
     DateTime? endDate,
     String? currency,
-    int? totalLimit,
+    BigInt? totalLimit,
     String? notes,
     String? tags,
     String? status,
@@ -673,7 +674,8 @@ class BudgetController extends StateNotifier<BudgetState> {
         startDate: Value(startDate ?? existing.startDate),
         endDate: Value(endDate ?? existing.endDate),
         currency: Value(currency ?? existing.currency),
-        totalLimit: Value(totalLimit ?? existing.totalLimit),
+        totalLimit: Value(totalLimit?.toInt() ?? existing.totalLimit),
+        totalLimitCents: Value(totalLimit ?? existing.totalLimitCents),
         notes: Value(notes ?? existing.notes),
         tags: Value(tags ?? existing.tags),
         status: Value(status ?? existing.status),
@@ -724,7 +726,7 @@ class BudgetController extends StateNotifier<BudgetState> {
   Future<String> createSemiBudget({
     required String budgetId,
     required String name,
-    required int limitAmount,
+    required BigInt limitAmount,
     int priority = 3,
     String? iconName,
     String? colorHex,
@@ -740,7 +742,8 @@ class BudgetController extends StateNotifier<BudgetState> {
         id: Value(id),
         budgetId: Value(budgetId),
         name: Value(name),
-        limitAmount: Value(limitAmount),
+        limitAmount: Value(limitAmount.toInt()), // legacy
+        limitAmountCents: Value(limitAmount), // P1 Migration
         priority: Value(priority),
         iconName: Value(iconName),
         colorHex: Value(colorHex),
@@ -769,7 +772,7 @@ class BudgetController extends StateNotifier<BudgetState> {
   Future<void> updateSemiBudget({
     required String id,
     String? name,
-    int? limitAmount,
+    BigInt? limitAmount,
     int? priority,
     String? iconName,
     String? colorHex,
@@ -787,7 +790,8 @@ class BudgetController extends StateNotifier<BudgetState> {
         id: Value(id),
         budgetId: Value(existing.budgetId),
         name: Value(name ?? existing.name),
-        limitAmount: Value(limitAmount ?? existing.limitAmount),
+        limitAmount: Value(limitAmount?.toInt() ?? existing.limitAmount),
+        limitAmountCents: Value(limitAmount ?? existing.limitAmountCents),
         priority: Value(priority ?? existing.priority),
         iconName: Value(iconName ?? existing.iconName),
         colorHex: Value(colorHex ?? existing.colorHex),

@@ -566,7 +566,7 @@ class _ReportsScreenV2State extends ConsumerState<ReportsScreenV2>
             if (!hasSubcategories) {
               return _buildCategoryListItem(
                 name: localizedName,
-                amount: group.totalCents.toDouble(),
+                amount: group.totalCents,
                 currency: currency,
                 formatManager: formatManager,
                 hasChildren: false,
@@ -594,9 +594,11 @@ class _ReportsScreenV2State extends ConsumerState<ReportsScreenV2>
   Widget _buildPieChart(BuildContext context, Map<String, HierarchicalCategoryTotal> breakdown) {
     final currency = ref.watch(currencyProvider);
     final formatManager = ref.watch(formatManagerProvider);
-    final total = breakdown.values.fold<double>(0, (sum, item) => sum + item.totalCents);
+    final total = breakdown.values.fold<BigInt>(BigInt.zero, (sum, item) => sum + item.totalCents);
     
-    if (total == 0) return const SizedBox.shrink();
+    if (total == BigInt.zero) return const SizedBox.shrink();
+
+    final totalDouble = total.toDouble();
 
     final List<PieChartSectionData> sections = [];
     final entries = breakdown.entries.toList();
@@ -608,7 +610,7 @@ class _ReportsScreenV2State extends ConsumerState<ReportsScreenV2>
     for (int i = 0; i < entries.length; i++) {
       final entry = entries[i];
       final val = entry.value.totalCents.toDouble();
-      final percentage = (val / total) * 100;
+      final percentage = (val / totalDouble) * 100;
 
       if (sectionCount < maxSections && percentage >= 5) {
         sections.add(
@@ -631,7 +633,7 @@ class _ReportsScreenV2State extends ConsumerState<ReportsScreenV2>
     }
 
     if (otherTotal > 0) {
-      final otherPercentage = (otherTotal / total) * 100;
+      final otherPercentage = (otherTotal / totalDouble) * 100;
       sections.add(
         PieChartSectionData(
           color: Colors.grey.shade500,
@@ -680,7 +682,7 @@ class _ReportsScreenV2State extends ConsumerState<ReportsScreenV2>
               ),
               const SizedBox(height: 4),
               Text(
-                formatManager.formatCurrency(total / 100, currencyCode: currency, decimalDigits: 0),
+                formatManager.formatCents(total, currencyCode: currency, decimalDigits: 0),
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
@@ -711,7 +713,7 @@ class _ReportsScreenV2State extends ConsumerState<ReportsScreenV2>
 
   Widget _buildCategoryListItem({
     required String name,
-    required double amount,
+    required BigInt amount,
     required String currency,
     required dynamic formatManager,
     required bool hasChildren,
@@ -761,7 +763,7 @@ class _ReportsScreenV2State extends ConsumerState<ReportsScreenV2>
           ),
         ),
         trailing: Text(
-          formatManager.formatCurrency(amount / 100, currencyCode: currency),
+          formatManager.formatCents(amount, currencyCode: currency),
           style: TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 15,
@@ -824,7 +826,7 @@ class _ReportsScreenV2State extends ConsumerState<ReportsScreenV2>
             ),
           ),
           trailing: Text(
-            formatManager.formatCurrency(group.totalCents / 100, currencyCode: currency),
+            formatManager.formatCents(group.totalCents, currencyCode: currency),
             style: TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 15,
@@ -861,7 +863,7 @@ class _ReportsScreenV2State extends ConsumerState<ReportsScreenV2>
                     ],
                   ),
                   Text(
-                    formatManager.formatCurrency(sub.value / 100, currencyCode: currency),
+                    formatManager.formatCents(sub.value, currencyCode: currency),
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,

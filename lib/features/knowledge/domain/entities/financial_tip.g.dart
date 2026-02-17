@@ -6,8 +6,8 @@ part of 'financial_tip.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$FinancialTipImpl _$$FinancialTipImplFromJson(Map<String, dynamic> json) =>
-    _$FinancialTipImpl(
+_FinancialTip _$FinancialTipFromJson(Map<String, dynamic> json) =>
+    _FinancialTip(
       id: json['id'] as String,
       title: json['title'] as String,
       content: json['content'] as String,
@@ -22,7 +22,7 @@ _$FinancialTipImpl _$$FinancialTipImplFromJson(Map<String, dynamic> json) =>
           : DateTime.parse(json['expiresAt'] as String),
     );
 
-Map<String, dynamic> _$$FinancialTipImplToJson(_$FinancialTipImpl instance) =>
+Map<String, dynamic> _$FinancialTipToJson(_FinancialTip instance) =>
     <String, dynamic>{
       'id': instance.id,
       'title': instance.title,
