@@ -25,6 +25,14 @@ class SecurityPolicyEngine {
     '/system/bin/.ext/.su',
   ];
 
+  static const List<String> _fridaBinaries = [
+    '/data/local/tmp/frida-server',
+    '/data/local/tmp/re.frida.server',
+    '/data/local/tmp/frida',
+    '/sdcard/frida-server',
+    '/system/bin/frida-server',
+  ];
+
   bool _detectRootFilesystemSignals() {
     if (kIsWeb || !Platform.isAndroid) return false;
     try {
@@ -35,6 +43,61 @@ class SecurityPolicyEngine {
       }
     } catch (_) {}
     return false;
+  }
+
+  bool _detectFridaFilesystem() {
+    if (kIsWeb || !Platform.isAndroid) return false;
+    try {
+      for (final path in _fridaBinaries) {
+        if (File(path).existsSync()) return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  bool _detectFridaMemoryMaps() {
+    if (kIsWeb || !Platform.isAndroid) return false;
+    try {
+      final mapsFile = File('/proc/self/maps');
+      if (mapsFile.existsSync()) {
+        final content = mapsFile.readAsStringSync().toLowerCase();
+        if (content.contains('frida') ||
+            content.contains('gadget') ||
+            content.contains('gum-js-loop') ||
+            content.contains('libfrida')) {
+          return true;
+        }
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  bool _detectTracerPid() {
+    if (kIsWeb || !Platform.isAndroid) return false;
+    try {
+      final statusFile = File('/proc/self/status');
+      if (statusFile.existsSync()) {
+        final lines = statusFile.readAsLinesSync();
+        for (final line in lines) {
+          if (line.startsWith('TracerPid:')) {
+            final pid = int.tryParse(line.split(':')[1].trim()) ?? 0;
+            if (pid > 0) return true;
+          }
+        }
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  Future<bool> _detectFridaPort() async {
+    if (kIsWeb || !Platform.isAndroid) return false;
+    try {
+      final socket = await Socket.connect('127.0.0.1', 27042, timeout: const Duration(milliseconds: 150));
+      socket.destroy();
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// Comprehensive device integrity report
@@ -54,6 +117,13 @@ class SecurityPolicyEngine {
       final bool fsRootDetected = _detectRootFilesystemSignals();
       final bool isRootedOrCompromised = isJailbroken || fsRootDetected;
 
+      // Runtime dynamic instrumentation checks (Frida / House / ptrace)
+      final fridaFs = _detectFridaFilesystem();
+      final fridaMaps = _detectFridaMemoryMaps();
+      final tracerAttached = _detectTracerPid();
+      final fridaPort = await _detectFridaPort();
+      final isFridaDetected = fridaFs || fridaMaps || tracerAttached || fridaPort;
+
       // Compute Trust Score (0.0 - 1.0)
       double score = 1.0;
       final List<String> signals = [];
@@ -64,6 +134,14 @@ class SecurityPolicyEngine {
         if (fsRootDetected && !isJailbroken) {
           signals.add('ROOT_BINARY_LOCATED');
         }
+      }
+      if (isFridaDetected) {
+        score -= 0.9;
+        signals.add('DYNAMIC_INSTRUMENTATION_DETECTED');
+        if (fridaMaps) signals.add('FRIDA_AGENT_MEMORY_MAP');
+        if (fridaFs) signals.add('FRIDA_SERVER_BINARY');
+        if (tracerAttached) signals.add('TRACER_DEBUGGER_ATTACHED');
+        if (fridaPort) signals.add('FRIDA_DEFAULT_PORT_OPEN');
       }
       if (isEmulator && !kDebugMode) {
         score -= 0.4;
@@ -80,7 +158,7 @@ class SecurityPolicyEngine {
 
       return DeviceIntegrityReport(
         trustScore: score.clamp(0.0, 1.0),
-        isCompromised: isRootedOrCompromised && !kDebugMode, // Only block if strictly non-debug
+        isCompromised: (isRootedOrCompromised || isFridaDetected) && !kDebugMode, // Block on root or instrumentation
         signals: signals,
         evaluatedAt: DateTime.now(),
       );

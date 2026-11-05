@@ -387,13 +387,14 @@ class SecurityManager {
   // ==========================================================================
 
   /// Check if this device is trusted
-  /// P0 SECURITY: Includes hardware-backed trust and real-time integrity evaluation
+  /// P0 SECURITY: Uses hardware-backed secure storage and real-time integrity evaluation
   Future<bool> isDeviceTrusted(Ref ref) async {
-    // 1. Check persistent trust flag
-    final prefs = ref.read(sharedPreferencesProvider);
-    final isMarkedTrusted = prefs.getBool('device_trusted') ?? false;
+    // 1. Check persistent trust flag from hardware-backed secure storage (prevents XML modification)
+    final secureStorage = ref.read(secureStorageProvider);
+    final trustedVal = await secureStorage.read(key: 'device_trusted_secure');
+    final isMarkedTrusted = trustedVal == 'true';
     
-    // 2. Continuous Integrity Evaluation (tamper detection)
+    // 2. Continuous Integrity Evaluation (tamper and dynamic instrumentation detection)
     _lastReport = await _policyEngine.evaluateIntegrity();
     
     if (_lastReport!.isCompromised) {
@@ -413,23 +414,23 @@ class SecurityManager {
   /// Get the current integrity signals
   List<String> get currentIntegritySignals => _lastReport?.signals ?? [];
 
-  /// Mark device as trusted
+  /// Mark device as trusted in hardware-backed secure storage
   Future<void> trustDevice(Ref ref) async {
-    final prefs = ref.read(sharedPreferencesProvider);
-    await prefs.setBool('device_trusted', true);
+    final secureStorage = ref.read(secureStorageProvider);
+    await secureStorage.write(key: 'device_trusted_secure', value: 'true');
     logSecurityEvent(
       type: SecurityEventType.deviceTrusted,
-      details: 'Device marked as trusted',
+      details: 'Device marked as trusted in secure storage',
     );
   }
 
   /// Revoke device trust
   Future<void> revokeDeviceTrust(Ref ref) async {
-    final prefs = ref.read(sharedPreferencesProvider);
-    await prefs.remove('device_trusted');
+    final secureStorage = ref.read(secureStorageProvider);
+    await secureStorage.delete(key: 'device_trusted_secure');
     logSecurityEvent(
       type: SecurityEventType.deviceRevoked,
-      details: 'Device trust revoked',
+      details: 'Device trust revoked from secure storage',
     );
   }
 }
