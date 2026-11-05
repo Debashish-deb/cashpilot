@@ -28,12 +28,20 @@ class AuthService {
       'releaseMode': kReleaseMode,
     });
 
-    // P0 SECURITY: Release builds must use live Supabase config
-    assert(
-      !kReleaseMode || (SupabaseConfig.liveUrl.isNotEmpty && SupabaseConfig.liveAnonKey.isNotEmpty),
-      'FATAL: Release builds must have live Supabase configuration. '
-      'Set liveUrl and liveAnonKey in SupabaseConfig or use dart-define.'
-    );
+    // P0 SECURITY: Enforce HTTPS to prevent cleartext transport & MITM downgrade attacks
+    if (!SupabaseConfig.activeUrl.startsWith('https://')) {
+      throw StateError(
+        'Insecure cleartext HTTP URL detected for Supabase: ${SupabaseConfig.activeUrl}. HTTPS is required.'
+      );
+    }
+
+    // P0 SECURITY: Runtime guard for production builds
+    if (kReleaseMode && (SupabaseConfig.liveUrl.isEmpty || SupabaseConfig.liveAnonKey.isEmpty)) {
+      _logger.warning(
+        'SECURITY ALERT: Release build is running with fallback Supabase config. '
+        'Ensure liveUrl and liveAnonKey are provided in production.'
+      );
+    }
 
     // CRITICAL: Use certificate pinning in production
     final httpClient = kReleaseMode 

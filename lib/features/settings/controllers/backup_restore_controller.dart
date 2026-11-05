@@ -7,6 +7,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../services/security/key_manager.dart';
+
 import '../../../data/drift/app_database.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/mixins/error_handler_mixin.dart';
@@ -103,8 +105,7 @@ class BackupRestoreController with ErrorHandlerMixin {
   Future<BackupFileResult> analyzeBackup(XFile file) async {
     try {
       final content = await file.readAsString();
-      
-      final backup = jsonDecode(content) as Map<String, dynamic>;
+      final backup = await _parseBackupContent(content);
       final manifest = backup['manifest'] as Map<String, dynamic>;
       final data = backup['data'] as Map<String, dynamic>;
 
@@ -135,6 +136,21 @@ class BackupRestoreController with ErrorHandlerMixin {
     }
   }
 
+  /// Helper to decrypt and parse backup payload if encrypted
+  Future<Map<String, dynamic>> _parseBackupContent(String content) async {
+    final parsed = jsonDecode(content) as Map<String, dynamic>;
+    if (parsed['encrypted'] == true && parsed['payload'] is String) {
+      final keyManager = KeyManager();
+      await keyManager.initialize();
+      final decryptedJson = await keyManager.decryptData(
+        parsed['payload'] as String,
+        keyType: KeyType.backupKey,
+      );
+      return jsonDecode(decryptedJson) as Map<String, dynamic>;
+    }
+    return parsed;
+  }
+
   /// Restore from backup file
   Future<RestoreResult> restoreBackup(XFile file, RestoreMode mode) async {
     try {
@@ -155,9 +171,9 @@ class BackupRestoreController with ErrorHandlerMixin {
       await createBackup(scope: BackupScope.full);
       debugPrint('[Restore] Safety snapshot created');
 
-      // Parse backup
+      // Parse backup (handling encrypted envelope if present)
       final content = await file.readAsString();
-      final backup = jsonDecode(content) as Map<String, dynamic>;
+      final backup = await _parseBackupContent(content);
       final data = backup['data'] as Map<String, dynamic>;
 
       // Restore in transaction

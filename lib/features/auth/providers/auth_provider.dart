@@ -70,25 +70,30 @@ class AuthNotifier extends StateNotifier<AuthState> {
         final currentUserIdNotifier = ref.read(currentUserIdProvider.notifier);
         if (ref.read(currentUserIdProvider) != session.user.id) {
           await currentUserIdNotifier.setUserId(session.user.id);
-          debugPrint('🔐 AuthNotifier: Set currentUserId to ${session.user.id}');
         }
         
         // Then sync user data (can happen async)
         _syncUserToLocal(session.user);
         
-        // CRITICAL: Unlock session after OAuth login (Google, Apple, etc.)
-        // This prevents biometric lock screen from blocking access
-        Future.microtask(() {
-          ref.read(sessionUnlockedProvider.notifier).state = true;
-          debugPrint('🔐 AuthNotifier: Session unlocked after OAuth login');
-        });
+        // Unlock session only on fresh interactive login (OAuth/credentials)
+        // Never auto-unlock background token refreshes or initial session if app lock is active
+        final appLockEnabled = ref.read(appLockEnabledProvider);
+        final biometricEnabled = ref.read(biometricEnabledProvider);
+        final requiresLock = appLockEnabled && biometricEnabled;
+
+        if (event == AuthChangeEvent.signedIn || !requiresLock) {
+          Future.microtask(() {
+            ref.read(sessionUnlockedProvider.notifier).state = true;
+            debugPrint('🔐 AuthNotifier: Session unlocked after interactive login or lock disabled');
+          });
+        }
         
         // Finally update auth state
         state = AuthState(
           status: AuthStatus.authenticated,
           user: session.user,
         );
-        debugPrint('🔐 AuthNotifier: State set to authenticated for ${session.user.email}');
+        debugPrint('🔐 AuthNotifier: State set to authenticated');
       } else {
         state = const AuthState(status: AuthStatus.unauthenticated);
         debugPrint('🔐 AuthNotifier: State set to unauthenticated');
@@ -98,7 +103,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     // Check current session on startup
     final session = authService.currentSession;
     if (session != null) {
-      debugPrint('🔐 AuthNotifier: Found existing session for ${session.user.email}');
+      debugPrint('🔐 AuthNotifier: Found existing session on startup');
       
       // Set user ID first
       ref.read(currentUserIdProvider.notifier).setUserId(session.user.id);
@@ -106,12 +111,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // Sync user to local database on app start
       _syncUserToLocal(session.user);
       
-      // If existing session, user is already authenticated - unlock session
-      // Defer logic to avoid modifying provider during build
-      Future.microtask(() {
-        ref.read(sessionUnlockedProvider.notifier).state = true;
-        debugPrint('🔐 AuthNotifier: Session unlocked for existing session');
-      });
+      // Only unlock if app lock is NOT enabled; otherwise LockScreen must authenticate
+      final appLockEnabled = ref.read(appLockEnabledProvider);
+      final biometricEnabled = ref.read(biometricEnabledProvider);
+      if (!appLockEnabled || !biometricEnabled) {
+        Future.microtask(() {
+          ref.read(sessionUnlockedProvider.notifier).state = true;
+          debugPrint('🔐 AuthNotifier: Session unlocked on start (app lock disabled)');
+        });
+      }
       
       state = AuthState(
         status: AuthStatus.authenticated,

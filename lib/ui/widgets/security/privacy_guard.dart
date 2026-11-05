@@ -86,12 +86,13 @@ class _PrivacyGuardState extends State<PrivacyGuard>
       children: [
         widget.child,
 
-        // Security overlay
+        // Security overlay: Instant 0ms cover when backgrounding to prevent OS recent-apps snapshot leakage,
+        // smooth fade-out on resume
         IgnorePointer(
           ignoring: !_shouldBlur,
           child: AnimatedOpacity(
             opacity: _shouldBlur ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 180),
+            duration: _shouldBlur ? Duration.zero : const Duration(milliseconds: 180),
             curve: Curves.easeOut,
             child: _buildBlurOverlay(context),
           ),
@@ -110,8 +111,8 @@ class _PrivacyGuardState extends State<PrivacyGuard>
         sigmaY: 18,
       ),
       child: Container(
-        // Use a translucent color to prevent OCR / screenshot leaks
-        color: (isDark ? Colors.black : Colors.white).withOpacity(0.35),
+        // High opacity background to prevent OCR or screenshot threshold leakage
+        color: isDark ? const Color(0xE6121212) : const Color(0xE6F8F9FA),
         alignment: Alignment.center,
         child: Semantics(
           label: 'Content hidden for privacy',

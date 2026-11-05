@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
@@ -9,29 +10,44 @@ import '../logging/logger.dart';
 class CertificatePinner {
   static final _log = LoggerFactory.getLogger('Security');
 
+  /// Verify a certificate's SHA-256 fingerprint against allowed pins
+  static bool verifyFingerprint(X509Certificate cert, List<String> allowedShas) {
+    try {
+      final certDigest = sha256.convert(cert.der).toString().toUpperCase();
+      final normalizedCertDigest = certDigest.replaceAll(':', '').replaceAll(' ', '');
+
+      for (final sha in allowedShas) {
+        final normalizedSha = sha.replaceAll(':', '').replaceAll(' ', '').toUpperCase();
+        if (normalizedCertDigest == normalizedSha) {
+          return true;
+        }
+      }
+      return false;
+    } catch (e) {
+      _log.error('Fingerprint extraction failed: $e');
+      return false;
+    }
+  }
+
   /// Create an HttpClient with pinned certificates
   /// [allowedShas] is a list of SHA-256 fingerprints of the allowed certificates
-  static Future<http.Client> createPinnedClient(List<String> allowedShas) async {
-    final SecurityContext context = SecurityContext(withTrustedRoots: true);
-
-    // In a real production app, you would load the .pem or .der file from assets
-    // and add it to the context:
-    // final certData = await rootBundle.load('assets/certs/supabase.pem');
-    // context.setTrustedCertificatesBytes(certData.buffer.asUint8List());
+  static Future<http.Client> createPinnedClient(
+    List<String> allowedShas, {
+    bool enforceStrictPinning = false,
+  }) async {
+    final SecurityContext context = SecurityContext(withTrustedRoots: !enforceStrictPinning);
 
     final ioClient = HttpClient(context: context);
     
     // Custom validation logic for pinning fingerprints
     ioClient.badCertificateCallback = (X509Certificate cert, String host, int port) {
-      // Logic for certificate pinning:
-      // 1. Get cert fingerprint
-      // 2. Compare against allowedShas
-      // 3. Return true only if it matches
-      
-      // For now, we log and deny if suspicious, but allow if it matches a fingerprinting scheme
-      // (Simplified for implementation demonstration)
-      _log.warning('Certificate validation for $host: ${cert.subject}');
-      return false; // Default to deny if not explicitly trusted
+      final isPinned = verifyFingerprint(cert, allowedShas);
+      if (isPinned) {
+        _log.info('Certificate verified against pin for $host');
+        return true;
+      }
+      _log.warning('Untrusted/unpinned certificate rejected for $host: ${cert.subject}');
+      return false;
     };
 
     return IOClient(ioClient);

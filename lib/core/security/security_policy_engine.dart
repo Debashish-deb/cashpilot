@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:safe_device/safe_device.dart';
 
@@ -9,6 +10,32 @@ class SecurityPolicyEngine {
   static final SecurityPolicyEngine _instance = SecurityPolicyEngine._internal();
   factory SecurityPolicyEngine() => _instance;
   SecurityPolicyEngine._internal();
+
+  static const List<String> _commonRootPaths = [
+    '/system/app/Superuser.apk',
+    '/sbin/su',
+    '/system/bin/su',
+    '/system/xbin/su',
+    '/data/local/xbin/su',
+    '/data/local/bin/su',
+    '/system/sd/xbin/su',
+    '/system/bin/failsafe/su',
+    '/data/local/su',
+    '/su/bin/su',
+    '/system/bin/.ext/.su',
+  ];
+
+  bool _detectRootFilesystemSignals() {
+    if (kIsWeb || !Platform.isAndroid) return false;
+    try {
+      for (final path in _commonRootPaths) {
+        if (File(path).existsSync()) {
+          return true;
+        }
+      }
+    } catch (_) {}
+    return false;
+  }
 
   /// Comprehensive device integrity report
   Future<DeviceIntegrityReport> evaluateIntegrity() async {
@@ -24,14 +51,19 @@ class SecurityPolicyEngine {
       final bool isDevMode = results[3];
       final bool isEmulator = !(results[1]);
       final bool isOnExternal = results[2];
+      final bool fsRootDetected = _detectRootFilesystemSignals();
+      final bool isRootedOrCompromised = isJailbroken || fsRootDetected;
 
       // Compute Trust Score (0.0 - 1.0)
       double score = 1.0;
       final List<String> signals = [];
 
-      if (isJailbroken) {
+      if (isRootedOrCompromised) {
         score -= 0.8;
         signals.add('ROOT_TAMPER_DETECTED');
+        if (fsRootDetected && !isJailbroken) {
+          signals.add('ROOT_BINARY_LOCATED');
+        }
       }
       if (isEmulator && !kDebugMode) {
         score -= 0.4;
@@ -48,7 +80,7 @@ class SecurityPolicyEngine {
 
       return DeviceIntegrityReport(
         trustScore: score.clamp(0.0, 1.0),
-        isCompromised: isJailbroken && !kDebugMode, // Only block if strictly non-debug
+        isCompromised: isRootedOrCompromised && !kDebugMode, // Only block if strictly non-debug
         signals: signals,
         evaluatedAt: DateTime.now(),
       );

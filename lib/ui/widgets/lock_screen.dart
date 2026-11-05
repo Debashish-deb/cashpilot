@@ -100,16 +100,13 @@ class _LockScreenState extends ConsumerState<LockScreen>
 
       if (timeout == -1) return; // never auto-lock
 
-      final shouldLock = !isUnlocked && (pausedAt == null ||
+      final isTimedOut = pausedAt == null ||
           timeout == 0 ||
-          DateTime.now().difference(pausedAt).inSeconds >= timeout);
+          DateTime.now().difference(pausedAt).inSeconds >= timeout;
 
-      if (shouldLock) {
+      if (isTimedOut) {
         debugPrint('[LockScreen] Locking app on resume (timeout reached)');
-        // Ensure state is false before we show the UI
-        if (isUnlocked) {
-          ref.read(sessionUnlockedProvider.notifier).state = false;
-        }
+        ref.read(sessionUnlockedProvider.notifier).state = false;
         _errorMessage = null;
         _failedAttempts = 0;
         _attemptUnlock();

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
@@ -80,7 +81,9 @@ class IntentSigningService {
     
     String? secret = await _secureStorage.read(key: _signingKeyName);
     if (secret == null) {
-      secret = const Uuid().v4(); // In production, this would be a high-entropy key
+      final random = Random.secure();
+      final bytes = List<int>.generate(32, (_) => random.nextInt(256));
+      secret = base64Encode(bytes);
       await _secureStorage.write(key: _signingKeyName, value: secret);
     }
     

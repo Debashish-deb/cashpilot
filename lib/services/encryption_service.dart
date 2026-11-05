@@ -145,7 +145,9 @@ class EncryptionService {
   /// Format: v{version}:{iv}:{ciphertext}
   String encryptString(String plainText) {
     _checkInitialized();
-    if (_isCompromised) return plainText;
+    if (_isCompromised) {
+      throw StateError('Cannot encrypt data: device security integrity is compromised.');
+    }
     if (plainText.isEmpty) return plainText;
     
     try {
@@ -154,7 +156,7 @@ class EncryptionService {
       return 'v$_currentVersion:${iv.base64}:${encrypted.base64}';
     } catch (e) {
       debugPrint('Encryption error: $e');
-      return plainText; 
+      throw StateError('Encryption operation failed securely: $e');
     }
   }
 

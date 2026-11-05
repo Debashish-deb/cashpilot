@@ -298,22 +298,26 @@ class SecurityManager {
   /// Encrypt sensitive data
   String encryptData(String plaintext) {
     try {
-      if (!encryptionService.isReady) return plaintext; // fail-open locally
+      if (!encryptionService.isReady) {
+        throw StateError('Encryption service is not initialized');
+      }
       return encryptionService.encryptString(plaintext);
     } catch (e) {
-      debugPrint('⚠️ encryptData failed: $e');
-      return plaintext;
+      debugPrint('⚠️ encryptData failed securely: $e');
+      rethrow;
     }
   }
 
   /// Decrypt sensitive data
   String decryptData(String ciphertext) {
     try {
-      if (!encryptionService.isReady) return ciphertext; // fail-open locally
+      if (!encryptionService.isReady) {
+        throw StateError('Encryption service is not initialized');
+      }
       return encryptionService.decryptString(ciphertext);
     } catch (e) {
-      debugPrint('⚠️ decryptData failed: $e');
-      return ciphertext;
+      debugPrint('⚠️ decryptData failed securely: $e');
+      rethrow;
     }
   }
 
