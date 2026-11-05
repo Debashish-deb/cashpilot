@@ -22,29 +22,28 @@ class PercentageCalculator {
 
   /// Calculate percentage change from old to new
   static Decimal change({required Money oldValue, required Money newValue}) {
-    if (oldValue.cents == 0) {
-      return newValue.cents > 0 ? Decimal.fromInt(100) : Decimal.zero;
-    }
-    
     if (oldValue.currency != newValue.currency) {
       throw PercentageException('Currency mismatch in change calculation');
+    }
+
+    if (oldValue.cents == 0) {
+      if (newValue.cents == 0) return Decimal.zero;
+      return newValue.cents > 0 ? Decimal.fromInt(100) : Decimal.fromInt(-100);
     }
 
     // ((new - old) / old) * 100
     final diff = newValue.cents - oldValue.cents;
     return (Decimal.fromInt(diff).toRational() / 
-            Decimal.fromInt(oldValue.cents).toRational() * 
+            Decimal.fromInt(oldValue.cents.abs()).toRational() * 
             Rational.fromInt(100))
         .toDecimal(scaleOnInfinitePrecision: 4);
   }
 
-  /// Apply a percentage to a base amount
+  /// Apply a percentage to a base amount with standard rounding
   static Money applyPercentage({required Money base, required Decimal percentage}) {
     final product = base.cents.toRational() * percentage.toRational();
-    final resultCents = (product / Rational.fromInt(100))
-        .toDecimal()
-        .toBigInt()
-        .toInt();
+    final rationalShare = product / Rational.fromInt(100);
+    final resultCents = rationalShare.toDouble().round();
         
     return Money(resultCents, base.currency);
   }
@@ -65,17 +64,22 @@ class PercentageCalculator {
 
     for (var p in percentages) {
       final product = total.cents.toRational() * p.toRational();
-      final share = (product / Rational.fromInt(100))
-          .toDecimal()
-          .toBigInt()
-          .toInt();
+      final share = (product / Rational.fromInt(100)).toDouble().round();
       results.add(share);
       remainingCents -= share;
     }
 
-    // Distribute remaining cents due to rounding
-    for (var i = 0; i < remainingCents; i++) {
-      results[i]++;
+    // Distribute remaining cents due to rounding safely
+    var i = 0;
+    while (remainingCents > 0) {
+      results[i % results.length]++;
+      remainingCents--;
+      i++;
+    }
+    while (remainingCents < 0) {
+      results[i % results.length]--;
+      remainingCents++;
+      i++;
     }
 
     return results.map((c) => Money(c, total.currency)).toList();

@@ -27,7 +27,9 @@ class SavingsGoalCard extends ConsumerWidget {
       symbol: goal.currency, // Added symbol for currency formatting
       decimalDigits: 0, // Assuming whole numbers for currency display
     );
-    final percent = (goal.currentAmount / goal.targetAmount).clamp(0.0, 1.0);
+    final percent = goal.targetAmount > 0 
+        ? (goal.currentAmount / goal.targetAmount).clamp(0.0, 1.0) 
+        : 0.0;
     final color = goal.colorHex != null 
         ? Color(int.parse(goal.colorHex!.replaceFirst('#', '0xFF'))) 
         : theme.primaryColor;

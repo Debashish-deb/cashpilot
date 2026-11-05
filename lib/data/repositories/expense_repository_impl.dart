@@ -248,6 +248,13 @@ class ExpenseRepositoryImpl implements IExpenseRepository {
     String? merchantName,
     String? notes,
   }) async {
+    final splitSum = splits.fold<int>(0, (sum, s) => sum + s.amount);
+    if (splitSum != totalAmount) {
+      throw ArgumentError(
+        'Split amounts sum ($splitSum) does not match total amount ($totalAmount)',
+      );
+    }
+
     final id = _uuid.v4();
 
     await _db.createSplitExpense(

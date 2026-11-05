@@ -27,11 +27,34 @@ class FormatManager {
   // CURRENCY
   // ---------------------------------------------------------------------------
 
+  int getCurrencyDecimalDigits(String code) {
+    switch (code.toUpperCase()) {
+      case 'JPY':
+        return 0;
+      case 'BHD':
+      case 'KWD':
+      case 'OMR':
+        return 3;
+      default:
+        return 2;
+    }
+  }
+
+  double centsToMajorUnits(num cents, {String currencyCode = 'EUR'}) {
+    final decimals = getCurrencyDecimalDigits(currencyCode);
+    num factor = 1;
+    for (int i = 0; i < decimals; i++) {
+      factor *= 10;
+    }
+    return cents / factor;
+  }
+
   String formatCurrency(
     double amount, {
     String currencyCode = 'EUR',
-    int decimalDigits = 2,
+    int? decimalDigits,
   }) {
+    final digits = decimalDigits ?? getCurrencyDecimalDigits(currencyCode);
     try {
       if (!amount.isFinite) {
         return '—';
@@ -42,7 +65,7 @@ class FormatManager {
         return BengaliNumerals.formatCurrency(
           amount,
           symbol: _getCurrencySymbol(currencyCode),
-          decimalDigits: decimalDigits,
+          decimalDigits: digits,
           useIndianGrouping: true,
         );
       }
@@ -50,27 +73,42 @@ class FormatManager {
       final format = NumberFormat.currency(
         locale: locale,
         symbol: _getCurrencySymbol(currencyCode),
-        decimalDigits: decimalDigits,
+        decimalDigits: digits,
       );
 
       return format.format(amount);
     } catch (_) {
       // Absolute fallback — formatting must never crash UI
-      final fallback = '${_getCurrencySymbol(currencyCode)}${amount.toStringAsFixed(decimalDigits)}';
+      final fallback = '${_getCurrencySymbol(currencyCode)}${amount.toStringAsFixed(digits)}';
       return locale == 'bn' ? BengaliNumerals.toBengali(fallback) : fallback;
     }
   }
 
-  /// Format cents from BigInt directly
+  /// Format cents from BigInt directly respecting currency precision
   String formatCents(
     BigInt cents, {
     String currencyCode = 'EUR',
-    int decimalDigits = 2,
+    int? decimalDigits,
   }) {
+    final digits = decimalDigits ?? getCurrencyDecimalDigits(currencyCode);
     return formatCurrency(
-      cents.toDouble() / 100.0,
+      centsToMajorUnits(cents.toDouble(), currencyCode: currencyCode),
       currencyCode: currencyCode,
-      decimalDigits: decimalDigits,
+      decimalDigits: digits,
+    );
+  }
+
+  /// Format cents from int directly respecting currency precision
+  String formatIntCents(
+    int cents, {
+    String currencyCode = 'EUR',
+    int? decimalDigits,
+  }) {
+    final digits = decimalDigits ?? getCurrencyDecimalDigits(currencyCode);
+    return formatCurrency(
+      centsToMajorUnits(cents, currencyCode: currencyCode),
+      currencyCode: currencyCode,
+      decimalDigits: digits,
     );
   }
 

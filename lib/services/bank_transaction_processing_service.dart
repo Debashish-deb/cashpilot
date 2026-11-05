@@ -168,7 +168,7 @@ class BankTransactionProcessingService {
             budgetId: budgetId,
             enteredBy: userId,
             title: pt.normalizedMerchant,
-            amount: (raw.amount.abs() * 100).toInt(), // Convert to cents
+            amount: (raw.amount.abs() * 100).round(), // Convert to cents with standard rounding
             currency: Value(raw.currency),
             date: raw.bookingDate,
             merchantName: Value(pt.normalizedMerchant),
@@ -176,6 +176,7 @@ class BankTransactionProcessingService {
             source: const Value('bank_sync'),
             isVerified: const Value(false), // Needs user review
             isRefund: Value(pt.isRefund),
+            isTransfer: Value(pt.isTransfer),
             syncState: const Value('dirty'),
             createdAt: Value(DateTime.now()),
             updatedAt: Value(DateTime.now()),

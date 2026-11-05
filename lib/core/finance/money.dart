@@ -49,11 +49,18 @@ class Money {
 
   const Money(this.cents, this.currency);
 
-  /// Parse from string (e.g., "100.50", "$1,000.00")
-  factory Money.parse(String amount, Currency currency) {
+  /// Parse from string (e.g., "100.50", "$1,000.00", "-$50.00", "($50.00)")
+  factory Money.parse(String amount, Currency currency, {bool allowNegative = true}) {
     try {
-      // Clean string: remove symbols, commas, spaces
-      String cleaned = amount.replaceAll(RegExp(r'[^\d.]'), '');
+      final trimmed = amount.trim();
+      final isNegative = trimmed.startsWith('-') || 
+                         trimmed.contains('-\$') || 
+                         trimmed.contains('\$-') ||
+                         trimmed.contains('- ') ||
+                         (trimmed.startsWith('(') && trimmed.endsWith(')'));
+
+      // Clean string: retain digits and decimal point
+      String cleaned = trimmed.replaceAll(RegExp(r'[^\d.]'), '');
       
       if (cleaned.isEmpty) throw MoneyParseException('Empty amount');
       
@@ -63,12 +70,22 @@ class Money {
       // Convert to cents based on currency precision
       final factor = BigInt.from(10).pow(currency.decimalPlaces);
       final product = decimal * Decimal.fromBigInt(factor);
-      final centsValue = (product is Decimal ? product : (product as Rational).toDecimal()).toBigInt().toInt();
+      var centsValue = product.toBigInt().toInt();
       
-      if (centsValue < 0) throw MoneyParseException('Negative amount not allowed');
-      if (centsValue > 1000000000000) throw MoneyParseException('Amount too large');
+      if (isNegative) {
+        centsValue = -centsValue;
+      }
+
+      if (!allowNegative && centsValue < 0) {
+        throw MoneyParseException('Negative amount not allowed');
+      }
+      if (centsValue.abs() > 1000000000000) {
+        throw MoneyParseException('Amount too large');
+      }
       
       return Money(centsValue, currency);
+    } on MoneyParseException {
+      rethrow;
     } catch (e) {
       throw MoneyParseException('Invalid money format: $amount');
     }
@@ -76,6 +93,15 @@ class Money {
 
   /// Zero amount in specified currency
   factory Money.zero(Currency currency) => Money(0, currency);
+
+  /// Returns true if this amount is strictly negative
+  bool get isNegative => cents < 0;
+
+  /// Absolute value of this money
+  Money abs() => Money(cents.abs(), currency);
+
+  /// Unary negation
+  Money operator -() => Money(-cents, currency);
 
   // Arithmetic operations
   Money operator +(Money other) {
@@ -85,16 +111,14 @@ class Money {
 
   Money operator -(Money other) {
     _checkCurrency(other);
-    if (cents < other.cents) {
-      throw MoneyOperationException('Resulting amount cannot be negative');
-    }
     return Money(cents - other.cents, currency);
   }
 
   Money operator *(num factor) {
     final product = Decimal.fromInt(cents).toRational() * 
                    Decimal.parse(factor.toString()).toRational();
-    final result = product.toDecimal().toBigInt().toInt();
+    final doubleVal = (product.toDecimal(scaleOnInfinitePrecision: 8)).toDouble();
+    final result = doubleVal.round();
     return Money(result, currency);
   }
 
@@ -105,10 +129,10 @@ class Money {
         .toDecimal(scaleOnInfinitePrecision: 4);
   }
 
-  /// Calculate percentage of this money
+  /// Calculate percentage of this money (allows percentages > 100%)
   Money percentage(num percent) {
-    if (percent < 0 || percent > 100) {
-      throw MoneyOperationException('Percentage must be between 0 and 100');
+    if (percent < 0) {
+      throw MoneyOperationException('Percentage cannot be negative');
     }
     return this * (percent / 100);
   }
@@ -130,18 +154,41 @@ class Money {
     }
     
     // Distribute remainder (cents) to targets to maintain integrity
-    for (var i = 0; i < remainder; i++) {
-      results[i]++;
+    var i = 0;
+    while (remainder > 0) {
+      results[i % results.length]++;
+      remainder--;
+      i++;
+    }
+    while (remainder < 0) {
+      results[i % results.length]--;
+      remainder++;
+      i++;
     }
     
     return results.map((c) => Money(c, currency)).toList();
   }
 
   /// Comparison
-  bool operator >(Money other) => cents > other.cents && currency == other.currency;
-  bool operator <(Money other) => cents < other.cents && currency == other.currency;
-  bool operator >=(Money other) => cents >= other.cents && currency == other.currency;
-  bool operator <=(Money other) => cents <= other.cents && currency == other.currency;
+  bool operator >(Money other) {
+    _checkCurrency(other);
+    return cents > other.cents;
+  }
+
+  bool operator <(Money other) {
+    _checkCurrency(other);
+    return cents < other.cents;
+  }
+
+  bool operator >=(Money other) {
+    _checkCurrency(other);
+    return cents >= other.cents;
+  }
+
+  bool operator <=(Money other) {
+    _checkCurrency(other);
+    return cents <= other.cents;
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -172,6 +219,9 @@ class Money {
 
   /// Create from double (e.g., 100.50)
   factory Money.fromDouble(double amount, Currency currency) {
+    if (!amount.isFinite) {
+      throw MoneyParseException('Amount must be finite, got $amount');
+    }
     final factor = pow(10, currency.decimalPlaces);
     return Money((amount * factor).round(), currency);
   }

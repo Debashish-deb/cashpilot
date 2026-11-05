@@ -79,7 +79,7 @@ class _ContributeDialogState extends ConsumerState<ContributeDialog> {
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
-      final amount = (double.parse(_amountController.text) * 100).toInt(); // Convert to cents
+      final amount = (double.parse(_amountController.text) * 100).round(); // Convert to cents with rounding
       final userId = ref.read(authServiceProvider).currentUser?.id ?? 'unknown';
 
       final cmd = ContributeToGoalCmd(

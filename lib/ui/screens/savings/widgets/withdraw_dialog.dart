@@ -74,7 +74,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
-      final amount = (double.parse(_amountController.text) * 100).toInt(); 
+      final amount = (double.parse(_amountController.text) * 100).round(); 
 
       final cmd = WithdrawFromGoalCmd(
         goalId: widget.goal.id,

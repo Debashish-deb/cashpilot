@@ -8,7 +8,7 @@ import 'dart:math';
 class ReceiptParser {
   ReceiptData parse(String raw) {
     final lines = _preprocess(raw);
-    if (lines.length < 3) return const ReceiptData();
+    if (lines.length < 2) return const ReceiptData();
 
     double? total;
     double? subtotal;
@@ -17,8 +17,11 @@ class ReceiptParser {
     String? merchant;
     String? currency;
 
+    final currencyRes = _detectCurrency(raw);
+    currency = currencyRes.value;
+
     // ... Extraction logic ...
-    final totalRes = _extractTotal(lines);
+    final totalRes = _extractTotal(lines, currencyHint: currency);
     if (totalRes != null) total = totalRes.value;
 
     final dateRes = _extractDate(raw);
@@ -27,14 +30,11 @@ class ReceiptParser {
     final merchantRes = _extractMerchant(lines);
     if (merchantRes != null) merchant = merchantRes.value;
 
-    final currencyRes = _detectCurrency(raw);
-    currency = currencyRes.value;
-
     if (total != null) {
-      final subRes = _extractSubtotal(lines, total);
+      final subRes = _extractSubtotal(lines, total, currencyHint: currency);
       if (subRes != null) subtotal = subRes.value;
 
-      final taxRes = _extractTax(lines, total);
+      final taxRes = _extractTax(lines, total, currencyHint: currency);
       if (taxRes != null) tax = taxRes.value;
     }
 
@@ -59,7 +59,7 @@ class ReceiptParser {
   // TOTAL EXTRACTION
   // ================================================================
 
-  ExtractionResult<double>? _extractTotal(List<String> lines) {
+  ExtractionResult<double>? _extractTotal(List<String> lines, {String? currencyHint}) {
     final regex = _priceRegex();
     final candidates = <ExtractionResult<double>>[];
 
@@ -70,7 +70,7 @@ class ReceiptParser {
       if (keywordScore <= 0) continue;
 
       for (final m in regex.allMatches(lines[i])) {
-        final price = _parsePrice(m.group(0)!);
+        final price = _parsePrice(m.group(0)!, currencyHint: currencyHint);
         if (price <= 0) continue;
 
         double confidence = 0.4 + keywordScore;
@@ -90,40 +90,47 @@ class ReceiptParser {
   }
 
   double _totalKeywordScore(String line) {
+    final lower = line.toLowerCase();
+    if (lower.contains('subtotal') || lower.contains('sub total') || lower.contains('sub-total')) {
+      return 0.0;
+    }
+    if (lower.contains('grand total') || lower.contains('total due') || lower.contains('amount due') || lower.contains('endbetrag')) {
+      return 0.9;
+    }
     const keywords = [
       'total',
+      'gesamt',
       'amount',
-      'grand',
-      'sum',
+      'summe',
       'balance',
       'due',
       'pay'
     ];
 
-    return keywords.any(line.contains) ? 0.5 : 0.0;
+    return keywords.any(lower.contains) ? 0.5 : 0.0;
   }
 
   // ================================================================
   // SUBTOTAL & TAX
   // ================================================================
 
-  ExtractionResult<double>? _extractSubtotal(List<String> lines, double total) {
-    return _extractByKeyword(lines, total, ['subtotal', 'net']);
+  ExtractionResult<double>? _extractSubtotal(List<String> lines, double total, {String? currencyHint}) {
+    return _extractByKeyword(lines, total, ['subtotal', 'net'], currencyHint: currencyHint);
   }
 
-  ExtractionResult<double>? _extractTax(List<String> lines, double total) {
-    return _extractByKeyword(lines, total, ['tax', 'vat', 'mwst', 'iva']);
+  ExtractionResult<double>? _extractTax(List<String> lines, double total, {String? currencyHint}) {
+    return _extractByKeyword(lines, total, ['tax', 'vat', 'mwst', 'iva'], currencyHint: currencyHint);
   }
 
   ExtractionResult<double>? _extractByKeyword(
-      List<String> lines, double total, List<String> keys) {
+      List<String> lines, double total, List<String> keys, {String? currencyHint}) {
     final regex = _priceRegex();
 
     for (final line in lines) {
       if (!keys.any(line.toLowerCase().contains)) continue;
 
       for (final m in regex.allMatches(line)) {
-        final val = _parsePrice(m.group(0)!);
+        final val = _parsePrice(m.group(0)!, currencyHint: currencyHint);
         if (val > 0 && val < total) {
           return ExtractionResult(val, 0.85, KeywordBasedStrategy);
         }
@@ -157,7 +164,19 @@ class ReceiptParser {
 
   String _normalizeDate(RegExpMatch m) {
     if (m.groupCount == 3) {
-      return "${m.group(1)}-${m.group(2)}-${m.group(3)}";
+      final g1 = m.group(1)!;
+      final g2 = m.group(2)!;
+      final g3 = m.group(3)!;
+      
+      // If group 1 is 4-digit year: YYYY-MM-DD
+      if (g1.length == 4) {
+        return "$g1-$g2-$g3";
+      }
+      // If group 3 is 4-digit year: DD/MM/YYYY -> YYYY-MM-DD
+      if (g3.length == 4) {
+        return "$g3-$g2-$g1";
+      }
+      return "$g1-$g2-$g3";
     }
     return "";
   }
@@ -199,17 +218,55 @@ class ReceiptParser {
 
   RegExp _priceRegex() {
     return RegExp(
-        r'([\$€£¥₹]?\s*\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)');
+      r'([\$€£¥₹]?\s*\d{1,3}(?:[.,\s]\d{3})*(?:[.,]\d{1,2})?|[\$€£¥₹]?\s*\d+(?:[.,]\d{1,2})?)',
+    );
   }
 
-  double _parsePrice(String raw) {
-    raw = raw.replaceAll(RegExp(r'[^\d.,]'), '');
-    if (raw.contains(',') && raw.contains('.')) {
-      raw = raw.replaceAll(',', '');
-    } else if (raw.contains(',')) {
-      raw = raw.replaceAll(',', '.');
+  double _parsePrice(String raw, {String? currencyHint}) {
+    final clean = raw.replaceAll(RegExp(r'[^\d.,]'), '').trim();
+    if (clean.isEmpty) return 0.0;
+
+    final hasComma = clean.contains(',');
+    final hasDot = clean.contains('.');
+
+    if (hasComma && hasDot) {
+      final lastComma = clean.lastIndexOf(',');
+      final lastDot = clean.lastIndexOf('.');
+      if (lastComma > lastDot) {
+        // European format: 1.250,50 -> 1250.50
+        final normalized = clean.replaceAll('.', '').replaceAll(',', '.');
+        return double.tryParse(normalized) ?? 0.0;
+      } else {
+        // US/UK format: 1,250.50 -> 1250.50
+        final normalized = clean.replaceAll(',', '');
+        return double.tryParse(normalized) ?? 0.0;
+      }
+    } else if (hasComma) {
+      final commaCount = ','.allMatches(clean).length;
+      if (commaCount > 1) {
+        return double.tryParse(clean.replaceAll(',', '')) ?? 0.0;
+      }
+      final parts = clean.split(',');
+      if (parts.length == 2 && parts[1].length == 3 && (currencyHint == 'USD' || raw.contains('\$'))) {
+        return double.tryParse(clean.replaceAll(',', '')) ?? 0.0;
+      }
+      // Comma as decimal separator: 12,50 -> 12.50
+      return double.tryParse(clean.replaceAll(',', '.')) ?? 0.0;
+    } else if (hasDot) {
+      final dotCount = '.'.allMatches(clean).length;
+      if (dotCount > 1) {
+        // European thousand separators: 1.000.000
+        return double.tryParse(clean.replaceAll('.', '')) ?? 0.0;
+      }
+      final parts = clean.split('.');
+      if (parts.length == 2 && parts[1].length == 3 && (currencyHint == 'EUR' || raw.contains('€'))) {
+        // European thousand separator: 1.250 € -> 1250
+        return double.tryParse(clean.replaceAll('.', '')) ?? 0.0;
+      }
+      return double.tryParse(clean) ?? 0.0;
     }
-    return double.tryParse(raw) ?? 0.0;
+
+    return double.tryParse(clean) ?? 0.0;
   }
 }
 

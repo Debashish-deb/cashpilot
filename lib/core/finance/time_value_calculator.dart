@@ -11,6 +11,12 @@ class TimeValueCalculator {
     required int years,
     int compoundsPerYear = 12,
   }) {
+    if (years < 0) throw ArgumentError('Years cannot be negative');
+    if (compoundsPerYear <= 0) throw ArgumentError('compoundsPerYear must be positive');
+    if (annualRate == Decimal.zero || years == 0) {
+      return presentValue;
+    }
+
     final r = annualRate.toDouble() / 100 / compoundsPerYear;
     final n = years * compoundsPerYear;
     
@@ -27,14 +33,26 @@ class TimeValueCalculator {
     required Decimal annualRate,
     required int months,
   }) {
+    if (months <= 0) {
+      throw ArgumentError('Loan term must be at least 1 month');
+    }
+    if (principal.cents <= 0) {
+      return Money.zero(principal.currency);
+    }
+
     if (annualRate == Decimal.zero) {
       return Money((principal.cents / months).round(), principal.currency);
     }
 
     final r = annualRate.toDouble() / 100 / 12;
     final n = months;
+    final powFactor = math.pow(1 + r, n);
     
-    final pmtFactor = (r * math.pow(1 + r, n)) / (math.pow(1 + r, n) - 1);
+    if (powFactor == 1) {
+      return Money((principal.cents / months).round(), principal.currency);
+    }
+    
+    final pmtFactor = (r * powFactor) / (powFactor - 1);
     final pmtCents = (principal.cents * pmtFactor).round();
     
     return Money(pmtCents, principal.currency);
@@ -47,15 +65,30 @@ class TimeValueCalculator {
     required Money targetAmount,
     required Decimal annualRate,
     int compoundsPerYear = 12,
+    Money? monthlyContribution,
   }) {
-    if (currentAmount.cents == 0) return double.infinity;
-    if (targetAmount <= currentAmount) return 0;
+    if (targetAmount.cents <= currentAmount.cents) return 0.0;
+    if (compoundsPerYear <= 0) throw ArgumentError('compoundsPerYear must be positive');
+    
+    if (annualRate == Decimal.zero) {
+      if (monthlyContribution != null && monthlyContribution.cents > 0) {
+        final neededCents = targetAmount.cents - currentAmount.cents;
+        final months = neededCents / monthlyContribution.cents;
+        return months / 12.0;
+      }
+      return double.infinity;
+    }
+
+    if (currentAmount.cents <= 0) return double.infinity;
     
     final r = annualRate.toDouble() / 100 / compoundsPerYear;
     final fv = targetAmount.cents.toDouble();
     final pv = currentAmount.cents.toDouble();
+    final logDenominator = math.log(1 + r);
     
-    final periods = math.log(fv / pv) / math.log(1 + r);
+    if (logDenominator == 0) return double.infinity;
+
+    final periods = math.log(fv / pv) / logDenominator;
     return periods / compoundsPerYear;
   }
 
@@ -65,7 +98,14 @@ class TimeValueCalculator {
     required Money monthlyExtra,
     bool useAvalanche = true, // true for Interest Rate, false for Smallest Balance
   }) {
-    final sortedDebts = List<DebtAccount>.from(debts);
+    final activeDebts = debts.where((d) => d.balance.cents > 0).toList();
+    if (activeDebts.isEmpty) {
+      final currency = debts.isNotEmpty ? debts.first.balance.currency : Currency.USD;
+      return DebtPayoffResult(months: 0, totalInterest: Money.zero(currency));
+    }
+
+    final currency = activeDebts.first.balance.currency;
+    final sortedDebts = List<DebtAccount>.from(activeDebts);
     if (useAvalanche) {
       // Sort by interest rate descending
       sortedDebts.sort((a, b) => b.interestRate.compareTo(a.interestRate));
@@ -74,9 +114,9 @@ class TimeValueCalculator {
       sortedDebts.sort((a, b) => a.balance.cents.compareTo(b.balance.cents));
     }
 
-    final monthlyPayments = <String, Money>{};
+    final monthlyMinPayments = <String, int>{};
     for (var debt in debts) {
-      monthlyPayments[debt.id] = debt.minPayment;
+      monthlyMinPayments[debt.id] = debt.minPayment.cents;
     }
 
     var totalMonths = 0;
@@ -88,33 +128,51 @@ class TimeValueCalculator {
 
     while (currentBalances.values.any((b) => b > 0) && totalMonths < 600) { // 50 year cap
       totalMonths++;
-      var extraRemaining = monthlyExtra.cents;
+      var extraPool = monthlyExtra.cents;
 
+      // 1. Accrue interest & apply minimum payments
       for (var debt in sortedDebts) {
-        if (currentBalances[debt.id]! <= 0) continue;
-
-        // Calculate interest for this month
-        final monthlyRate = debt.interestRate.toDouble() / 100 / 12;
-        final interest = (currentBalances[debt.id]! * monthlyRate).round();
-        totalInterestCents += interest;
-        currentBalances[debt.id] = currentBalances[debt.id]! + interest;
-
-        // Apply min payment
-        var payment = math.min(currentBalances[debt.id]!, monthlyPayments[debt.id]!.cents);
-        currentBalances[debt.id] = currentBalances[debt.id]! - payment;
-
-        // If extra remains and this is the priority debt, apply it
-        if (extraRemaining > 0 && currentBalances[debt.id]! > 0) {
-          final extraPayment = math.min(currentBalances[debt.id]!, extraRemaining);
-          currentBalances[debt.id] = currentBalances[debt.id]! - extraPayment;
-          extraRemaining -= extraPayment;
+        final currentBal = currentBalances[debt.id]!;
+        if (currentBal <= 0) {
+          // Debt is paid off; its min payment cascades into the extra pool (Snowball effect)
+          extraPool += monthlyMinPayments[debt.id]!;
+          continue;
         }
+
+        // Calculate monthly interest
+        final monthlyRate = debt.interestRate.toDouble() / 100 / 12;
+        final interest = (currentBal * monthlyRate).round();
+        totalInterestCents += interest;
+        var newBal = currentBal + interest;
+
+        // Apply minimum payment
+        final minPay = monthlyMinPayments[debt.id]!;
+        final actualMinPayment = math.min(newBal, minPay);
+        newBal -= actualMinPayment;
+        currentBalances[debt.id] = newBal;
+
+        if (newBal == 0) {
+          // Any unused portion of min payment joins extra pool
+          final leftoverMin = minPay - actualMinPayment;
+          extraPool += leftoverMin;
+        }
+      }
+
+      // 2. Apply extra pool strictly to highest-priority debt first
+      for (var debt in sortedDebts) {
+        if (extraPool <= 0) break;
+        final currentBal = currentBalances[debt.id]!;
+        if (currentBal <= 0) continue;
+
+        final extraPayment = math.min(currentBal, extraPool);
+        currentBalances[debt.id] = currentBal - extraPayment;
+        extraPool -= extraPayment;
       }
     }
 
     return DebtPayoffResult(
       months: totalMonths,
-      totalInterest: Money(totalInterestCents, debts.first.balance.currency),
+      totalInterest: Money(totalInterestCents, currency),
     );
   }
 }
