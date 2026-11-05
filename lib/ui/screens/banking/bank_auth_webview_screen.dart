@@ -35,9 +35,23 @@ class _BankAuthWebViewScreenState extends State<BankAuthWebViewScreen> {
         onNavigationRequest: (request) {
           // Detect redirect back to app
           if (request.url.startsWith('cashpilot://bank/callback')) {
-            Navigator.pop(context, true); // Success
+            final uri = Uri.tryParse(request.url);
+            final callbackReq = uri?.queryParameters['req'] ?? uri?.queryParameters['ref'];
+            // Requisition verification against session fixation / CSRF
+            if (callbackReq == null || callbackReq == widget.requisitionId) {
+              Navigator.pop(context, true); // Verified match
+            } else {
+              Navigator.pop(context, false); // Mismatched callback
+            }
             return NavigationDecision.prevent;
           }
+
+          // Enforce HTTPS-only navigation in WebView
+          final reqUri = Uri.tryParse(request.url);
+          if (reqUri != null && reqUri.scheme != 'https' && !widget.authUrl.startsWith('mock://')) {
+            return NavigationDecision.prevent;
+          }
+
           return NavigationDecision.navigate;
         },
       ));
@@ -86,6 +100,13 @@ class _BankAuthWebViewScreenState extends State<BankAuthWebViewScreen> {
     ''';
     
     _controller.loadHtmlString(html);
+  }
+
+  @override
+  void dispose() {
+    _controller.clearCache();
+    WebViewCookieManager().clearCookies();
+    super.dispose();
   }
 
   @override

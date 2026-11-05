@@ -10,6 +10,7 @@ import '../../core/providers/app_providers.dart';
 import '../../core/managers/auth_manager.dart';
 import '../../services/biometric_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/security/session_timeout_manager.dart';
 
 class LockScreen extends ConsumerStatefulWidget {
   final Widget child;
@@ -80,6 +81,7 @@ class _LockScreenState extends ConsumerState<LockScreen>
       // This prevents the "app visible for 1 frame" flicker on resume.
       if (timeout == 0) {
         ref.read(sessionUnlockedProvider.notifier).state = false;
+        SessionTimeoutManager().clearClipboard();
       }
       
       // Only update timestamp when fully paused
@@ -108,6 +110,7 @@ class _LockScreenState extends ConsumerState<LockScreen>
       if (isTimedOut) {
         debugPrint('[LockScreen] Locking app on resume (timeout reached)');
         ref.read(sessionUnlockedProvider.notifier).state = false;
+        SessionTimeoutManager().clearClipboard();
         _errorMessage = null;
         _failedAttempts = 0;
         _attemptUnlock();

@@ -21,6 +21,7 @@ import '../../../features/barcode/viewmodels/barcode_scan_viewmodel.dart';
 
 import '../../../core/managers/managers.dart';
 import '../../../services/analytics_tracking_service.dart';
+import '../../../services/security/session_timeout_manager.dart';
 class BarcodeScanScreen extends ConsumerStatefulWidget {
   const BarcodeScanScreen({super.key});
 
@@ -1160,6 +1161,8 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen>
 
   void _copyToClipboard(String text) async {
     await Clipboard.setData(ClipboardData(text: text));
+    // MASVS-STORAGE: auto-clear clipboard after 30 seconds
+    SessionTimeoutManager().scheduleClipboardClear();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.commonCopied)),

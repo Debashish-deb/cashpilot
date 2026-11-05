@@ -886,9 +886,15 @@ class _BudgetListScreenState extends ConsumerState<BudgetListScreen>
         final status = isActive ? 'Active' : isUpcoming ? 'Upcoming' : 'Past';
         final remaining = (budget.totalLimit ?? 0) / 100;
         
+        // Neutralize CSV formula injection (CWE-1236)
+        String sanitizeCsv(String val) {
+          const dangerous = ['=', '+', '-', '@', '\t', '\r'];
+          return dangerous.any((d) => val.startsWith(d)) ? "'$val" : val;
+        }
+
         csvData.add([
-          budget.title,
-          budget.notes ?? '',
+          sanitizeCsv(budget.title),
+          sanitizeCsv(budget.notes ?? ''),
           DateFormat('yyyy-MM-dd').format(budget.startDate),
           DateFormat('yyyy-MM-dd').format(budget.endDate),
           (budget.totalLimit ?? 0) / 100,

@@ -97,12 +97,12 @@ class ExportService {
       for (final e in expenses) {
         rows.add([
           _formatDate(e.date),
-          e.title,
+          _sanitizeCsvCell(e.title),
           _formatAmount(e.amount),
-          e.categoryId ?? '',
-          e.accountId ?? '',
-          e.notes ?? '',
-          e.paymentMethod,
+          _sanitizeCsvCell(e.categoryId ?? ''),
+          _sanitizeCsvCell(e.accountId ?? ''),
+          _sanitizeCsvCell(e.notes ?? ''),
+          _sanitizeCsvCell(e.paymentMethod),
           e.isRecurring ? 'Yes' : 'No',
         ]);
       }
@@ -143,5 +143,17 @@ class ExportService {
 
   String _formatAmount(int cents) {
     return (cents / 100).toStringAsFixed(2);
+  }
+
+  /// Neutralizes spreadsheet formula injection (CWE-1236 / OWASP MASVS)
+  static dynamic _sanitizeCsvCell(dynamic value) {
+    if (value == null) return '';
+    final str = value.toString();
+    if (str.isEmpty) return str;
+    const dangerousPrefixes = ['=', '+', '-', '@', '\t', '\r'];
+    if (dangerousPrefixes.any((prefix) => str.startsWith(prefix))) {
+      return "'$str";
+    }
+    return str;
   }
 }

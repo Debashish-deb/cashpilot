@@ -27,9 +27,9 @@ class PlatformBackupService implements BackupService {
         'payload': encryptedData,
       };
       payloadToWrite = jsonEncode(envelope);
-    } catch (_) {
-      // If secure storage / key manager is unavailable, fallback to direct payload
-      payloadToWrite = jsonData;
+    } catch (e) {
+      // Fail-secure (OWASP MASVS-CRYPTO): never write sensitive financial records unencrypted
+      throw StateError('Failed to create encrypted backup: $e');
     }
 
     await file.writeAsString(payloadToWrite);
