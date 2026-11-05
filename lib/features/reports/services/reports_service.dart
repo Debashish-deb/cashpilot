@@ -76,7 +76,7 @@ class ReportsService {
         subName = subCategoryMap[e.subCategoryId]?.name;
       }
 
-      _addToBreakdown(breakdown, parentName, e.amountCents, subcategoryName: subName);
+      _addToBreakdown(breakdown, parentName, _getExpenseAmountCents(e), subcategoryName: subName);
     }
     
     // Sort by total value descending
@@ -113,7 +113,7 @@ class ReportsService {
     for (var e in expenses) {
       final dateKey = DateTime(e.date.year, e.date.month, e.date.day);
       if (dailyTotals.containsKey(dateKey)) {
-        dailyTotals[dateKey] = (dailyTotals[dateKey] ?? 0) + e.amountCents.toDouble();
+        dailyTotals[dateKey] = (dailyTotals[dateKey] ?? 0) + _getExpenseAmountCents(e).toDouble();
       }
     }
 
@@ -222,12 +222,16 @@ class ReportsService {
     if (expenses.isEmpty) return (density: 0.0, avgSize: 0.0);
 
     final totalCount = expenses.length;
-    final impulseCount = expenses.where((e) => e.amountCents < BigInt.from(thresholdCents)).length;
-    final totalAmount = expenses.fold<BigInt>(BigInt.zero, (sum, e) => sum + e.amountCents);
+    final impulseCount = expenses.where((e) => _getExpenseAmountCents(e) < BigInt.from(thresholdCents)).length;
+    final totalAmount = expenses.fold<BigInt>(BigInt.zero, (sum, e) => sum + _getExpenseAmountCents(e));
 
     return (
       density: impulseCount / totalCount,
       avgSize: totalAmount.toDouble() / totalCount,
     );
+  }
+
+  BigInt _getExpenseAmountCents(Expense e) {
+    return e.amountCents > BigInt.zero ? e.amountCents : BigInt.from(e.amount);
   }
 }

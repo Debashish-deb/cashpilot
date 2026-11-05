@@ -119,7 +119,10 @@ class ReportsViewModel extends AsyncNotifier<ReportsState> {
     final incomeBreakdown = _service.aggregateByCategory(expenses, categories, subCategories, type: 'income');
     final trendData = _service.prepareTrendData(expenses, range.start, range.end);
     
-    final totalSpent = expenses.fold<BigInt>(BigInt.zero, (sum, e) => sum + e.amountCents);
+    final totalSpent = expenses.fold<BigInt>(
+      BigInt.zero,
+      (sum, e) => sum + (e.amountCents > BigInt.zero ? e.amountCents : BigInt.from(e.amount)),
+    );
     
     final days = range.end.difference(range.start).inDays + 1;
     final dailyAverage = days > 0 ? totalSpent.toDouble() / days : 0.0;
@@ -131,13 +134,16 @@ class ReportsViewModel extends AsyncNotifier<ReportsState> {
     // Burn rate delta - compare against previous period of equal length
     final duration = range.end.difference(range.start);
     final prevStart = range.start.subtract(duration);
-    final prevEnd = range.start;
+    final prevEnd = range.start.subtract(const Duration(milliseconds: 1));
     final prevExpenses = await _repository.fetchExpensesInDateRange(
       prevStart,
       prevEnd,
       userId: userId,
     );
-    final prevTotal = prevExpenses.fold<BigInt>(BigInt.zero, (sum, e) => sum + e.amountCents);
+    final prevTotal = prevExpenses.fold<BigInt>(
+      BigInt.zero,
+      (sum, e) => sum + (e.amountCents > BigInt.zero ? e.amountCents : BigInt.from(e.amount)),
+    );
     
     double burnRateDelta = 0.0;
     if (prevTotal > BigInt.zero) {

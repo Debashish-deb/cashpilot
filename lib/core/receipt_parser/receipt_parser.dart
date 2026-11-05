@@ -143,11 +143,32 @@ class ReceiptParser {
   // DATE EXTRACTION
   // ================================================================
 
+  static const _monthMap = {
+    'jan': '01', 'january': '01',
+    'feb': '02', 'february': '02',
+    'mar': '03', 'march': '03',
+    'apr': '04', 'april': '04',
+    'may': '05',
+    'jun': '06', 'june': '06',
+    'jul': '07', 'july': '07',
+    'aug': '08', 'august': '08',
+    'sep': '09', 'sept': '09', 'september': '09',
+    'oct': '10', 'october': '10',
+    'nov': '11', 'november': '11',
+    'dec': '12', 'december': '12',
+  };
+
+  String _normalizeMonth(String raw) {
+    final lower = raw.trim().toLowerCase();
+    return _monthMap[lower] ?? raw.padLeft(2, '0');
+  }
+
   ExtractionResult<DateTime>? _extractDate(String text) {
     final patterns = [
       RegExp(r'(\d{4})[-/.](\d{2})[-/.](\d{2})'),
       RegExp(r'(\d{2})[-/.](\d{2})[-/.](\d{4})'),
-      RegExp(r'(\d{2})\s([A-Za-z]{3,9})\s(\d{4})'),
+      RegExp(r'(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{4})'),
+      RegExp(r'([A-Za-z]{3,9})\s+(\d{1,2}),?\s+(\d{4})'),
     ];
 
     for (final p in patterns) {
@@ -168,13 +189,17 @@ class ReceiptParser {
       final g2 = m.group(2)!;
       final g3 = m.group(3)!;
       
-      // If group 1 is 4-digit year: YYYY-MM-DD
+      // Pattern: YYYY-MM-DD
       if (g1.length == 4) {
-        return "$g1-$g2-$g3";
+        return "$g1-${_normalizeMonth(g2)}-${g3.padLeft(2, '0')}";
       }
-      // If group 3 is 4-digit year: DD/MM/YYYY -> YYYY-MM-DD
+      // Pattern: Month DD, YYYY (e.g. May 15, 2026)
+      if (g3.length == 4 && _monthMap.containsKey(g1.toLowerCase())) {
+        return "$g3-${_normalizeMonth(g1)}-${g2.padLeft(2, '0')}";
+      }
+      // Pattern: DD Month YYYY (e.g. 15 May 2026) or DD/MM/YYYY
       if (g3.length == 4) {
-        return "$g3-$g2-$g1";
+        return "$g3-${_normalizeMonth(g2)}-${g1.padLeft(2, '0')}";
       }
       return "$g1-$g2-$g3";
     }
@@ -196,8 +221,24 @@ class ReceiptParser {
   }
 
   bool _looksLikeMerchant(String line) {
-    if (line.length < 4 || line.length > 50) return false;
-    if (RegExp(r'\d').hasMatch(line)) return false;
+    final trimmed = line.trim();
+    if (trimmed.length < 3 || trimmed.length > 50) return false;
+    
+    // Allow merchants with numbers (e.g. "7-Eleven", "Forever 21", "Bar 99")
+    // but reject lines that are mostly numbers (like phone numbers, barcodes, tax IDs)
+    final digits = RegExp(r'\d').allMatches(trimmed).length;
+    if (digits > 4 || digits > trimmed.length / 2) return false;
+
+    // Filter out common receipt header lines that aren't merchant names
+    final lower = trimmed.toLowerCase();
+    const blacklist = [
+      'tax invoice', 'sales receipt', 'order receipt', 'customer receipt',
+      'cash receipt', 'terminal', 'welcome', 'thank you',
+      'thanks for visit', 'subtotal', 'total', 'tel:', 'phone:', 'fax:',
+      'www.', '.com', 'http', 'pos transaction', 'duplicate'
+    ];
+    if (blacklist.any(lower.contains)) return false;
+
     return true;
   }
 

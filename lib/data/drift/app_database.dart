@@ -1130,6 +1130,7 @@ class AppDatabase extends _$AppDatabase {
         enteredBy: enteredBy,
         title: title,
         amount: totalAmount,
+        amountCents: Value(BigInt.from(totalAmount)),
         currency: Value(currency),
         date: date,
         accountId: Value(accountId),

@@ -53,11 +53,8 @@ class Money {
   factory Money.parse(String amount, Currency currency, {bool allowNegative = true}) {
     try {
       final trimmed = amount.trim();
-      final isNegative = trimmed.startsWith('-') || 
-                         trimmed.contains('-\$') || 
-                         trimmed.contains('\$-') ||
-                         trimmed.contains('- ') ||
-                         (trimmed.startsWith('(') && trimmed.endsWith(')'));
+      final isNegative = trimmed.contains("-") || 
+                         (trimmed.startsWith("(") && trimmed.endsWith(")"));
 
       // Clean string: retain digits and decimal point
       String cleaned = trimmed.replaceAll(RegExp(r'[^\d.]'), '');
@@ -70,7 +67,7 @@ class Money {
       // Convert to cents based on currency precision
       final factor = BigInt.from(10).pow(currency.decimalPlaces);
       final product = decimal * Decimal.fromBigInt(factor);
-      var centsValue = product.toBigInt().toInt();
+      var centsValue = product.round().toBigInt().toInt();
       
       if (isNegative) {
         centsValue = -centsValue;

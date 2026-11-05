@@ -67,10 +67,20 @@ class TimeValueCalculator {
     int compoundsPerYear = 12,
     Money? monthlyContribution,
   }) {
+    if (currentAmount.currency != targetAmount.currency) {
+      throw MoneyOperationException(
+        'Currency mismatch in calculateYearsToGoal: ${currentAmount.currency} and ${targetAmount.currency}',
+      );
+    }
+    if (monthlyContribution != null && monthlyContribution.currency != currentAmount.currency) {
+      throw MoneyOperationException(
+        'Currency mismatch: monthlyContribution is ${monthlyContribution.currency} but goal is ${currentAmount.currency}',
+      );
+    }
     if (targetAmount.cents <= currentAmount.cents) return 0.0;
     if (compoundsPerYear <= 0) throw ArgumentError('compoundsPerYear must be positive');
     
-    if (annualRate == Decimal.zero) {
+    if (annualRate <= Decimal.zero) {
       if (monthlyContribution != null && monthlyContribution.cents > 0) {
         final neededCents = targetAmount.cents - currentAmount.cents;
         final months = neededCents / monthlyContribution.cents;
@@ -98,9 +108,18 @@ class TimeValueCalculator {
     required Money monthlyExtra,
     bool useAvalanche = true, // true for Interest Rate, false for Smallest Balance
   }) {
+    for (final debt in debts) {
+      if (debt.balance.currency != monthlyExtra.currency ||
+          debt.minPayment.currency != monthlyExtra.currency) {
+        throw MoneyOperationException(
+          'Currency mismatch in calculateDebtPayoff: debt ${debt.id} (${debt.balance.currency}) vs monthlyExtra (${monthlyExtra.currency})',
+        );
+      }
+    }
+
     final activeDebts = debts.where((d) => d.balance.cents > 0).toList();
     if (activeDebts.isEmpty) {
-      final currency = debts.isNotEmpty ? debts.first.balance.currency : Currency.USD;
+      final currency = debts.isNotEmpty ? debts.first.balance.currency : monthlyExtra.currency;
       return DebtPayoffResult(months: 0, totalInterest: Money.zero(currency));
     }
 
