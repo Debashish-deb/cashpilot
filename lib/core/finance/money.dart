@@ -137,6 +137,9 @@ class Money {
   /// Allocate money across targets using Banker's Rounding (to prevent loss)
   List<Money> allocate(List<int> ratios) {
     if (ratios.isEmpty) return [];
+    if (ratios.any((r) => r < 0)) {
+      throw MoneyOperationException('Ratios must be non-negative');
+    }
     
     final totalRatio = ratios.fold(0, (sum, r) => sum + r);
     if (totalRatio == 0) throw MoneyOperationException('Total ratio cannot be zero');

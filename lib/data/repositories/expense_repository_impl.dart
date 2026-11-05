@@ -250,6 +250,12 @@ class ExpenseRepositoryImpl implements IExpenseRepository {
     String? merchantName,
     String? notes,
   }) async {
+    if (splits.isEmpty) {
+      throw ArgumentError('Splits list cannot be empty');
+    }
+    if (totalAmount > 0 && splits.any((s) => s.amount <= 0)) {
+      throw ArgumentError('Split amounts must be positive for positive total amount');
+    }
     final splitSum = splits.fold<int>(0, (sum, s) => sum + s.amount);
     if (splitSum != totalAmount) {
       throw ArgumentError(

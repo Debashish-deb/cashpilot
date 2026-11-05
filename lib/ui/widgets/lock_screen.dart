@@ -62,11 +62,12 @@ class _LockScreenState extends ConsumerState<LockScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
 
+    final currentUserId = ref.read(currentUserIdProvider);
     final appLockEnabled = ref.read(appLockEnabledProvider);
     final biometricEnabled = ref.read(biometricEnabledProvider);
     final timeout = ref.read(autoLockTimeoutProvider);
 
-    if (!appLockEnabled || !biometricEnabled) return;
+    if (currentUserId == null || !appLockEnabled || !biometricEnabled) return;
 
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
       // Don't record pause if we just unlocked (biometric dialog triggers pause/resume)
@@ -119,6 +120,12 @@ class _LockScreenState extends ConsumerState<LockScreen>
   // ---------------------------------------------------------------------------
 
   void _checkInitialLockState() {
+    final currentUserId = ref.read(currentUserIdProvider);
+    if (currentUserId == null) {
+      ref.read(sessionUnlockedProvider.notifier).state = true;
+      return;
+    }
+
     final appLockEnabled = ref.read(appLockEnabledProvider);
     final biometricEnabled = ref.read(biometricEnabledProvider);
     final isUnlocked = ref.read(sessionUnlockedProvider);
@@ -126,7 +133,7 @@ class _LockScreenState extends ConsumerState<LockScreen>
     // If already unlocked, don't change state
     if (isUnlocked) return;
 
-    // Only show lock screen if BOTH app lock AND biometric are enabled
+    // Only show lock screen if user is logged in AND BOTH app lock AND biometric are enabled
     if (appLockEnabled && biometricEnabled) {
       // App is locked, attempt to unlock with biometrics
       _attemptUnlock();
@@ -212,14 +219,15 @@ class _LockScreenState extends ConsumerState<LockScreen>
 
   @override
   Widget build(BuildContext context) {
+    final currentUserId = ref.watch(currentUserIdProvider);
     final appLockEnabled = ref.watch(appLockEnabledProvider);
     final biometricEnabled = ref.watch(biometricEnabledProvider);
     final isUnlocked = ref.watch(sessionUnlockedProvider);
 
-    debugPrint('[LockScreen] BUILD: appLock=$appLockEnabled, biometric=$biometricEnabled, unlocked=$isUnlocked');
+    debugPrint('[LockScreen] BUILD: user=$currentUserId, appLock=$appLockEnabled, biometric=$biometricEnabled, unlocked=$isUnlocked');
 
-    if (!appLockEnabled || !biometricEnabled || isUnlocked) {
-      debugPrint('[LockScreen] BUILD: Showing CHILD (unlocked or lock disabled)');
+    if (currentUserId == null || !appLockEnabled || !biometricEnabled || isUnlocked) {
+      debugPrint('[LockScreen] BUILD: Showing CHILD (unlocked, logged out, or lock disabled)');
       return widget.child;
     }
 

@@ -108,7 +108,13 @@ class TimeValueCalculator {
     required Money monthlyExtra,
     bool useAvalanche = true, // true for Interest Rate, false for Smallest Balance
   }) {
+    if (monthlyExtra.cents < 0) {
+      throw ArgumentError('Monthly extra payment cannot be negative');
+    }
     for (final debt in debts) {
+      if (debt.minPayment.cents < 0) {
+        throw ArgumentError('Debt minimum payment cannot be negative');
+      }
       if (debt.balance.currency != monthlyExtra.currency ||
           debt.minPayment.currency != monthlyExtra.currency) {
         throw MoneyOperationException(
