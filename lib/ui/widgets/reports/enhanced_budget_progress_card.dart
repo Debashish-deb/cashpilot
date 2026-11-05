@@ -137,15 +137,15 @@ class EnhancedBudgetProgressCard extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          formatManager.formatCurrency(spent / 100, currencyCode: currency),
+                          formatManager.formatIntCents(spent, currencyCode: currency),
                           style: AppTypography.labelMedium.copyWith(
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                         Text(
                           isOverBudget
-                              ? '-${formatManager.formatCurrency(remaining.abs() / 100, currencyCode: currency)}'
-                              : '${formatManager.formatCurrency(remaining / 100, currencyCode: currency)} ${l10n.reportsLeft}',
+                              ? '-${formatManager.formatIntCents(remaining.abs(), currencyCode: currency)}'
+                              : '${formatManager.formatIntCents(remaining, currencyCode: currency)} ${l10n.reportsLeft}',
                           style: AppTypography.labelMedium.copyWith(
                             color: isOverBudget ? AppTokens.semanticDanger : AppTokens.semanticSuccess,
                             fontWeight: FontWeight.w600,

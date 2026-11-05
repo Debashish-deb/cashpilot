@@ -49,6 +49,9 @@ class CategoryLimitCard extends StatelessWidget {
   }
 
   String _formatAmount(int cents) {
+    if (currencySymbol == '¥' || currencySymbol.toUpperCase() == 'JPY') {
+      return '$currencySymbol$cents';
+    }
     return '$currencySymbol${(cents / 100).toStringAsFixed(2)}';
   }
 

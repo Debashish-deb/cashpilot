@@ -32,8 +32,9 @@ class SavingsGoalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final progress = targetAmount > 0 ? (currentAmount / targetAmount).clamp(0.0, 1.0) : 0.0;
-    final percentage = (progress * 100).toInt();
+    final rawProgress = targetAmount > 0 ? (currentAmount / targetAmount) : 0.0;
+    final progress = rawProgress.clamp(0.0, 1.0);
+    final percentage = (rawProgress * 100).round();
     final remaining = targetAmount - currentAmount;
     final themeColor = color ?? Theme.of(context).primaryColor;
 
@@ -203,7 +204,8 @@ class SavingsGoalCard extends StatelessWidget {
   }
 
   String _formatCurrency(BuildContext context, int amountInCents, String currency) {
-    final amount = amountInCents / 100;
+    final divisor = currency == 'JPY' ? 1.0 : (currency == 'BHD' ? 1000.0 : 100.0);
+    final amount = amountInCents / divisor;
     return NumberFormat.simpleCurrency(
       locale: AppLocalizations.of(context)!.localeName,
       name: currency,

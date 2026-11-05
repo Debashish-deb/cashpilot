@@ -211,9 +211,9 @@ class BudgetCard extends ConsumerWidget {
         totalSpentAsync.when(
           data: (totalSpent) {
             final totalLimit = budget.totalLimit ?? 0;
-            final progress = totalLimit > 0
-                ? (totalSpent / totalLimit).clamp(0.0, 1.0)
-                : 0.0;
+            final rawProgress = totalLimit > 0 ? (totalSpent / totalLimit) : 0.0;
+            final progress = rawProgress.clamp(0.0, 1.0);
+            final percentDisplay = (rawProgress * 100).round();
 
             final remaining = totalLimit - totalSpent;
 
@@ -231,7 +231,7 @@ class BudgetCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      formatManager.formatCurrency(totalSpent / 100,
+                      formatManager.formatIntCents(totalSpent,
                           currencyCode: currency),
                       style: AppTypography.headlineMedium.copyWith(
                         color: textColor,
@@ -243,7 +243,7 @@ class BudgetCard extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 2),
                       child: Text(
-                        '/ ${formatManager.formatCurrency(totalLimit / 100, currencyCode: currency)}',
+                        '/ ${formatManager.formatIntCents(totalLimit, currencyCode: currency)}',
                         style: AppTypography.bodyMedium.copyWith(
                           color: subtitleColor,
                           fontWeight: FontWeight.w600,
@@ -252,7 +252,7 @@ class BudgetCard extends ConsumerWidget {
                     ),
                     const Spacer(),
                     Text(
-                      '${(progress * 100).toInt()}%',
+                      '$percentDisplay%',
                       style: AppTypography.titleMedium.copyWith(
                         color: textColor,
                         fontWeight: FontWeight.bold,
@@ -310,9 +310,9 @@ class BudgetCard extends ConsumerWidget {
                       ),
                       child: Text(
                         remaining >= 0
-                            ? formatManager.formatCurrency(remaining / 100,
+                            ? formatManager.formatIntCents(remaining,
                                 currencyCode: currency)
-                            : '${formatManager.formatCurrency(remaining.abs() / 100, currencyCode: currency)} Over',
+                            : '${formatManager.formatIntCents(remaining.abs(), currencyCode: currency)} Over',
                         style: AppTypography.labelSmall.copyWith(
                           color: textColor,
                           fontWeight: FontWeight.bold,
@@ -351,7 +351,7 @@ class BudgetCard extends ConsumerWidget {
                           const SizedBox(width: 4),
                           Text(
                             showDailySafe
-                                ? '~${formatManager.formatCurrency((remaining / daysLeft).floor() / 100, currencyCode: currency)} / day'
+                                ? '~${formatManager.formatCurrency(formatManager.centsToMajorUnits((remaining / daysLeft).floor(), currencyCode: currency), currencyCode: currency)} / day'
                                 : '—',
                             style: AppTypography.labelSmall.copyWith(
                               color: subtitleColor,

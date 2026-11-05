@@ -319,11 +319,12 @@ class BudgetListItem extends ConsumerWidget {
   }
 
   String _formatCurrency(BuildContext context, int cents, String currency) {
-    return NumberFormat.currency(
+    final divisor = currency == 'JPY' ? 1.0 : (currency == 'BHD' ? 1000.0 : 100.0);
+    return NumberFormat.simpleCurrency(
       locale: AppLocalizations.of(context)!.localeName,
-      symbol: _getCurrencySymbol(currency),
+      name: currency,
       decimalDigits: 0,
-    ).format(cents / 100);
+    ).format(cents / divisor);
   }
 
   String _getCurrencySymbol(String code) {

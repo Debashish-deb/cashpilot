@@ -131,7 +131,7 @@ class SavingsGoalsScreen extends ConsumerWidget {
                 children: [
                   const Text('Total Savings', style: TextStyle(color: Colors.white70)),
                   Text(
-                    formatter.formatCurrency(saved / 100, currencyCode: currency, decimalDigits: 0),
+                    formatter.formatIntCents(saved, currencyCode: currency, decimalDigits: 0),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 32,
@@ -169,7 +169,7 @@ class SavingsGoalsScreen extends ConsumerWidget {
                 style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
               Text(
-                'Target: ${formatter.formatCurrency(target / 100, currencyCode: currency, decimalDigits: 0)}',
+                'Target: ${formatter.formatIntCents(target, currencyCode: currency, decimalDigits: 0)}',
                 style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
             ],

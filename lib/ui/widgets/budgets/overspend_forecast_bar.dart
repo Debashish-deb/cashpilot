@@ -34,7 +34,7 @@ class OverspendForecastBar extends StatelessWidget {
 
     // Guard rails
     if (daysPassed <= 0 || totalDays <= 0) return const SizedBox.shrink();
-    if (daysPassed >= totalDays) return const SizedBox.shrink();
+    if (daysPassed > totalDays) return const SizedBox.shrink();
 
     // Prevent extreme volatility early in the budget
     final effectiveDays = daysPassed.clamp(3, totalDays);
@@ -99,11 +99,12 @@ class OverspendForecastBar extends StatelessWidget {
   }
 
   String _formatMoney(BuildContext context, int amount) {
-    final format = NumberFormat.currency(
+    final divisor = currency == 'JPY' ? 1.0 : (currency == 'BHD' ? 1000.0 : 100.0);
+    final format = NumberFormat.simpleCurrency(
       locale: AppLocalizations.of(context)!.localeName,
-      symbol: currency,
+      name: currency,
       decimalDigits: 0,
-    ).format(amount / 100.0);
+    ).format(amount / divisor);
     return format;
   }
 }

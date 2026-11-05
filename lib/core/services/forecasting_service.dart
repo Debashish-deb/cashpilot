@@ -105,13 +105,14 @@ class ForecastingService {
 
     final denominator = (n * sumX2 - sumX * sumX);
     double currentSlope = 0;
-    double currentIntercept = history.last.value.toDouble();
 
     if (denominator != 0) {
       currentSlope = (n * sumXY - sumX * sumY) / denominator;
     } else if (history.length >= 2) {
-      // Fallback to simple average growth if regression fails
-      currentSlope = (history.last.value - history.first.value).toDouble() / history.last.date.difference(history.first.date).inDays;
+      final daysDiff = history.last.date.difference(history.first.date).inDays;
+      if (daysDiff > 0) {
+        currentSlope = (history.last.value - history.first.value).toDouble() / daysDiff;
+      }
     }
 
     // Daily boost = Monthly boost / 30.44

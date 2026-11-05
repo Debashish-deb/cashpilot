@@ -128,8 +128,23 @@ class ReportsViewModel extends AsyncNotifier<ReportsState> {
     final volatilityScore = _service.calculateVolatility(trendData);
     final impulseMetrics = _service.calculateBehaviorMetrics(expenses);
     
-    // Burn rate delta (simplified - compare to previous period)
-    final burnRateDelta = dailyAverage > 0 ? ((dailyAverage - (dailyAverage * 0.95)) / (dailyAverage * 0.95)) * 100 : 0.0;
+    // Burn rate delta - compare against previous period of equal length
+    final duration = range.end.difference(range.start);
+    final prevStart = range.start.subtract(duration);
+    final prevEnd = range.start;
+    final prevExpenses = await _repository.fetchExpensesInDateRange(
+      prevStart,
+      prevEnd,
+      userId: userId,
+    );
+    final prevTotal = prevExpenses.fold<BigInt>(BigInt.zero, (sum, e) => sum + e.amountCents);
+    
+    double burnRateDelta = 0.0;
+    if (prevTotal > BigInt.zero) {
+      burnRateDelta = ((totalSpent - prevTotal).toDouble() / prevTotal.toDouble()) * 100;
+    } else if (totalSpent > BigInt.zero) {
+      burnRateDelta = 100.0;
+    }
     
     // At-risk budgets (mock - would need budget data)
     final atRiskBudgets = 0;

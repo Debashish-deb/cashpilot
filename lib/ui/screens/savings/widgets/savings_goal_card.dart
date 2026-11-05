@@ -144,9 +144,13 @@ class SavingsGoalCard extends ConsumerWidget {
   }
 
   String _formatCurrency(BuildContext context, int amountInCents, String currency) {
-    final amount = amountInCents / 100.0;
-    // Basic formatting - in a real app use intl package
-    return '${_getCurrencySymbol(currency)}${amount.toStringAsFixed(0)}';
+    final divisor = currency == 'JPY' ? 1.0 : (currency == 'BHD' ? 1000.0 : 100.0);
+    final amount = amountInCents / divisor;
+    return NumberFormat.simpleCurrency(
+      locale: AppLocalizations.of(context)!.localeName,
+      name: currency,
+      decimalDigits: 0,
+    ).format(amount);
   }
 
   String _getCurrencySymbol(String code) =>

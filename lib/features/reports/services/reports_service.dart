@@ -137,8 +137,8 @@ class ReportsService {
     // 2. Discipline (Budget Adherence)
     final discipline = budgetedAmount > 0 ? (1.0 - (totalSpent / budgetedAmount)).clamp(0.0, 1.0) : 0.5;
     
-    // 3. Momentum (Trend vs History)
-    final momentum = previousMonthAvg > 0 ? (previousMonthAvg / (totalSpent > 0 ? totalSpent : 1.0)).clamp(0.0, 2.0) : 1.0;
+    // 3. Momentum (Trend vs History, normalized to 0.0 - 1.0)
+    final momentum = previousMonthAvg > 0 ? (previousMonthAvg / (totalSpent > 0 ? totalSpent : 1.0)).clamp(0.0, 1.0) : 1.0;
 
     // Weighted Score
     final rawScore = (stability * 40) + (discipline * 40) + (momentum * 20);

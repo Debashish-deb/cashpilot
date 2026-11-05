@@ -138,17 +138,31 @@ class FinancialStateEngine implements IFinancialStateEngine {
       }
     }
 
-    // 6. Resolve Savings Rate (Simplified: Net Worth Growth / Income placeholder)
-    // For now, let's just use a dummy calculation until we have an Income model
-    double savingsRate = 0.15; // 15% default fallback
+    // 6. Resolve Savings Goals Progress & Savings Rate
+    final goals = await (_db.select(_db.savingsGoals)
+          ..where((g) => g.userId.equals(userId) & g.isDeleted.equals(false)))
+        .get();
+
+    double goalProgress = 0.0;
+    if (goals.isNotEmpty) {
+      final totalTarget = goals.fold<int>(0, (sum, g) => sum + g.targetAmount);
+      final totalSaved = goals.fold<int>(0, (sum, g) => sum + g.currentAmount);
+      goalProgress = totalTarget > 0 ? (totalSaved / totalTarget).clamp(0.0, 1.0) : 0.0;
+    }
+
+    // Dynamic savings buffer rate
+    double savingsRate = 0.0;
+    if (cashPosition > 0 && monthlyBurnRate > 0) {
+      savingsRate = (cashPosition / (cashPosition + monthlyBurnRate)).clamp(0.0, 1.0);
+    }
 
     // 7. Resolve Risk Profile
     RiskProfile profile = RiskProfile.moderate;
-    if (monthlyBurnRate > cashPosition && cashPosition > 0) {
+    if (monthlyBurnRate > cashPosition) {
       profile = RiskProfile.critical;
     } else if (cashPosition > monthlyBurnRate * 6) {
       profile = RiskProfile.conservative;
-    } else if (totalInvestments > totalAssets * 0.7) {
+    } else if (totalAssets > 0 && totalInvestments > totalAssets * 0.7) {
       profile = RiskProfile.aggressive;
     }
 
@@ -161,7 +175,7 @@ class FinancialStateEngine implements IFinancialStateEngine {
       netWorth: netWorth,
       budgetHealth: budgetHealth,
       riskProfile: profile,
-      goalProgress: 0.5, // Placeholder
+      goalProgress: goalProgress,
     );
   }
 }

@@ -79,8 +79,8 @@ class FinancialOverviewCard extends ConsumerWidget {
                             FittedBox(
                               fit: BoxFit.scaleDown,
                               child: Text(
-                                formatter.formatCurrency(
-                                  netWorthData.netWorth / 100.0,
+                                formatter.formatIntCents(
+                                  netWorthData.netWorth,
                                   currencyCode: currency,
                                   decimalDigits: 0,
                                 ),
@@ -119,8 +119,8 @@ class FinancialOverviewCard extends ConsumerWidget {
                             FittedBox(
                               fit: BoxFit.scaleDown,
                               child: Text(
-                                formatter.formatCurrency(
-                                  monthSpending / 100.0,
+                                formatter.formatIntCents(
+                                  monthSpending,
                                   currencyCode: currency,
                                   decimalDigits: 0,
                                 ),
@@ -207,8 +207,8 @@ class FinancialOverviewCard extends ConsumerWidget {
         ),
         const SizedBox(height: 2),
         Text(
-          formatter.formatCurrency(
-            amount / 100.0,
+          formatter.formatIntCents(
+            amount,
             currencyCode: currency,
             decimalDigits: 0,
           ),
